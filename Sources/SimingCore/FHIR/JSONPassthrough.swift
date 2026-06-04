@@ -7,6 +7,20 @@ private let iso8601: ISO8601DateFormatter = {
     return f
 }()
 
+// RFC 7231 HTTP-date formatter for Last-Modified header.
+private let httpDateFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(abbreviation: "GMT")
+    f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
+    return f
+}()
+
+/// Formats a Date as an RFC 7231 HTTP-date string for use in `Last-Modified` headers.
+public func httpDate(_ date: Date) -> String {
+    httpDateFormatter.string(from: date)
+}
+
 /// A FHIR resource row ready for wire: raw JSON bytes with meta already injected.
 public struct RawEntry: Sendable {
     public let id: String
@@ -66,6 +80,85 @@ public func buildBundleJSON(
     }
 
     s("}")
+    return out
+}
+
+/// One version entry for a FHIR `_history` Bundle.
+public struct HistoryRawEntry: Sendable {
+    public let versionId: Int64
+    public let lastUpdated: Date
+    public let jsonData: Data?   // nil for delete markers
+    public let deleted: Bool
+
+    public init(versionId: Int64, lastUpdated: Date, jsonData: Data?, deleted: Bool) {
+        self.versionId = versionId
+        self.lastUpdated = lastUpdated
+        self.jsonData = jsonData
+        self.deleted = deleted
+    }
+}
+
+/// Builds a FHIR `_history` Bundle as raw bytes.
+///
+/// - Parameters:
+///   - entries: Versions ordered newest-first. `jsonData` is nil for delete-marker versions.
+///   - resourceType: e.g. "Patient"
+///   - id: Resource logical id.
+///   - baseURL: Server base URL (no trailing slash), e.g. "http://localhost:8080"
+public func buildHistoryBundleJSON(
+    entries: [HistoryRawEntry],
+    resourceType: String,
+    id: String,
+    baseURL: String
+) -> Data {
+    var out = Data()
+    out.reserveCapacity(512 + entries.reduce(0) { $0 + ($1.jsonData?.count ?? 0) + 200 })
+
+    func s(_ string: String) { out.append(contentsOf: string.utf8) }
+
+    s("{\"resourceType\":\"Bundle\",\"type\":\"history\",\"total\":\(entries.count)")
+    s(",\"entry\":[")
+
+    for (i, entry) in entries.enumerated() {
+        if i > 0 { s(",") }
+        let fullUrl = "\(baseURL)/\(resourceType)/\(id)/_history/\(entry.versionId)"
+        let ts = iso8601.string(from: entry.lastUpdated)
+
+        s("{\"fullUrl\":\"\(escapeJSON(fullUrl))\"")
+
+        if let data = entry.jsonData {
+            s(",\"resource\":")
+            out.append(data)
+        }
+
+        // request element: infer method from position and deleted flag
+        let method: String
+        let requestUrl: String
+        if entry.deleted {
+            method = "DELETE"
+            requestUrl = "\(resourceType)/\(id)"
+        } else if entry.versionId == 1 {
+            method = "POST"
+            requestUrl = resourceType
+        } else {
+            method = "PUT"
+            requestUrl = "\(resourceType)/\(id)"
+        }
+        s(",\"request\":{\"method\":\"\(method)\",\"url\":\"\(escapeJSON(requestUrl))\"}")
+
+        // response element
+        if entry.deleted {
+            s(",\"response\":{\"status\":\"204 No Content\"}")
+        } else if entry.versionId == 1 {
+            s(",\"response\":{\"status\":\"201 Created\",\"etag\":\"W/\\\"\(entry.versionId)\\\"\",\"lastModified\":\"\(ts)\"}")
+        } else {
+            s(",\"response\":{\"status\":\"200 OK\",\"etag\":\"W/\\\"\(entry.versionId)\\\"\",\"lastModified\":\"\(ts)\"}")
+        }
+
+        s("}")
+    }
+
+    s("]}")
     return out
 }
 

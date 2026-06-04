@@ -33,6 +33,11 @@ public struct PatientStore: Sendable {
         public let nextCursor: PatientSearchQuery.SearchCursor?
     }
 
+    public struct DeleteResult: Sendable {
+        public let versionId: Int64
+        public let lastUpdated: Date
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// POST /Patient — server assigns a new UUID as the resource id.
@@ -44,6 +49,109 @@ public struct PatientStore: Sendable {
     /// PUT /Patient/:id — client provides the id; uses If-Match for optimistic locking.
     public func update(id: String, patient: Patient, ifMatch: Int64?) async throws -> WriteResult {
         return try await write(id: id, patient: patient, ifMatch: ifMatch)
+    }
+
+    /// DELETE /Patient/:id — logical delete; inserts a deleted=true version row.
+    /// Returns the new version info for ETag / Last-Modified.
+    /// If the resource is already deleted, returns the latest version (idempotent).
+    @discardableResult
+    public func delete(id: String, ifMatch: Int64?) async throws -> DeleteResult {
+        try await client.withConnection { conn in
+            _ = try await conn.query("BEGIN", logger: logger)
+            do {
+                let rows = try await conn.query(
+                    """
+                    SELECT version_id, deleted FROM resources
+                    WHERE resource_type = 'Patient' AND id = \(id)
+                    ORDER BY version_id DESC LIMIT 1
+                    """, logger: logger)
+                var currentVersion: Int64? = nil
+                var isDeleted = false
+                for try await (v, d) in rows.decode((Int64, Bool).self, context: .default) {
+                    currentVersion = v
+                    isDeleted = d
+                }
+                guard let current = currentVersion else {
+                    _ = try? await conn.query("ROLLBACK", logger: logger)
+                    throw FHIRServerError.notFound(resourceType: "Patient", id: id)
+                }
+                if isDeleted {
+                    _ = try? await conn.query("ROLLBACK", logger: logger)
+                    // Already deleted — idempotent, return existing version
+                    return DeleteResult(versionId: current, lastUpdated: Date())
+                }
+                if let expected = ifMatch, current != expected {
+                    _ = try? await conn.query("ROLLBACK", logger: logger)
+                    throw FHIRServerError.versionConflict(id: id, expected: expected, actual: current)
+                }
+
+                let nextVersion = current + 1
+                let insRows = try await conn.query(
+                    """
+                    INSERT INTO resources (resource_type, id, version_id, last_updated, content, deleted)
+                    VALUES ('Patient', \(id), \(nextVersion), now(), '{}'::jsonb, true)
+                    RETURNING last_updated
+                    """, logger: logger)
+                var lastUpdated = Date()
+                for try await (d) in insRows.decode(Date.self, context: .default) { lastUpdated = d }
+
+                _ = try await conn.query("DELETE FROM idx_token     WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
+                _ = try await conn.query("DELETE FROM idx_string    WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
+                _ = try await conn.query("DELETE FROM idx_date      WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
+                _ = try await conn.query("DELETE FROM idx_reference WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
+                _ = try await conn.query("DELETE FROM idx_quantity  WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
+
+                _ = try await conn.query("COMMIT", logger: logger)
+                return DeleteResult(versionId: nextVersion, lastUpdated: lastUpdated)
+            } catch {
+                _ = try? await conn.query("ROLLBACK", logger: logger)
+                throw error
+            }
+        }
+    }
+
+    /// GET /Patient/:id/_history/:vid — returns exact stored version; 410 if that version is a delete marker.
+    public func vread(id: String, versionId: Int64) async throws -> ReadResult {
+        try await client.withConnection { conn in
+            let rows = try await conn.query(
+                """
+                SELECT version_id, last_updated, content, deleted
+                FROM resources
+                WHERE resource_type = 'Patient' AND id = \(id) AND version_id = \(versionId)
+                """, logger: logger)
+            for try await (vid, lastUpdated, content, deleted) in
+                rows.decode((Int64, Date, String, Bool).self, context: .default)
+            {
+                if deleted { throw FHIRServerError.gone(resourceType: "Patient", id: id) }
+                let jsonData = injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
+                return ReadResult(jsonData: jsonData, versionId: vid, lastUpdated: lastUpdated)
+            }
+            throw FHIRServerError.notFound(resourceType: "Patient", id: id)
+        }
+    }
+
+    /// GET /Patient/:id/_history — all versions newest-first; 404 if id never existed.
+    public func history(id: String) async throws -> [HistoryRawEntry] {
+        try await client.withConnection { conn in
+            let rows = try await conn.query(
+                """
+                SELECT version_id, last_updated, content, deleted
+                FROM resources
+                WHERE resource_type = 'Patient' AND id = \(id)
+                ORDER BY version_id DESC
+                """, logger: logger)
+            var entries: [HistoryRawEntry] = []
+            for try await (vid, lastUpdated, content, deleted) in
+                rows.decode((Int64, Date, String, Bool).self, context: .default)
+            {
+                let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
+                entries.append(HistoryRawEntry(versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+            }
+            guard !entries.isEmpty else {
+                throw FHIRServerError.notFound(resourceType: "Patient", id: id)
+            }
+            return entries
+        }
     }
 
     /// GET /Patient/:id — returns the current (highest version_id) non-deleted row.

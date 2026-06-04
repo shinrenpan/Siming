@@ -24,11 +24,41 @@ func addObservationRoutes(
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
         let result = try await store.create(obs)
         var headers = HTTPFields()
-        headers[.contentType] = fhirJSON
-        headers[.eTag]        = "W/\"\(result.versionId)\""
-        headers[.location]    = "/Observation/\(result.id)/_history/\(result.versionId)"
+        headers[.contentType]  = fhirJSON
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
+        headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // GET /Observation/:id/_history/:vid — vread
+    group.get(":id/_history/:vid") { request, context in
+        let id = context.parameters.get("id") ?? ""
+        guard let vid = context.parameters.get("vid").flatMap(Int64.init) else {
+            throw FHIRRouteError.invalidBody("_history version id must be an integer")
+        }
+        let result = try await store.vread(id: id, versionId: vid)
+        var headers = HTTPFields()
+        headers[.contentType]  = fhirJSON
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // GET /Observation/:id/_history — instance history
+    group.get(":id/_history") { request, context in
+        let id = context.parameters.get("id") ?? ""
+        let entries = try await store.history(id: id)
+        let authority = request.head.authority ?? "localhost"
+        let baseURL = "http://\(authority)"
+        let bundleData = buildHistoryBundleJSON(
+            entries: entries, resourceType: "Observation", id: id, baseURL: baseURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
     }
 
     // GET /Observation/:id — read
@@ -36,8 +66,9 @@ func addObservationRoutes(
         let id = context.parameters.get("id") ?? ""
         let result = try await store.read(id: id)
         var headers = HTTPFields()
-        headers[.contentType] = fhirJSON
-        headers[.eTag]        = "W/\"\(result.versionId)\""
+        headers[.contentType]  = fhirJSON
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
@@ -52,11 +83,23 @@ func addObservationRoutes(
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
         let result = try await store.update(id: id, observation: obs, ifMatch: ifMatch)
         var headers = HTTPFields()
-        headers[.contentType] = fhirJSON
-        headers[.eTag]        = "W/\"\(result.versionId)\""
-        headers[.location]    = "/Observation/\(result.id)/_history/\(result.versionId)"
+        headers[.contentType]  = fhirJSON
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
+        headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // DELETE /Observation/:id — logical delete
+    group.delete(":id") { request, context in
+        let id = context.parameters.get("id") ?? ""
+        let ifMatch = parseETag(request.headers[.ifMatch])
+        let result = try await store.delete(id: id, ifMatch: ifMatch)
+        var headers = HTTPFields()
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
+        return Response(status: .noContent, headers: headers, body: .init())
     }
 
     // GET /Observation — search

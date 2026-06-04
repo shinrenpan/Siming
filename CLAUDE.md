@@ -237,6 +237,39 @@ These are basic conformance, not optional polish. Get them right from the first 
 - **Standard status codes:** 201 on create (+ `Location` header), 200/204 appropriately, 404 as `OperationOutcome`, 412 on `If-Match` failure.
 - **`id` semantics:** server-assigned vs client-assigned per FHIR rules; reject malformed ids.
 
+### FHIR R4 interaction compliance — two-layer strategy
+
+**Layer 1 — baseline interactions (implement now):** Any server claiming to be FHIR R4 must support these correctly. Schema already supports them; cost is low.
+
+| Interaction | Method + URL | Status |
+|---|---|---|
+| create | `POST /[type]` | ✅ done |
+| read | `GET /[type]/[id]` | ✅ done |
+| update | `PUT /[type]/[id]` | ✅ done |
+| search | `GET /[type]?[params]` | ✅ done |
+| delete | `DELETE /[type]/[id]` | 🔲 next |
+| vread | `GET /[type]/[id]/_history/[vid]` | 🔲 next |
+| history (instance) | `GET /[type]/[id]/_history` | 🔲 next |
+| `Last-Modified` response header | all write + read responses | 🔲 next |
+
+**Layer 2 — compliance depth (deferred, C-stage):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional create/update/delete, `Prefer` header, history at type/system level. Do not build now.
+
+**The judgment rule:** "Is this about the server's *basic behaviour being correct*, or about *feature completeness*?" DELETE returning 204 and subsequent GET returning 410 is basic correctness. `_include` is feature completeness.
+
+### DELETE semantics (FHIR R4 spec)
+
+FHIR specifies **logical delete** — insert a new version row with `deleted = true`. Effects:
+- `GET /[type]/[id]` → **410 Gone** (not 404)
+- `GET /[type]/[id]/_history/[vid]` → still accessible for the specific version
+- Deleted resource no longer appears in search results
+- Can be "resurrected" via `PUT /[type]/[id]` (creates a new live version)
+- Response: **204 No Content** (no body); optionally 200 with OperationOutcome
+
+### VRead and History semantics
+
+- **vread** `GET /[type]/[id]/_history/[vid]`: return the exact stored version; 404 if id unknown, 410 if that version was a delete marker
+- **history** `GET /[type]/[id]/_history`: return a Bundle of type `history`, one entry per version, newest first; each entry includes `request` and `response` elements per FHIR spec
+
 ## Pagination
 
 Cursor / keyset based: `WHERE (last_updated, id) > (?, ?)`. **Never offset-based.** HAPI's pagination tokens are a known pain point; this is an architectural win available in fair comparison.
@@ -454,9 +487,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 10. ✅ Raw JSON passthrough (performance round 2): `JSONPassthrough.swift` provides `injectMeta()` (byte-level meta injection, zero parse) + `buildBundleJSON()` (raw-bytes Bundle assembly). `PatientStore`/`ObservationStore` result types now carry `Data` not FHIRModels objects; read/search/write all use passthrough. Routes use `buildBundleJSON()` instead of FHIRModels Bundle Codable. Results: GET/:id **16,577 RPS** (1.77x over v2, **2.35x over HAPI**); name search **2,420 RPS** (3.57x over v2, **1.55x over HAPI**); date search **1,623 RPS** (2.39x over v2, 0.86x vs HAPI). FHIRModels role preserved: write-path parse/validate + search extraction — the generator moat is untouched.
 
-After these nine steps the architecture is validated and the DB layer is optimised.
-
-**Next optimisation target:** raw JSON passthrough for search reads — store JSON without meta, inject meta as string on read, bypass FHIRModels decode/encode. Expected: 3–5x search throughput increase.
+11. 🔲 FHIR R4 baseline interactions — complete the missing Layer 1 interactions: `DELETE /[type]/[id]` (logical delete: insert deleted=true version row; 204 response; subsequent GET → 410); `GET /[type]/[id]/_history/[vid]` (vread: return exact stored version); `GET /[type]/[id]/_history` (instance history: Bundle of type `history`, all versions newest-first); `Last-Modified` response header on all read/write responses. Both PatientStore and ObservationStore share the same pattern. MetadataRoutes CapabilityStatement updated to declare these interactions.
 
 ## Working rules for Claude Code
 
