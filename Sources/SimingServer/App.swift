@@ -1,7 +1,9 @@
 import Foundation
 import Hummingbird
 import Logging
+import Metrics
 import PostgresNIO
+import Prometheus
 import SimingCore
 
 @main
@@ -9,6 +11,10 @@ struct SimingApp {
     static func main() async throws {
         var logger = Logger(label: "siming")
         logger.logLevel = .info
+
+        // Bootstrap Prometheus as the global metrics backend (must happen before any metric is created).
+        let registry = PrometheusCollectorRegistry()
+        MetricsSystem.bootstrap(PrometheusMetricsFactory(registry: registry))
 
         let dbConfig = try DatabaseConfiguration.fromEnvironment()
         let postgresClient = PostgresClient(
@@ -26,8 +32,10 @@ struct SimingApp {
         let patientStore = PatientStore(client: postgresClient, logger: logger)
 
         let router = Router()
+        router.middlewares.add(MetricsMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
         addMetadataRoutes(to: router)
+        addMetricsRoute(to: router, registry: registry)
         addPatientRoutes(to: router, store: patientStore, logger: logger)
 
         let app = Application(

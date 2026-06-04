@@ -13,6 +13,8 @@ let package = Package(
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.0"),
         .package(url: "https://github.com/vapor/postgres-nio.git", from: "1.33.0"),
         .package(url: "https://github.com/apple/FHIRModels.git", from: "0.9.2"),
+        .package(url: "https://github.com/apple/swift-metrics.git", from: "2.11.0"),
+        .package(url: "https://github.com/swift-server/swift-prometheus.git", from: "2.3.0"),
     ],
     targets: [
         .executableTarget(
@@ -20,6 +22,8 @@ let package = Package(
             dependencies: [
                 .target(name: "SimingCore"),
                 .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Metrics", package: "swift-metrics"),
+                .product(name: "Prometheus", package: "swift-prometheus"),
             ]
         ),
         .target(
