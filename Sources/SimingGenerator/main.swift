@@ -19,5 +19,12 @@ let patientParams = try loadParams(resourceType: "Patient", bundlePath: bundlePa
 let patientCode = generatePatientExtractor(params: patientParams)
 let patientOut  = "\(outputDir)/Patient+SearchExtractor.swift"
 try patientCode.write(toFile: patientOut, atomically: true, encoding: .utf8)
-
 print("Generated \(patientOut) — \(patientParams.count) Patient params")
+
+let obsParams = try loadParams(resourceType: "Observation", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let obsCode = generateObservationExtractor(params: obsParams)
+let obsOut  = "\(outputDir)/Observation+SearchExtractor.swift"
+try obsCode.write(toFile: obsOut, atomically: true, encoding: .utf8)
+print("Generated \(obsOut) — \(obsParams.count) Observation params")

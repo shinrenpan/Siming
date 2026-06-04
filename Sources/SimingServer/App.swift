@@ -29,7 +29,8 @@ struct SimingApp {
             migrationsPath: migrationsPath
         )
 
-        let patientStore = PatientStore(client: postgresClient, logger: logger)
+        let patientStore     = PatientStore(client: postgresClient, logger: logger)
+        let observationStore = ObservationStore(client: postgresClient, logger: logger)
 
         let router = Router()
         router.middlewares.add(MetricsMiddleware())
@@ -37,6 +38,7 @@ struct SimingApp {
         addMetadataRoutes(to: router)
         addMetricsRoute(to: router, registry: registry)
         addPatientRoutes(to: router, store: patientStore, logger: logger)
+        addObservationRoutes(to: router, store: observationStore, logger: logger)
 
         let app = Application(
             router: router,

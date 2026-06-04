@@ -273,24 +273,29 @@ Siming/
 │   │   ├── Middleware/
 │   │   │   └── MetricsMiddleware.swift     # per-request trace ID + Prometheus counter/histogram
 │   │   └── Routes/
-│   │       ├── MetadataRoutes.swift    # GET /metadata → CapabilityStatement
-│   │       ├── MetricsRoutes.swift     # GET /metrics → Prometheus text format
-│   │       └── PatientRoutes.swift     # POST/GET/PUT /Patient; FHIRRouteError + FHIRServerError → HTTPResponseError
+│   │       ├── MetadataRoutes.swift        # GET /metadata → CapabilityStatement
+│   │       ├── MetricsRoutes.swift         # GET /metrics → Prometheus text format
+│   │       ├── ObservationRoutes.swift     # POST/GET /Observation + search bundle
+│   │       └── PatientRoutes.swift         # POST/GET/PUT /Patient; FHIRRouteError + FHIRServerError → HTTPResponseError
 │   ├── SimingCore/                 # library — storage, FHIR logic (imported by server)
 │   │   ├── FHIR/
-│   │   │   └── FHIRErrors.swift        # FHIRServerError enum + buildOutcome helper
+│   │   │   └── FHIRErrors.swift            # FHIRServerError enum + buildOutcome helper
 │   │   ├── Storage/
 │   │   │   ├── DatabaseConfiguration.swift
-│   │   │   ├── IndexRows.swift         # row structs for idx_* tables
+│   │   │   ├── IndexRows.swift             # row structs for idx_* tables
 │   │   │   ├── MigrationRunner.swift
-│   │   │   ├── PatientSearchQuery.swift # search params + cursor + sort + identifier/birthdate parsers
-│   │   │   ├── PatientStore.swift      # create / update / read / search; dynamic SQL builder
-│   │   │   └── SearchParams.swift      # SearchParams aggregate
+│   │   │   ├── ObservationSearchQuery.swift # search params + cursor + sort (reuses PatientSearchQuery types)
+│   │   │   ├── ObservationStore.swift      # create / update / read / search; filter-CTE SQL
+│   │   │   ├── PatientSearchQuery.swift    # search params + cursor + sort + identifier/birthdate parsers
+│   │   │   ├── PatientStore.swift          # create / update / read / search; dynamic SQL builder
+│   │   │   └── SearchParams.swift          # SearchParams aggregate
 │   │   └── Generated/              # committed, never hand-edited
-│   │       └── Patient+SearchExtractor.swift  # regenerate: swift run SimingGenerator
+│   │       ├── Observation+SearchExtractor.swift  # 38 params; regenerate: swift run SimingGenerator
+│   │       └── Patient+SearchExtractor.swift      # 23 params; regenerate: swift run SimingGenerator
 │   └── SimingGenerator/            # executable — dev/build tool, NOT in server binary
 │       ├── BundleTypes.swift
 │       ├── Emit.swift
+│       ├── ObservationHandlers.swift   # Observation-specific FHIRPath → Swift extractor logic
 │       ├── PatientHandlers.swift
 │       └── main.swift
 └── Tests/
@@ -431,7 +436,9 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 7. ✅ Observability: `MetricsMiddleware` (trace ID + structured logs) + `GET /metrics` (Prometheus counter + latency histogram). `swift-prometheus 2.3.0` + `swift-metrics 2.11.0`. Path normalisation prevents label cardinality explosion. "You can always tell what the server is doing" is now a fact, not a claim.
 
-After these six steps the architecture is validated and new resources are nearly free.
+8. ✅ Observation resource: POST/GET/search fully wired. Generator produced 38 params (`ObservationHandlers.swift` → `Observation+SearchExtractor.swift`). `ObservationStore` (create/update/read/search with filter-CTE SQL). Search params: subject (idx_reference), code (idx_token), status (idx_token), category (idx_token), date/effectiveDateTime/period (idx_date). Validates the generator "near-zero cost" promise: adding a second resource required only handlers + store + routes, zero schema change.
+
+After these eight steps the architecture is validated: generator works across resources, filter-CTE search scales, observability is live.
 
 ## Working rules for Claude Code
 
