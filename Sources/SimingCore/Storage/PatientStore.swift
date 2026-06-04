@@ -296,7 +296,7 @@ public struct PatientStore: Sendable {
                 """))
         }
 
-        // ── Build `current` CTE — JOIN to filter CTEs to narrow the scan ─────
+        // ── `ids` CTE — no content; enables index-only scan on resources_live_idx ─
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
@@ -305,40 +305,46 @@ public struct PatientStore: Sendable {
         fromLines.append("WHERE r.resource_type = 'Patient' AND r.deleted = false")
         fromLines.append("ORDER BY r.id, r.version_id DESC")
 
-        let currentInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated, r.content"]
+        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
             + fromLines).joined(separator: "\n      ")
 
-        // ── Outer WHERE — cursor only (index filters are already applied above) ─
+        // ── `paged` CTE — cursor + sort + limit on lightweight rows ──────────
 
-        var outerWhere: [String] = []
+        var cursorCond = ""
         if let cursor = query.cursor {
             let tsP = bind(cursor.lastUpdated)
             let idP = bind(cursor.id)
             if cursor.descending {
-                outerWhere.append("(c.last_updated < \(tsP) OR (c.last_updated = \(tsP) AND c.id > \(idP)))")
+                cursorCond = "WHERE (i.last_updated < \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))\n  "
             } else {
-                outerWhere.append("(c.last_updated > \(tsP) OR (c.last_updated = \(tsP) AND c.id > \(idP)))")
+                cursorCond = "WHERE (i.last_updated > \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))\n  "
             }
         }
 
-        // ── Assemble final SQL ────────────────────────────────────────────────
+        let descending = (query.sort == .lastUpdatedDescending)
+        let orderSQL = "ORDER BY i.last_updated \(descending ? "DESC" : "ASC"), i.id ASC"
+        let limitP = bind(Int64(query.count + 1))  // +1 to detect next page
+
+        let pagedInner = """
+            SELECT i.id, i.version_id, i.last_updated, COUNT(*) OVER () AS total
+            FROM ids i
+            \(cursorCond)\(orderSQL)
+            LIMIT \(limitP)
+            """
+
+        // ── Assemble final SQL — fetch content only for the page ─────────────
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
-        cteParts.append("current AS (\n    \(currentInner)\n  )")
+        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("paged AS (\n    \(pagedInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
-
-        let whereSQL = outerWhere.isEmpty ? "" : "WHERE " + outerWhere.joined(separator: "\n  AND ")
-        let descending = (query.sort == .lastUpdatedDescending)
-        let orderSQL = "ORDER BY c.last_updated \(descending ? "DESC" : "ASC"), c.id ASC"
-        let limitP = bind(Int64(query.count + 1))  // +1 to detect next page
 
         let sql = """
             \(withClause)
-            SELECT c.id, c.version_id, c.last_updated, c.content, COUNT(*) OVER () AS total
-            FROM current c
-            \(whereSQL)
-            \(orderSQL)
-            LIMIT \(limitP)
+            SELECT p.id, p.version_id, p.last_updated, r.content, p.total
+            FROM paged p
+            JOIN resources r ON r.resource_type = 'Patient'
+              AND r.id = p.id AND r.version_id = p.version_id
             """
         return (sql, binds)
     }

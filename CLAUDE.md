@@ -378,14 +378,20 @@ When benchmarking against HAPI, compare **under the same feature set only**. HAP
 
 ### Baseline results (2026-06-04, release build, 5000 patients, both PostgreSQL)
 
-| Scenario | Siming | HAPI | Ratio |
-|---|---|---|---|
-| POST /Patient (create) | 547 RPS | ~2300 RPS (51% ok — unreliable) | — |
-| GET /Patient/:id (read) | **9353 RPS** | 7055 RPS | **1.33x faster** |
-| GET /Patient?name=Wang | 630 RPS | 1560 RPS | 0.40x |
-| GET /Patient?birthdate=ge1990-01-01 | 562 RPS | 1894 RPS | 0.30x |
+| Scenario | Siming v1 | Siming v2 | HAPI | Ratio (v2) |
+|---|---|---|---|---|
+| POST /Patient (create) | 547 RPS | — | ~2300 RPS (51% ok — unreliable) | — |
+| GET /Patient/:id (read) | 9353 RPS | **9309 RPS** | 7055 RPS | **1.32x faster** |
+| GET /Patient?name=Wang | 630 RPS | **677 RPS** (+7.5%) | 1560 RPS | 0.43x |
+| GET /Patient?birthdate=ge1990-01-01 | 562 RPS | **680 RPS** (+21%) | 1894 RPS | 0.36x |
 
-Read-by-ID beats HAPI; search is the next optimisation target.
+**v2 optimisations (migration 0002 + deferred-content SQL):**
+- `resources_live_idx` partial covering index — enables index-only scan for the `ids` CTE; name search switched from seq scan + hash join to nested loop + index-only scan.
+- `idx_date_end_covering_idx` / `idx_date_start_covering_idx` — index-only scan on date filter CTEs (disk reads: 69 → 26 for birthdate search).
+- `idx_token_lookup_idx` / `idx_reference_lookup_idx` — covering indexes include `resource_id` for index-only DISTINCT scans.
+- Deferred-content SQL pattern: `ids` CTE (no content) → `paged` CTE (cursor + LIMIT) → final JOIN for content; sort memory for birthdate search dropped 762 kB → 204 kB.
+
+**Remaining gap vs HAPI:** ~30ms application overhead per search request (JSON decode + applyMeta + JSON encode for 20 FHIR resources). DB query itself is ~6ms. Next optimisation: raw JSON passthrough — return stored JSON directly with meta injected as string, bypassing FHIRModels decode/encode cycle.
 
 ## Observability (product differentiator — done, not aspirational)
 
@@ -438,7 +444,11 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 8. ✅ Observation resource: POST/GET/search fully wired. Generator produced 38 params (`ObservationHandlers.swift` → `Observation+SearchExtractor.swift`). `ObservationStore` (create/update/read/search with filter-CTE SQL). Search params: subject (idx_reference), code (idx_token), status (idx_token), category (idx_token), date/effectiveDateTime/period (idx_date). Validates the generator "near-zero cost" promise: adding a second resource required only handlers + store + routes, zero schema change.
 
-After these eight steps the architecture is validated: generator works across resources, filter-CTE search scales, observability is live.
+9. ✅ Search performance optimisation (round 1): migration `0002_search_indexes` adds covering indexes on all five idx_* tables (resource_id included → index-only scans) + `resources_live_idx` partial covering index (non-deleted rows only). Deferred-content SQL pattern: `ids` CTE selects only id/version_id/last_updated; `paged` CTE applies cursor + LIMIT; final JOIN fetches content for the page only. Results: birthdate search +21%, name search +7.5%; sort memory reduced from 762 kB → 204 kB. Remaining gap vs HAPI is in application-layer JSON decode/encode, not DB.
+
+After these nine steps the architecture is validated and the DB layer is optimised.
+
+**Next optimisation target:** raw JSON passthrough for search reads — store JSON without meta, inject meta as string on read, bypass FHIRModels decode/encode. Expected: 3–5x search throughput increase.
 
 ## Working rules for Claude Code
 
