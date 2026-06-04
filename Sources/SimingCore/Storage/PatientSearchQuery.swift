@@ -97,10 +97,12 @@ public struct PatientSearchQuery: Sendable {
                 guard let y = Int(parts[0]) else { return nil }
                 dc.year = y; dc.month = 1; dc.day = 1; dc.hour = 0; dc.minute = 0; dc.second = 0
             case 2:
-                guard let y = Int(parts[0]), let m = Int(parts[1]) else { return nil }
+                guard let y = Int(parts[0]), let m = Int(parts[1]),
+                      (1...12).contains(m) else { return nil }
                 dc.year = y; dc.month = m; dc.day = 1; dc.hour = 0; dc.minute = 0; dc.second = 0
             case 3:
-                guard let y = Int(parts[0]), let m = Int(parts[1]), let d = Int(parts[2]) else { return nil }
+                guard let y = Int(parts[0]), let m = Int(parts[1]), let d = Int(parts[2]),
+                      (1...12).contains(m), (1...31).contains(d) else { return nil }
                 dc.year = y; dc.month = m; dc.day = d; dc.hour = 12; dc.minute = 0; dc.second = 0
             default:
                 return nil

@@ -251,7 +251,7 @@ These are basic conformance, not optional polish. Get them right from the first 
 | vread | `GET /[type]/[id]/_history/[vid]` | ✅ done |
 | history (instance) | `GET /[type]/[id]/_history` | ✅ done |
 | `Last-Modified` response header | all write + read responses | ✅ done |
-| conditional read | `If-None-Match` / `If-Modified-Since` → 304 | 🔲 next |
+| conditional read | `If-None-Match` / `If-Modified-Since` → 304 | ✅ done |
 
 **Layer 2 — compliance depth (deferred, C-stage):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional create/update/delete, `Prefer` header, history at type/system level. Do not build now.
 
@@ -499,7 +499,9 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 11. ✅ FHIR R4 baseline interactions — `DELETE /[type]/[id]` (logical delete: insert deleted=true row in transaction + clear index tables; 204 response; subsequent GET → 410 Gone); `GET /[type]/[id]/_history/[vid]` (vread: exact version; 410 if delete marker); `GET /[type]/[id]/_history` (instance history: raw-bytes Bundle of type `history`, newest-first; request/response elements inferred from version metadata); `Last-Modified` RFC 7231 header on all write + read responses. `buildHistoryBundleJSON()` added to `JSONPassthrough.swift`. MetadataRoutes updated: delete/vread/history-instance declared for both Patient and Observation; Observation resource added to CapabilityStatement; `readHistory=true`.
 
-12. 🔲 Conditional read — `If-None-Match` (ETag match → 304 Not Modified) and `If-Modified-Since` (timestamp check → 304) on read + vread endpoints. Saves response body bandwidth for unchanged resources; ties naturally into the ETag + Last-Modified headers already set. `parseHTTPDate()` helper added to `JSONPassthrough.swift`.
+12. ✅ Conditional read — `If-None-Match` (ETag match → 304 Not Modified) and `If-Modified-Since` (timestamp check → 304) on `GET /[type]/[id]` and vread. RFC 7232 §6 precedence: If-None-Match wins when both headers present. Sub-second DB timestamps truncated to second precision before comparing with HTTP-date. `parseHTTPDate()` added to `JSONPassthrough.swift`. Applied to both Patient and Observation.
+
+13. 🔲 Automated unit tests — pure-logic tests with no DB dependency. Covers: `JSONPassthrough` (`injectMeta`, `buildBundleJSON`, `buildHistoryBundleJSON`, `httpDate`/`parseHTTPDate` roundtrip); `PatientSearchQuery` param parsing (`IdentifierParam`, `BirthdateParam`, `SortOrder`, `SearchCursor` encode/decode); `ObservationSearchQuery` param parsing (`TokenParam`, `DateParam`); `extractPatientSearchParams` basic extraction. All tests run with `swift test` — no Docker required.
 
 ## Working rules for Claude Code
 
