@@ -18,17 +18,17 @@ public struct ObservationStore: Sendable {
         public let id: String
         public let versionId: Int64
         public let lastUpdated: Date
-        public let observation: Observation
+        public let jsonData: Data
     }
 
     public struct ReadResult: Sendable {
-        public let observation: Observation
+        public let jsonData: Data
         public let versionId: Int64
         public let lastUpdated: Date
     }
 
     public struct SearchResult: Sendable {
-        public let observations: [ReadResult]
+        public let entries: [RawEntry]
         public let total: Int
         public let nextCursor: ObservationSearchQuery.SearchCursor?
     }
@@ -62,10 +62,8 @@ public struct ObservationStore: Sendable {
                 rows.decode((Int64, Date, String, Bool).self, context: .default)
             {
                 if deleted { throw FHIRServerError.gone(resourceType: "Observation", id: id) }
-                let data = Data(content.utf8)
-                var obs = try JSONDecoder().decode(Observation.self, from: data)
-                applyMeta(to: &obs, versionId: versionId, lastUpdated: lastUpdated)
-                found = ReadResult(observation: obs, versionId: versionId, lastUpdated: lastUpdated)
+                let jsonData = injectMeta(into: content, versionId: versionId, lastUpdated: lastUpdated)
+                found = ReadResult(jsonData: jsonData, versionId: versionId, lastUpdated: lastUpdated)
             }
 
             guard let result = found else {
@@ -81,17 +79,14 @@ public struct ObservationStore: Sendable {
             let pgQuery = PostgresQuery(unsafeSQL: sql, binds: binds)
             let rows = try await conn.query(pgQuery, logger: logger)
 
-            var results: [ReadResult] = []
+            var results: [RawEntry] = []
             var total = 0
             for try await (id, versionId, lastUpdated, content, rowTotal) in
                 rows.decode((String, Int64, Date, String, Int64).self, context: .default)
             {
                 total = Int(rowTotal)
-                let data = Data(content.utf8)
-                var obs = try JSONDecoder().decode(Observation.self, from: data)
-                obs.id = FHIRPrimitive(FHIRString(id))
-                applyMeta(to: &obs, versionId: versionId, lastUpdated: lastUpdated)
-                results.append(ReadResult(observation: obs, versionId: versionId, lastUpdated: lastUpdated))
+                let jsonData = injectMeta(into: content, versionId: versionId, lastUpdated: lastUpdated)
+                results.append(RawEntry(id: id, versionId: versionId, lastUpdated: lastUpdated, jsonWithMeta: jsonData))
             }
 
             let pageSize = min(query.count, results.count)
@@ -99,13 +94,11 @@ public struct ObservationStore: Sendable {
             let page     = Array(results.prefix(pageSize))
             let descending = (query.sort == .lastUpdatedDescending)
 
-            let nextCursor: ObservationSearchQuery.SearchCursor? = hasNext ? page.last.flatMap { last in
-                guard let id = last.observation.id?.value?.string else { return nil }
-                return ObservationSearchQuery.SearchCursor(
-                    lastUpdated: last.lastUpdated, id: id, descending: descending)
+            let nextCursor: ObservationSearchQuery.SearchCursor? = hasNext ? page.last.map { last in
+                ObservationSearchQuery.SearchCursor(lastUpdated: last.lastUpdated, id: last.id, descending: descending)
             } : nil
 
-            return SearchResult(observations: page, total: total, nextCursor: nextCursor)
+            return SearchResult(entries: page, total: total, nextCursor: nextCursor)
         }
     }
 
@@ -163,8 +156,8 @@ public struct ObservationStore: Sendable {
 
                 _ = try await conn.query("COMMIT", logger: logger)
 
-                applyMeta(to: &obs, versionId: nextVersion, lastUpdated: lastUpdated)
-                return WriteResult(id: id, versionId: nextVersion, lastUpdated: lastUpdated, observation: obs)
+                let responseData = injectMeta(into: jsonString, versionId: nextVersion, lastUpdated: lastUpdated)
+                return WriteResult(id: id, versionId: nextVersion, lastUpdated: lastUpdated, jsonData: responseData)
             } catch {
                 _ = try? await conn.query("ROLLBACK", logger: logger)
                 throw error
@@ -341,15 +334,4 @@ public struct ObservationStore: Sendable {
         return (sql, binds)
     }
 
-    private func applyMeta(to obs: inout Observation, versionId: Int64, lastUpdated: Date) {
-        var meta = obs.meta ?? Meta()
-        meta.versionId = FHIRPrimitive(FHIRString(String(versionId)))
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let instantStr = formatter.string(from: lastUpdated)
-        if let instant = try? Instant(instantStr) {
-            meta.lastUpdated = FHIRPrimitive(instant)
-        }
-        obs.meta = meta
-    }
 }

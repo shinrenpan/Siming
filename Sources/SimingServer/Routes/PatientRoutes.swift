@@ -6,7 +6,6 @@ import NIOCore
 import SimingCore
 
 private let maxCount = 100
-
 private let fhirJSON = "application/fhir+json"
 private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
 
@@ -19,9 +18,13 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
-
         let result = try await store.create(patient)
-        return try fhirResponse(result.patient, status: .created, versionId: result.versionId, id: result.id)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        headers[.eTag]        = "W/\"\(result.versionId)\""
+        headers[.location]    = "/Patient/\(result.id)/_history/\(result.versionId)"
+        return Response(status: .created, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
     // GET /Patient — search
@@ -35,42 +38,47 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         let cursor = qp["_cursor"].flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
 
         let query = PatientSearchQuery(
-            name: name,
-            identifier: identifier,
-            birthdate: birthdates,
-            sort: sort,
-            count: count,
-            cursor: cursor
-        )
+            name: name, identifier: identifier, birthdate: birthdates,
+            sort: sort, count: count, cursor: cursor)
         let result = try await store.search(query: query)
-        let bundle = buildSearchBundle(result: result, query: query, selfURL: selfURL(request))
-        let data = try JSONEncoder().encode(bundle)
-        let buffer = ByteBuffer(bytes: data)
+
+        let base = selfURL(request)
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { (fullUrl: "/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total,
+                                         selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
-        return Response(status: .ok, headers: headers, body: ResponseBody(byteBuffer: buffer))
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
     }
 
     // GET /Patient/:id — read
     group.get(":id") { request, context in
         let id = context.parameters.get("id") ?? ""
         let result = try await store.read(id: id)
-        return try fhirResponse(result.patient, status: .ok, versionId: result.versionId, id: id)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        headers[.eTag]        = "W/\"\(result.versionId)\""
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
-    // PUT /Patient/:id — update (or conditional create)
+    // PUT /Patient/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
-
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
-
         let result = try await store.update(id: id, patient: patient, ifMatch: ifMatch)
-        let status: HTTPResponse.Status = ifMatch == nil ? .ok : .ok
-        return try fhirResponse(result.patient, status: status, versionId: result.versionId, id: id)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        headers[.eTag]        = "W/\"\(result.versionId)\""
+        headers[.location]    = "/Patient/\(result.id)/_history/\(result.versionId)"
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 }
 
@@ -92,71 +100,16 @@ private func decodeFHIR<T: Decodable>(_ type: T.Type, from buffer: ByteBuffer) t
     }
 }
 
-/// Build a standard FHIR JSON response with ETag and Location headers.
-private func fhirResponse<T: Encodable>(
-    _ resource: T,
-    status: HTTPResponse.Status,
-    versionId: Int64,
-    id: String
-) throws -> Response {
-    let data = try JSONEncoder().encode(resource)
-    let buffer = ByteBuffer(bytes: data)
-    var headers = HTTPFields()
-    headers[.contentType] = fhirJSON
-    headers[.eTag] = "W/\"\(versionId)\""
-    headers[.location] = "/Patient/\(id)/_history/\(versionId)"
-    return Response(status: status, headers: headers, body: ResponseBody(byteBuffer: buffer))
-}
-
-/// Reconstructs the full request URL string for Bundle.link.self.
 private func selfURL(_ request: Request) -> String {
     let authority = request.head.authority ?? "localhost"
     return "http://\(authority)\(request.uri)"
 }
 
-/// Builds a FHIR searchset Bundle from a PatientStore.SearchResult.
-private func buildSearchBundle(
-    result: PatientStore.SearchResult,
-    query: PatientSearchQuery,
-    selfURL: String
-) -> ModelsR4.Bundle {
-    let entries: [BundleEntry] = result.patients.map { r in
-        let id = r.patient.id?.value?.string ?? ""
-        return BundleEntry(
-            fullUrl: FHIRPrimitive(FHIRURI(stringLiteral: "/Patient/\(id)")),
-            resource: .patient(r.patient),
-            search: BundleEntrySearch(mode: FHIRPrimitive(.match))
-        )
-    }
-
-    var links = [BundleLink(
-        relation: FHIRPrimitive(FHIRString("self")),
-        url: FHIRPrimitive(FHIRURI(stringLiteral: selfURL))
-    )]
-
-    if let cursor = result.nextCursor {
-        let nextURL = nextPageURL(selfURL: selfURL, cursor: cursor, count: query.count)
-        links.append(BundleLink(
-            relation: FHIRPrimitive(FHIRString("next")),
-            url: FHIRPrimitive(FHIRURI(stringLiteral: nextURL))
-        ))
-    }
-
-    return ModelsR4.Bundle(
-        entry: entries.isEmpty ? nil : entries,
-        link: links,
-        total: FHIRPrimitive(FHIRUnsignedInteger(Int32(result.total))),
-        type: FHIRPrimitive(.searchset)
-    )
-}
-
-/// Builds the "next" page URL by replacing/adding _cursor and preserving other params.
 private func nextPageURL(selfURL: String, cursor: PatientSearchQuery.SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }
     items.append(URLQueryItem(name: "_cursor", value: cursor.encode()))
-    // Preserve _count from the current request
     if !items.contains(where: { $0.name == "_count" }) {
         items.append(URLQueryItem(name: "_count", value: String(count)))
     }
@@ -164,7 +117,6 @@ private func nextPageURL(selfURL: String, cursor: PatientSearchQuery.SearchCurso
     return components.string ?? selfURL
 }
 
-/// Parse `W/"<versionId>"` or `"<versionId>"` → Int64.
 private func parseETag(_ raw: String?) -> Int64? {
     guard let raw else { return nil }
     let stripped = raw
@@ -174,7 +126,7 @@ private func parseETag(_ raw: String?) -> Int64? {
     return Int64(stripped)
 }
 
-// ── Route-level errors (converted to OperationOutcome by the error handler) ──
+// ── Route-level errors ────────────────────────────────────────────────────────
 
 enum FHIRRouteError: Error {
     case unsupportedMediaType
@@ -185,7 +137,7 @@ extension FHIRRouteError: HTTPResponseError {
     var status: HTTPResponse.Status {
         switch self {
         case .unsupportedMediaType: .unsupportedMediaType
-        case .invalidBody: .badRequest
+        case .invalidBody:          .badRequest
         }
     }
 
@@ -200,7 +152,8 @@ extension FHIRRouteError: HTTPResponseError {
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
-        return Response(status: status, headers: headers, body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+        return Response(status: status, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }
 
@@ -233,6 +186,7 @@ extension FHIRServerError: HTTPResponseError {
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
-        return Response(status: status, headers: headers, body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+        return Response(status: status, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
     }
 }

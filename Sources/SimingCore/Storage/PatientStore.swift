@@ -18,18 +18,18 @@ public struct PatientStore: Sendable {
         public let id: String
         public let versionId: Int64
         public let lastUpdated: Date
-        public let patient: Patient  // with id + meta set by server
+        public let jsonData: Data   // complete resource JSON with meta, ready to send
     }
 
     public struct ReadResult: Sendable {
-        public let patient: Patient  // with id + meta set from resources row
+        public let jsonData: Data   // complete resource JSON with meta, ready to send
         public let versionId: Int64
         public let lastUpdated: Date
     }
 
     public struct SearchResult: Sendable {
-        public let patients: [ReadResult]
-        public let total: Int          // total matching across all pages
+        public let entries: [RawEntry]
+        public let total: Int
         public let nextCursor: PatientSearchQuery.SearchCursor?
     }
 
@@ -67,10 +67,8 @@ public struct PatientStore: Sendable {
                 if deleted {
                     throw FHIRServerError.gone(resourceType: "Patient", id: id)
                 }
-                let data = Data(content.utf8)
-                var p = try JSONDecoder().decode(Patient.self, from: data)
-                applyMeta(to: &p, versionId: versionId, lastUpdated: lastUpdated)
-                found = ReadResult(patient: p, versionId: versionId, lastUpdated: lastUpdated)
+                let jsonData = injectMeta(into: content, versionId: versionId, lastUpdated: lastUpdated)
+                found = ReadResult(jsonData: jsonData, versionId: versionId, lastUpdated: lastUpdated)
             }
 
             guard let result = found else {
@@ -87,31 +85,26 @@ public struct PatientStore: Sendable {
             let pgQuery = PostgresQuery(unsafeSQL: sql, binds: binds)
             let rows = try await conn.query(pgQuery, logger: logger)
 
-            var results: [ReadResult] = []
+            var results: [RawEntry] = []
             var total = 0
             for try await (id, versionId, lastUpdated, content, rowTotal) in
                 rows.decode((String, Int64, Date, String, Int64).self, context: .default)
             {
                 total = Int(rowTotal)
-                let data = Data(content.utf8)
-                var p = try JSONDecoder().decode(Patient.self, from: data)
-                p.id = FHIRPrimitive(FHIRString(id))
-                applyMeta(to: &p, versionId: versionId, lastUpdated: lastUpdated)
-                results.append(ReadResult(patient: p, versionId: versionId, lastUpdated: lastUpdated))
+                let jsonData = injectMeta(into: content, versionId: versionId, lastUpdated: lastUpdated)
+                results.append(RawEntry(id: id, versionId: versionId, lastUpdated: lastUpdated, jsonWithMeta: jsonData))
             }
 
-            // Fetched count+1; the extra row means there's a next page.
             let pageSize = min(query.count, results.count)
             let hasNext = results.count > query.count
             let page = Array(results.prefix(pageSize))
             let descending = (query.sort == .lastUpdatedDescending)
 
-            let nextCursor: PatientSearchQuery.SearchCursor? = hasNext ? page.last.flatMap { last in
-                guard let id = last.patient.id?.value?.string else { return nil }
-                return PatientSearchQuery.SearchCursor(lastUpdated: last.lastUpdated, id: id, descending: descending)
+            let nextCursor: PatientSearchQuery.SearchCursor? = hasNext ? page.last.map { last in
+                PatientSearchQuery.SearchCursor(lastUpdated: last.lastUpdated, id: last.id, descending: descending)
             } : nil
 
-            return SearchResult(patients: page, total: total, nextCursor: nextCursor)
+            return SearchResult(entries: page, total: total, nextCursor: nextCursor)
         }
     }
 
@@ -188,9 +181,8 @@ public struct PatientStore: Sendable {
 
                 _ = try await conn.query("COMMIT", logger: logger)
 
-                // Build the response patient with server-assigned meta.
-                applyMeta(to: &p, versionId: nextVersion, lastUpdated: lastUpdated)
-                return WriteResult(id: id, versionId: nextVersion, lastUpdated: lastUpdated, patient: p)
+                let responseData = injectMeta(into: jsonString, versionId: nextVersion, lastUpdated: lastUpdated)
+                return WriteResult(id: id, versionId: nextVersion, lastUpdated: lastUpdated, jsonData: responseData)
 
             } catch {
                 _ = try? await conn.query("ROLLBACK", logger: logger)
@@ -349,16 +341,4 @@ public struct PatientStore: Sendable {
         return (sql, binds)
     }
 
-    /// Set server-managed meta fields on the patient before returning it.
-    private func applyMeta(to patient: inout Patient, versionId: Int64, lastUpdated: Date) {
-        var meta = patient.meta ?? Meta()
-        meta.versionId = FHIRPrimitive(FHIRString(String(versionId)))
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let instantStr = formatter.string(from: lastUpdated)
-        if let instant = try? Instant(instantStr) {
-            meta.lastUpdated = FHIRPrimitive(instant)
-        }
-        patient.meta = meta
-    }
 }

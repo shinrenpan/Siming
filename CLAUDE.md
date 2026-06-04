@@ -263,7 +263,8 @@ Siming/
 │   ├── bench.sh                    # run 4-scenario oha benchmark, output markdown
 │   └── results/                    # benchmark result files (gitignored)
 ├── migrations/
-│   └── 0001_init.sql               # resources + 5 index tables
+│   ├── 0001_init.sql               # resources + 5 index tables
+│   └── 0002_search_indexes.sql     # covering indexes for index-only scans (resources_live_idx + idx_* tables)
 ├── Resources/
 │   └── fhir/
 │       └── search-parameters-r4.json   # FHIR R4 SearchParameter bundle (generator input)
@@ -279,7 +280,8 @@ Siming/
 │   │       └── PatientRoutes.swift         # POST/GET/PUT /Patient; FHIRRouteError + FHIRServerError → HTTPResponseError
 │   ├── SimingCore/                 # library — storage, FHIR logic (imported by server)
 │   │   ├── FHIR/
-│   │   │   └── FHIRErrors.swift            # FHIRServerError enum + buildOutcome helper
+│   │   │   ├── FHIRErrors.swift            # FHIRServerError enum + buildOutcome helper
+│   │   │   └── JSONPassthrough.swift       # injectMeta() + buildBundleJSON() — raw-bytes read/search path
 │   │   ├── Storage/
 │   │   │   ├── DatabaseConfiguration.swift
 │   │   │   ├── IndexRows.swift             # row structs for idx_* tables
@@ -376,22 +378,26 @@ When benchmarking against HAPI, compare **under the same feature set only**. HAP
 
 **HAPI POST at ≥20 connections collapses (~50% failure rate).** The POST scenario numbers for HAPI at `BENCH_CONNS=20` are not trustworthy; treat the POST comparison as informational only.
 
-### Baseline results (2026-06-04, release build, 5000 patients, both PostgreSQL)
+### Benchmark results (2026-06-05, release build, 5000 patients, both PostgreSQL)
 
-| Scenario | Siming v1 | Siming v2 | HAPI | Ratio (v2) |
-|---|---|---|---|---|
-| POST /Patient (create) | 547 RPS | — | ~2300 RPS (51% ok — unreliable) | — |
-| GET /Patient/:id (read) | 9353 RPS | **9309 RPS** | 7055 RPS | **1.32x faster** |
-| GET /Patient?name=Wang | 630 RPS | **677 RPS** (+7.5%) | 1560 RPS | 0.43x |
-| GET /Patient?birthdate=ge1990-01-01 | 562 RPS | **680 RPS** (+21%) | 1894 RPS | 0.36x |
+| Scenario | Siming v1 | Siming v2 | Siming v3 | HAPI | Ratio (v3) |
+|---|---|---|---|---|---|
+| POST /Patient (create) | 547 RPS | — | — | ~2300 RPS (51% ok — unreliable) | — |
+| GET /Patient/:id (read) | 9353 RPS | 9309 RPS | **16577 RPS** | 7055 RPS | **2.35x faster** |
+| GET /Patient?name=Wang | 630 RPS | 677 RPS | **2420 RPS** | 1560 RPS | **1.55x faster** |
+| GET /Patient?birthdate=ge1990-01-01 | 562 RPS | 680 RPS | **1623 RPS** | 1894 RPS | 0.86x |
 
 **v2 optimisations (migration 0002 + deferred-content SQL):**
-- `resources_live_idx` partial covering index — enables index-only scan for the `ids` CTE; name search switched from seq scan + hash join to nested loop + index-only scan.
-- `idx_date_end_covering_idx` / `idx_date_start_covering_idx` — index-only scan on date filter CTEs (disk reads: 69 → 26 for birthdate search).
+- `resources_live_idx` partial covering index — enables index-only scan for the `ids` CTE.
+- `idx_date_end_covering_idx` / `idx_date_start_covering_idx` — index-only scan on date filter CTEs.
 - `idx_token_lookup_idx` / `idx_reference_lookup_idx` — covering indexes include `resource_id` for index-only DISTINCT scans.
-- Deferred-content SQL pattern: `ids` CTE (no content) → `paged` CTE (cursor + LIMIT) → final JOIN for content; sort memory for birthdate search dropped 762 kB → 204 kB.
+- Deferred-content SQL: `ids` CTE (no content) → `paged` CTE (cursor + LIMIT) → final JOIN for content only.
 
-**Remaining gap vs HAPI:** ~30ms application overhead per search request (JSON decode + applyMeta + JSON encode for 20 FHIR resources). DB query itself is ~6ms. Next optimisation: raw JSON passthrough — return stored JSON directly with meta injected as string, bypassing FHIRModels decode/encode cycle.
+**v3 optimisations (raw JSON passthrough):**
+- `JSONPassthrough.swift`: `injectMeta()` appends `,"meta":{...}` before the final `}` using byte manipulation — zero parse, zero FHIRModels decode/encode on reads.
+- `buildBundleJSON()`: builds searchset Bundle as raw bytes, embedding pre-formatted resource JSON directly — eliminates FHIRModels Bundle Codable overhead.
+- Write path: stored JSON string reused as response via `injectMeta()` — eliminates second `JSONEncoder.encode()`.
+- FHIRModels still used on the write path (parse + validate incoming JSON, extract search params) and for OperationOutcome error responses — the type-safe search extractor (generator moat) is unaffected.
 
 ## Observability (product differentiator — done, not aspirational)
 
@@ -444,7 +450,9 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 8. ✅ Observation resource: POST/GET/search fully wired. Generator produced 38 params (`ObservationHandlers.swift` → `Observation+SearchExtractor.swift`). `ObservationStore` (create/update/read/search with filter-CTE SQL). Search params: subject (idx_reference), code (idx_token), status (idx_token), category (idx_token), date/effectiveDateTime/period (idx_date). Validates the generator "near-zero cost" promise: adding a second resource required only handlers + store + routes, zero schema change.
 
-9. ✅ Search performance optimisation (round 1): migration `0002_search_indexes` adds covering indexes on all five idx_* tables (resource_id included → index-only scans) + `resources_live_idx` partial covering index (non-deleted rows only). Deferred-content SQL pattern: `ids` CTE selects only id/version_id/last_updated; `paged` CTE applies cursor + LIMIT; final JOIN fetches content for the page only. Results: birthdate search +21%, name search +7.5%; sort memory reduced from 762 kB → 204 kB. Remaining gap vs HAPI is in application-layer JSON decode/encode, not DB.
+9. ✅ Search performance optimisation (round 1): migration `0002_search_indexes` adds covering indexes on all five idx_* tables (resource_id included → index-only scans) + `resources_live_idx` partial covering index (non-deleted rows only). Deferred-content SQL pattern: `ids` CTE selects only id/version_id/last_updated; `paged` CTE applies cursor + LIMIT; final JOIN fetches content for the page only. Results: birthdate search +21%, name search +7.5%; sort memory reduced from 762 kB → 204 kB. Remaining gap vs HAPI was application-layer JSON decode/encode, not DB.
+
+10. ✅ Raw JSON passthrough (performance round 2): `JSONPassthrough.swift` provides `injectMeta()` (byte-level meta injection, zero parse) + `buildBundleJSON()` (raw-bytes Bundle assembly). `PatientStore`/`ObservationStore` result types now carry `Data` not FHIRModels objects; read/search/write all use passthrough. Routes use `buildBundleJSON()` instead of FHIRModels Bundle Codable. Results: GET/:id **16,577 RPS** (1.77x over v2, **2.35x over HAPI**); name search **2,420 RPS** (3.57x over v2, **1.55x over HAPI**); date search **1,623 RPS** (2.39x over v2, 0.86x vs HAPI). FHIRModels role preserved: write-path parse/validate + search extraction — the generator moat is untouched.
 
 After these nine steps the architecture is validated and the DB layer is optimised.
 
