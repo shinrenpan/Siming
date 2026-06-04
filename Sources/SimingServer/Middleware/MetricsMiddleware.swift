@@ -55,13 +55,15 @@ struct MetricsMiddleware<Context: RequestContext>: RouterMiddleware {
         ]).recordSeconds(seconds)
     }
 
-    // /Patient/abc-123 → /Patient/:id  (prevents high-cardinality label explosion)
+    // /Patient/abc/_history/1 → /Patient/:id/_history/:vid
     private func normalizePath(_ path: String) -> String {
         let parts = path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
         var result: [String] = []
         for (i, part) in parts.enumerated() {
             if i > 0 && fhirResourceTypes.contains(parts[i - 1]) {
                 result.append(":id")
+            } else if i > 1 && parts[i - 1] == "_history" {
+                result.append(":vid")
             } else {
                 result.append(part)
             }

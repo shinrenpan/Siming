@@ -39,6 +39,7 @@ struct SimingApp {
         addMetricsRoute(to: router, registry: registry)
         addPatientRoutes(to: router, store: patientStore, logger: logger)
         addObservationRoutes(to: router, store: observationStore, logger: logger)
+        addCompartmentRoutes(to: router, observationStore: observationStore, logger: logger)
 
         let app = Application(
             router: router,

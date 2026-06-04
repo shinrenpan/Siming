@@ -40,10 +40,14 @@ private func buildCapabilityStatement() -> CapabilityStatement {
 }
 
 private func serverRest() -> CapabilityStatementRest {
-    CapabilityStatementRest(
+    var rest = CapabilityStatementRest(
         mode: FHIRPrimitive(.server),
         resource: [patientResource(), observationResource()]
     )
+    rest.compartment = [
+        FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
+    ]
+    return rest
 }
 
 private let baselineInteractions: [CapabilityStatementRestResourceInteraction] = [
@@ -61,7 +65,8 @@ private func patientResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
             "Supports read, vread, create, update, delete, history-instance, and search. " +
-            "Search supports _sort=±_lastUpdated, _count (1–100), and cursor-based pagination via _cursor."
+            "Search supports _sort=±_lastUpdated, _count (0–100; 0=count-only), and cursor-based pagination via _cursor. " +
+            "Compartment: GET /Patient/:id/Observation returns Observations scoped to that patient."
         )),
         interaction: baselineInteractions,
         readHistory: FHIRPrimitive(FHIRBool(true)),

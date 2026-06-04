@@ -255,6 +255,16 @@ These are basic conformance, not optional polish. Get them right from the first 
 
 **Layer 2 — compliance depth (deferred, C-stage):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional create/update/delete, `Prefer` header, history at type/system level. Do not build now.
 
+### Compartment search semantics (FHIR R4)
+
+`GET /Patient/[id]/[type]?[params]` — returns resources of `[type]` that belong to the patient's compartment. Semantically equivalent to searching `[type]?subject=Patient/[id]&[params]`. The compartment constraint is injected server-side and cannot be overridden by the client.
+
+Currently implemented: `GET /Patient/[id]/Observation` (subject compartment, all Observation search params supported).
+
+### `_count=0` semantics
+
+`GET /[type]?_count=0` — returns a Bundle with `Bundle.total` equal to the number of matching resources, but `entry` is absent. Used by clients to determine result set size without fetching data.
+
 **The judgment rule:** "Is this about the server's *basic behaviour being correct*, or about *feature completeness*?" DELETE returning 204 and subsequent GET returning 410 is basic correctness. `_include` is feature completeness.
 
 ### DELETE semantics (FHIR R4 spec)
@@ -501,7 +511,13 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 12. ✅ Conditional read — `If-None-Match` (ETag match → 304 Not Modified) and `If-Modified-Since` (timestamp check → 304) on `GET /[type]/[id]` and vread. RFC 7232 §6 precedence: If-None-Match wins when both headers present. Sub-second DB timestamps truncated to second precision before comparing with HTTP-date. `parseHTTPDate()` added to `JSONPassthrough.swift`. Applied to both Patient and Observation.
 
-13. 🔲 Automated unit tests — pure-logic tests with no DB dependency. Covers: `JSONPassthrough` (`injectMeta`, `buildBundleJSON`, `buildHistoryBundleJSON`, `httpDate`/`parseHTTPDate` roundtrip); `PatientSearchQuery` param parsing (`IdentifierParam`, `BirthdateParam`, `SortOrder`, `SearchCursor` encode/decode); `ObservationSearchQuery` param parsing (`TokenParam`, `DateParam`); `extractPatientSearchParams` basic extraction. All tests run with `swift test` — no Docker required.
+13. ✅ Automated unit tests — 32 pure-logic tests, no DB dependency (`swift test`). Suites: `JSONPassthrough` (injectMeta, buildBundleJSON, buildHistoryBundleJSON, httpDate/parseHTTPDate); `PatientSearchQuery` (SortOrder, IdentifierParam, BirthdateParam with prefixes/partial dates, SearchCursor encode/decode); `ObservationSearchQuery` (TokenParam, DateParam); `DatabaseConfiguration`. Side-fix: `parseFHIRDate` now validates month (1–12) and day (1–31) — previously Calendar silently overflowed invalid values.
+
+14. ✅ Compartment search + count-only query + Bundle.total fix:
+    - `GET /Patient/:id/Observation[?params]` — FHIR patient compartment (`CompartmentRoutes.swift`); forces `subject=Patient/:id` server-side; returns same searchset Bundle as regular Observation search. `CapabilityStatementRest.compartment` added to `/metadata`.
+    - `_count=0` — count-only mode; `ObservationStore.search()` / `PatientStore.search()` detect `count=0` early and call `buildCountSQL()` which returns `SELECT COUNT(*) FROM ids` — no content fetch, no paged CTE.
+    - Fixed latent Bundle.total bug: moved count from `COUNT(*) OVER ()` in `paged` CTE to a separate `total_count AS (SELECT COUNT(*) AS n FROM ids)` CTE; final SELECT uses `CROSS JOIN total_count t` to get `t.n`. This ensures Bundle.total on page 2+ reflects the full matching set, not the cursor-filtered remainder.
+    - Fixed MetricsMiddleware path normalisation: `/Patient/abc/_history/1` → `/Patient/:id/_history/:vid` (version id was previously leaking into Prometheus labels).
 
 ## Working rules for Claude Code
 

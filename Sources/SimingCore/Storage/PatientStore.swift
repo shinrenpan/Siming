@@ -188,7 +188,16 @@ public struct PatientStore: Sendable {
 
     /// GET /Patient — search with optional name/identifier/birthdate filters + cursor pagination.
     public func search(query: PatientSearchQuery) async throws -> SearchResult {
-        try await client.withConnection { conn in
+        if query.count == 0 {
+            return try await client.withConnection { conn in
+                let (countSQL, countBinds) = try buildCountSQL(query: query)
+                let rows = try await conn.query(PostgresQuery(unsafeSQL: countSQL, binds: countBinds), logger: logger)
+                var total = 0
+                for try await (n) in rows.decode(Int64.self, context: .default) { total = Int(n) }
+                return SearchResult(entries: [], total: total, nextCursor: nil)
+            }
+        }
+        return try await client.withConnection { conn in
             let (sql, binds) = try buildSearchSQL(query: query)
             let pgQuery = PostgresQuery(unsafeSQL: sql, binds: binds)
             let rows = try await conn.query(pgQuery, logger: logger)
@@ -426,7 +435,7 @@ public struct PatientStore: Sendable {
         let limitP = bind(Int64(query.count + 1))  // +1 to detect next page
 
         let pagedInner = """
-            SELECT i.id, i.version_id, i.last_updated, COUNT(*) OVER () AS total
+            SELECT i.id, i.version_id, i.last_updated
             FROM ids i
             \(cursorCond)\(orderSQL)
             LIMIT \(limitP)
@@ -436,17 +445,72 @@ public struct PatientStore: Sendable {
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
         cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
         cteParts.append("paged AS (\n    \(pagedInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
 
         let sql = """
             \(withClause)
-            SELECT p.id, p.version_id, p.last_updated, r.content, p.total
+            SELECT p.id, p.version_id, p.last_updated, r.content, t.n
             FROM paged p
+            CROSS JOIN total_count t
             JOIN resources r ON r.resource_type = 'Patient'
               AND r.id = p.id AND r.version_id = p.version_id
             """
         return (sql, binds)
+    }
+
+    private func buildCountSQL(query: PatientSearchQuery) throws -> (String, PostgresBindings) {
+        var binds = PostgresBindings()
+        var n = 0
+        func bind(_ val: some PostgresDynamicTypeEncodable) -> String {
+            n += 1; binds.append(val); return "$\(n)"
+        }
+
+        var filterCTEs: [(name: String, sql: String)] = []
+
+        if let name = query.name {
+            let p = bind("%\(name)%")
+            filterCTEs.append(("f_name",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND value ILIKE \(p)"))
+        }
+        if let ident = query.identifier {
+            let codeP = bind(ident.code)
+            var sysCond = ""
+            switch ident.systemFilter {
+            case .any: break
+            case .specific(nil): sysCond = " AND system IS NULL"
+            case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+            }
+            filterCTEs.append(("f_ident",
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier' AND code = \(codeP)\(sysCond)"))
+        }
+        for (i, bd) in query.birthdate.enumerated() {
+            let dateP = bind(bd.date)
+            let cond: String
+            switch bd.prefix {
+            case .eq: cond = "date_start <= \(dateP) AND date_end >= \(dateP)"
+            case .ne: cond = "NOT (date_start <= \(dateP) AND date_end >= \(dateP))"
+            case .lt: cond = "date_start < \(dateP)"
+            case .le: cond = "date_start <= \(dateP)"
+            case .gt: cond = "date_end > \(dateP)"
+            case .ge: cond = "date_end >= \(dateP)"
+            }
+            filterCTEs.append(("f_date\(i)",
+                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'birthdate' AND \(cond)"))
+        }
+
+        var fromLines = ["FROM resources r"]
+        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
+        fromLines.append("WHERE r.resource_type = 'Patient' AND r.deleted = false")
+        fromLines.append("ORDER BY r.id, r.version_id DESC")
+        let idsInner = (["SELECT DISTINCT ON (r.id) r.id"]
+            + fromLines).joined(separator: "\n      ")
+
+        var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
+        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
+        return ("\(withClause)\nSELECT COUNT(*) FROM ids", binds)
     }
 
 }
