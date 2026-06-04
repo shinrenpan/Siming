@@ -1,0 +1,6 @@
+.build/
+*.o
+*.d
+.env
+.DS_Store
+benchmarks/results/
