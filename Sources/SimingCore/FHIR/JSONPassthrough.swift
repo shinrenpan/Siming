@@ -21,6 +21,12 @@ public func httpDate(_ date: Date) -> String {
     httpDateFormatter.string(from: date)
 }
 
+/// Parses an RFC 7231 HTTP-date string from an `If-Modified-Since` header value.
+/// Returns nil if the string cannot be parsed.
+public func parseHTTPDate(_ value: String) -> Date? {
+    httpDateFormatter.date(from: value.trimmingCharacters(in: .whitespaces))
+}
+
 /// A FHIR resource row ready for wire: raw JSON bytes with meta already injected.
 public struct RawEntry: Sendable {
     public let id: String

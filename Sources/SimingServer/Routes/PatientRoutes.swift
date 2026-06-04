@@ -61,6 +61,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
             throw FHIRRouteError.invalidBody("_history version id must be an integer")
         }
         let result = try await store.vread(id: id, versionId: vid)
+        if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -87,6 +88,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     group.get(":id") { request, context in
         let id = context.parameters.get("id") ?? ""
         let result = try await store.read(id: id)
+        if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -126,6 +128,35 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Returns a 304 Not Modified response if the client's conditional headers match,
+/// otherwise returns nil (caller should proceed with the full response).
+/// If-None-Match takes precedence over If-Modified-Since per RFC 7232 §6.
+private func conditionalResponse(request: Request, versionId: Int64, lastUpdated: Date) -> Response? {
+    let etag = "W/\"\(versionId)\""
+    if let inm = request.headers[.ifNoneMatch] {
+        let tag = inm.trimmingCharacters(in: .whitespaces)
+        guard tag != etag && tag != "*" else {
+            var h = HTTPFields()
+            h[.eTag]         = etag
+            h[.lastModified] = httpDate(lastUpdated)
+            return Response(status: .notModified, headers: h, body: .init())
+        }
+        return nil  // If-None-Match present but did not match — skip If-Modified-Since
+    }
+    if let ims = request.headers[.ifModifiedSince],
+       let since = parseHTTPDate(ims) {
+        // Truncate to second precision: HTTP-date has no sub-second granularity.
+        let truncated = Date(timeIntervalSince1970: lastUpdated.timeIntervalSince1970.rounded(.down))
+        if truncated <= since {
+            var h = HTTPFields()
+            h[.eTag]         = etag
+            h[.lastModified] = httpDate(lastUpdated)
+            return Response(status: .notModified, headers: h, body: .init())
+        }
+    }
+    return nil
+}
 
 private func requireFHIRContentType(_ request: Request) throws {
     let ct = request.headers[.contentType] ?? ""

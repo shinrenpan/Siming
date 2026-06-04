@@ -39,6 +39,7 @@ func addObservationRoutes(
             throw FHIRRouteError.invalidBody("_history version id must be an integer")
         }
         let result = try await store.vread(id: id, versionId: vid)
+        if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -65,6 +66,7 @@ func addObservationRoutes(
     group.get(":id") { request, context in
         let id = context.parameters.get("id") ?? ""
         let result = try await store.read(id: id)
+        if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -133,6 +135,31 @@ func addObservationRoutes(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+private func conditionalResponse(request: Request, versionId: Int64, lastUpdated: Date) -> Response? {
+    let etag = "W/\"\(versionId)\""
+    if let inm = request.headers[.ifNoneMatch] {
+        let tag = inm.trimmingCharacters(in: .whitespaces)
+        guard tag != etag && tag != "*" else {
+            var h = HTTPFields()
+            h[.eTag]         = etag
+            h[.lastModified] = httpDate(lastUpdated)
+            return Response(status: .notModified, headers: h, body: .init())
+        }
+        return nil
+    }
+    if let ims = request.headers[.ifModifiedSince],
+       let since = parseHTTPDate(ims) {
+        let truncated = Date(timeIntervalSince1970: lastUpdated.timeIntervalSince1970.rounded(.down))
+        if truncated <= since {
+            var h = HTTPFields()
+            h[.eTag]         = etag
+            h[.lastModified] = httpDate(lastUpdated)
+            return Response(status: .notModified, headers: h, body: .init())
+        }
+    }
+    return nil
+}
 
 private func requireFHIRContentType(_ request: Request) throws {
     let ct = request.headers[.contentType] ?? ""

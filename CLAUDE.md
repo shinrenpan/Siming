@@ -247,10 +247,11 @@ These are basic conformance, not optional polish. Get them right from the first 
 | read | `GET /[type]/[id]` | ✅ done |
 | update | `PUT /[type]/[id]` | ✅ done |
 | search | `GET /[type]?[params]` | ✅ done |
-| delete | `DELETE /[type]/[id]` | 🔲 next |
-| vread | `GET /[type]/[id]/_history/[vid]` | 🔲 next |
-| history (instance) | `GET /[type]/[id]/_history` | 🔲 next |
-| `Last-Modified` response header | all write + read responses | 🔲 next |
+| delete | `DELETE /[type]/[id]` | ✅ done |
+| vread | `GET /[type]/[id]/_history/[vid]` | ✅ done |
+| history (instance) | `GET /[type]/[id]/_history` | ✅ done |
+| `Last-Modified` response header | all write + read responses | ✅ done |
+| conditional read | `If-None-Match` / `If-Modified-Since` → 304 | 🔲 next |
 
 **Layer 2 — compliance depth (deferred, C-stage):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional create/update/delete, `Prefer` header, history at type/system level. Do not build now.
 
@@ -264,6 +265,15 @@ FHIR specifies **logical delete** — insert a new version row with `deleted = t
 - Deleted resource no longer appears in search results
 - Can be "resurrected" via `PUT /[type]/[id]` (creates a new live version)
 - Response: **204 No Content** (no body); optionally 200 with OperationOutcome
+
+### Conditional read semantics (RFC 7232 + FHIR R4)
+
+Applied to `GET /[type]/[id]` and `GET /[type]/[id]/_history/[vid]`:
+
+- **`If-None-Match: W/"N"`** — if current ETag equals the client's value (or client sends `*`), return **304 Not Modified** (no body); include ETag + Last-Modified in the 304 response headers per RFC 7232.
+- **`If-Modified-Since: <HTTP-date>`** — if `lastUpdated ≤ clientDate`, return **304 Not Modified**.
+- If both headers are present, `If-None-Match` takes precedence (per RFC 7232 §6).
+- Always perform the DB read first; 304 saves the response body, not the query.
 
 ### VRead and History semantics
 
@@ -487,7 +497,9 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 10. ✅ Raw JSON passthrough (performance round 2): `JSONPassthrough.swift` provides `injectMeta()` (byte-level meta injection, zero parse) + `buildBundleJSON()` (raw-bytes Bundle assembly). `PatientStore`/`ObservationStore` result types now carry `Data` not FHIRModels objects; read/search/write all use passthrough. Routes use `buildBundleJSON()` instead of FHIRModels Bundle Codable. Results: GET/:id **16,577 RPS** (1.77x over v2, **2.35x over HAPI**); name search **2,420 RPS** (3.57x over v2, **1.55x over HAPI**); date search **1,623 RPS** (2.39x over v2, 0.86x vs HAPI). FHIRModels role preserved: write-path parse/validate + search extraction — the generator moat is untouched.
 
-11. 🔲 FHIR R4 baseline interactions — complete the missing Layer 1 interactions: `DELETE /[type]/[id]` (logical delete: insert deleted=true version row; 204 response; subsequent GET → 410); `GET /[type]/[id]/_history/[vid]` (vread: return exact stored version); `GET /[type]/[id]/_history` (instance history: Bundle of type `history`, all versions newest-first); `Last-Modified` response header on all read/write responses. Both PatientStore and ObservationStore share the same pattern. MetadataRoutes CapabilityStatement updated to declare these interactions.
+11. ✅ FHIR R4 baseline interactions — `DELETE /[type]/[id]` (logical delete: insert deleted=true row in transaction + clear index tables; 204 response; subsequent GET → 410 Gone); `GET /[type]/[id]/_history/[vid]` (vread: exact version; 410 if delete marker); `GET /[type]/[id]/_history` (instance history: raw-bytes Bundle of type `history`, newest-first; request/response elements inferred from version metadata); `Last-Modified` RFC 7231 header on all write + read responses. `buildHistoryBundleJSON()` added to `JSONPassthrough.swift`. MetadataRoutes updated: delete/vread/history-instance declared for both Patient and Observation; Observation resource added to CapabilityStatement; `readHistory=true`.
+
+12. 🔲 Conditional read — `If-None-Match` (ETag match → 304 Not Modified) and `If-Modified-Since` (timestamp check → 304) on read + vread endpoints. Saves response body bandwidth for unchanged resources; ties naturally into the ETag + Last-Modified headers already set. `parseHTTPDate()` helper added to `JSONPassthrough.swift`.
 
 ## Working rules for Claude Code
 
