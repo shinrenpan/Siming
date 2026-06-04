@@ -270,8 +270,11 @@ Siming/
 ├── Sources/
 │   ├── SimingServer/               # executable — Hummingbird app, entry point
 │   │   ├── App.swift
+│   │   ├── Middleware/
+│   │   │   └── MetricsMiddleware.swift     # per-request trace ID + Prometheus counter/histogram
 │   │   └── Routes/
 │   │       ├── MetadataRoutes.swift    # GET /metadata → CapabilityStatement
+│   │       ├── MetricsRoutes.swift     # GET /metrics → Prometheus text format
 │   │       └── PatientRoutes.swift     # POST/GET/PUT /Patient; FHIRRouteError + FHIRServerError → HTTPResponseError
 │   ├── SimingCore/                 # library — storage, FHIR logic (imported by server)
 │   │   ├── FHIR/
@@ -299,6 +302,8 @@ Pinned dependency versions (confirm against GitHub releases before changing):
 - Hummingbird `2.25.0`
 - PostgresNIO `1.33.0`
 - FHIRModels `0.9.2`
+- swift-metrics `2.11.0`
+- swift-prometheus `2.3.0`
 
 Conventions:
 - **Generated code IS committed to git** — reviewable, diffable. Mark generated files clearly (header comment) and never hand-edit them.
@@ -377,12 +382,43 @@ When benchmarking against HAPI, compare **under the same feature set only**. HAP
 
 Read-by-ID beats HAPI; search is the next optimisation target.
 
-## Observability (this is a product differentiator, not just internal tooling)
+## Observability (product differentiator — done, not aspirational)
 
-HAPI's biggest user complaint is useless logs and silent lock-ups. Build in from day one:
-- Structured per-request logging with trace IDs
-- `/metrics` endpoint (Prometheus format)
-- Make "you can always tell what the server is doing" a selling point.
+HAPI's biggest user complaint is useless logs and silent lock-ups. Siming builds this in from day one.
+
+### What's implemented
+
+**`GET /metrics`** — Prometheus text format (content-type `text/plain; version=0.0.4`):
+- `http_requests_total{method, path, status}` counter
+- `http_request_duration_seconds{method, path}` histogram (13 default buckets)
+- Path normalisation: `/Patient/:id` collapses all by-ID requests to prevent label cardinality explosion
+
+**`MetricsMiddleware`** — wraps every request:
+- Generates `X-Request-ID` (UUID v4) if not present; echoes it in the response header
+- Structured log on request arrival (`→ METHOD /path`) and completion (`← status METHOD /path ms=N`)
+- Both `requestId` and `ms` appear as structured metadata fields — grep-able and JSON-parseable
+- Records metrics on both success and error paths
+
+**Bootstrap:** `PrometheusMetricsFactory` registered as the global `MetricsSystem` backend at startup.
+
+### Usage pattern
+
+```bash
+# Scrape metrics (Prometheus, Grafana, or curl)
+curl http://localhost:8080/metrics
+
+# Tail logs and filter by trace ID
+tail -f /tmp/siming.log | grep "requestId=abc-123"
+```
+
+### Adding new metrics
+
+Use `swift-metrics` API anywhere in the codebase — the Prometheus backend is global:
+```swift
+import Metrics
+Counter(label: "fhir_validation_errors_total", dimensions: [("resource", "Patient")]).increment()
+Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).recordSeconds(elapsed)
+```
 
 ## Roadmap — stage 0 is the heart, not a warm-up
 
@@ -392,6 +428,8 @@ HAPI's biggest user complaint is useless logs and silent lock-ups. Build in from
 4. ✅ Read path: `GET /Patient` search — `name` (trigram ILIKE), `identifier` (token, system optional), `birthdate` (range prefixes eq/lt/gt/le/ge); `_sort=±_lastUpdated`; `_count`; cursor keyset pagination via `_cursor` (base64 URL-safe token). Returns FHIR searchset Bundle with `total`, `link.self`, `link.next`.
 5. ✅ `/metadata` CapabilityStatement — kind=instance, fhirVersion=4.0.1, Patient resource with read/create/update/search-type interactions + name/identifier/birthdate searchParam definitions.
 6. ✅ Benchmark harness + search SQL optimisation: `benchmarks/bench.sh` — 4 scenarios (POST, GET/:id, name search, date search); `oha` with JSON output; seeds via `benchmarks/seed.sh`; results saved to `benchmarks/results/bench-<ts>.md`. HAPI service defined in `docker-compose.benchmark.yml` (PostgreSQL backend for fair comparison). Search SQL rewritten from correlated EXISTS to filter-CTE + JOIN pattern (5x faster for date search). Baseline: GET/:id 1.33x faster than HAPI; search at 0.3–0.4x (next optimisation target).
+
+7. ✅ Observability: `MetricsMiddleware` (trace ID + structured logs) + `GET /metrics` (Prometheus counter + latency histogram). `swift-prometheus 2.3.0` + `swift-metrics 2.11.0`. Path normalisation prevents label cardinality explosion. "You can always tell what the server is doing" is now a fact, not a claim.
 
 After these six steps the architecture is validated and new resources are nearly free.
 
