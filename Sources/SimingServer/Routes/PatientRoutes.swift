@@ -30,21 +30,31 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
 
     // GET /Patient — search
     group.get { request, _ in
-        let qp = request.uri.queryParameters
-        let qpPairs = qp.map { (key: $0.key, value: $0.value) }
-        let name       = PatientSearchQuery.StringParam.parse(key: "name", from: qpPairs)
-        let identifier = qp["identifier"].map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-        let id         = qp["_id"].map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
-        let birthdates = qp[values: "birthdate"].compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
-        let lastUpdated = qp[values: "_lastUpdated"].compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
-        let sort       = PatientSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
-        let count      = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
-        let cursor     = qp["_cursor"].flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let query = parsePatientQuery(from: qpPairs)
+        let result = try await store.search(query: query)
 
-        let query = PatientSearchQuery(
-            name: name, identifier: identifier, id: id,
-            birthdate: birthdates, lastUpdated: lastUpdated,
-            sort: sort, count: count, cursor: cursor)
+        let base = selfURL(request)
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { (fullUrl: "/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total,
+                                         selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/_search — form-encoded search (FHIR R4 §3.1.1.7)
+    group.post("_search") { request, _ in
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        let pairs = parseFormPairs(from: bodyBuffer)
+        let query = parsePatientQuery(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -129,6 +139,69 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         headers[.lastModified] = httpDate(result.lastUpdated)
         return Response(status: .noContent, headers: headers, body: .init())
     }
+}
+
+// ── Query parser (shared by GET and POST /_search) ────────────────────────────
+
+private func parsePatientQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PatientSearchQuery {
+    func first(_ key: String) -> Substring? {
+        pairs.first(where: { $0.key == key[...] })?.value
+    }
+    func all(_ key: String) -> [Substring] {
+        pairs.filter { $0.key == key[...] }.map { $0.value }
+    }
+
+    let name             = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+    let family           = PatientSearchQuery.StringParam.parse(key: "family", from: pairs)
+    let given            = PatientSearchQuery.StringParam.parse(key: "given", from: pairs)
+    let address          = PatientSearchQuery.StringParam.parse(key: "address", from: pairs)
+    let addressCity      = PatientSearchQuery.StringParam.parse(key: "address-city", from: pairs)
+    let addressState     = PatientSearchQuery.StringParam.parse(key: "address-state", from: pairs)
+    let addressPostalCode = PatientSearchQuery.StringParam.parse(key: "address-postalcode", from: pairs)
+    let addressCountry   = PatientSearchQuery.StringParam.parse(key: "address-country", from: pairs)
+    let gender = first("gender").map {
+        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    } ?? []
+    let active = first("active").flatMap { v -> Bool? in
+        switch String(v).lowercased() {
+        case "true":  return true
+        case "false": return false
+        default:      return nil
+        }
+    }
+    let phone         = first("phone").map(String.init)
+    let email         = first("email").map(String.init)
+    let identifierNot = first("identifier:not").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let genderNot     = first("gender:not").map {
+        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    } ?? []
+    let identifier = first("identifier").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let id         = first("_id").map {
+        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    } ?? []
+    let birthdates  = all("birthdate").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
+    let lastUpdated = all("_lastUpdated").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
+    let sort        = PatientSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
+    let cursor      = first("_cursor").flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
+    let totalMode   = PatientSearchQuery.TotalMode.parse(first("_total").map(String.init))
+    var missing: [String: Bool] = [:]
+    for p in ["name","family","given","gender","active","address","address-city","address-state",
+              "address-postalcode","address-country","phone","email","identifier","birthdate"] {
+        if let v = first("\(p):missing").map(String.init) {
+            if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
+        }
+    }
+    return PatientSearchQuery(
+        name: name, family: family, given: given,
+        gender: gender, active: active,
+        address: address, addressCity: addressCity,
+        addressState: addressState, addressPostalCode: addressPostalCode,
+        addressCountry: addressCountry, phone: phone, email: email,
+        identifierNot: identifierNot, genderNot: genderNot,
+        identifier: identifier, id: id,
+        birthdate: birthdates, lastUpdated: lastUpdated,
+        missing: missing, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

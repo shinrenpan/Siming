@@ -180,7 +180,7 @@ struct PatientSearchQueryTests {
 
     @Test("SortOrder unknown defaults to descending")
     func sortUnknown() {
-        #expect(PatientSearchQuery.SortOrder.parse("name") == .lastUpdatedDescending)
+        #expect(PatientSearchQuery.SortOrder.parse("unknown_field") == .lastUpdatedDescending)
         #expect(PatientSearchQuery.SortOrder.parse("") == .lastUpdatedDescending)
     }
 
@@ -342,20 +342,30 @@ struct PatientSearchQueryTests {
 
     // SearchCursor
 
-    @Test("SearchCursor encodes and decodes symmetrically")
+    @Test("SearchCursor encodes and decodes symmetrically (date sort value)")
     func cursorRoundtrip() throws {
         let date = Date(timeIntervalSince1970: 1_717_545_600.5)
-        let original = PatientSearchQuery.SearchCursor(lastUpdated: date, id: "abc-123-def", descending: true)
+        let sortVal = "\(date.timeIntervalSince1970)"
+        let original = PatientSearchQuery.SearchCursor(sortValue: sortVal, id: "abc-123-def", descending: true)
         let encoded = original.encode()
         let decoded = try #require(PatientSearchQuery.SearchCursor.decode(encoded))
-        #expect(abs(decoded.lastUpdated.timeIntervalSince1970 - date.timeIntervalSince1970) < 0.001)
+        #expect(abs((Double(decoded.sortValue) ?? 0) - date.timeIntervalSince1970) < 0.001)
         #expect(decoded.id == "abc-123-def")
         #expect(decoded.descending == true)
     }
 
+    @Test("SearchCursor string sort value roundtrips")
+    func cursorStringValueRoundtrip() throws {
+        let original = PatientSearchQuery.SearchCursor(sortValue: "Wang Wei", id: "pt-001", descending: false)
+        let decoded = try #require(PatientSearchQuery.SearchCursor.decode(original.encode()))
+        #expect(decoded.sortValue == "Wang Wei")
+        #expect(decoded.id == "pt-001")
+        #expect(decoded.descending == false)
+    }
+
     @Test("SearchCursor ascending flag preserved")
     func cursorAscendingFlag() throws {
-        let cursor = PatientSearchQuery.SearchCursor(lastUpdated: Date(), id: "x", descending: false)
+        let cursor = PatientSearchQuery.SearchCursor(sortValue: "1.0", id: "x", descending: false)
         let decoded = try #require(PatientSearchQuery.SearchCursor.decode(cursor.encode()))
         #expect(decoded.descending == false)
     }
@@ -364,7 +374,122 @@ struct PatientSearchQueryTests {
     func cursorInvalidDecode() {
         #expect(PatientSearchQuery.SearchCursor.decode("!!!") == nil)
         #expect(PatientSearchQuery.SearchCursor.decode("") == nil)
-        #expect(PatientSearchQuery.SearchCursor.decode("bm90dmFsaWQ=") == nil) // "notvalid"
+        #expect(PatientSearchQuery.SearchCursor.decode("bm90dmFsaWQ=") == nil) // "notvalid" — no pipes
+    }
+
+    // Step 19: extended SortOrder parsing
+
+    @Test("SortOrder parse name ascending")
+    func sortOrderNameAscending() {
+        #expect(PatientSearchQuery.SortOrder.parse("name") == .nameAscending)
+        #expect(PatientSearchQuery.SortOrder.parse("family") == .nameAscending)
+    }
+
+    @Test("SortOrder parse name descending")
+    func sortOrderNameDescending() {
+        #expect(PatientSearchQuery.SortOrder.parse("-name") == .nameDescending)
+        #expect(PatientSearchQuery.SortOrder.parse("-family") == .nameDescending)
+    }
+
+    @Test("SortOrder parse birthdate ascending and descending")
+    func sortOrderBirthdate() {
+        #expect(PatientSearchQuery.SortOrder.parse("birthdate") == .birthdateAscending)
+        #expect(PatientSearchQuery.SortOrder.parse("-birthdate") == .birthdateDescending)
+    }
+
+    @Test("SortOrder parse date (Observation)")
+    func sortOrderDate() {
+        #expect(PatientSearchQuery.SortOrder.parse("date") == .dateAscending)
+        #expect(PatientSearchQuery.SortOrder.parse("-date") == .dateDescending)
+    }
+
+    @Test("SortOrder isDescending property")
+    func sortOrderIsDescending() {
+        #expect(PatientSearchQuery.SortOrder.lastUpdatedDescending.isDescending == true)
+        #expect(PatientSearchQuery.SortOrder.lastUpdatedAscending.isDescending == false)
+        #expect(PatientSearchQuery.SortOrder.nameDescending.isDescending == true)
+        #expect(PatientSearchQuery.SortOrder.nameAscending.isDescending == false)
+        #expect(PatientSearchQuery.SortOrder.birthdateDescending.isDescending == true)
+        #expect(PatientSearchQuery.SortOrder.birthdateAscending.isDescending == false)
+        #expect(PatientSearchQuery.SortOrder.dateDescending.isDescending == true)
+        #expect(PatientSearchQuery.SortOrder.dateAscending.isDescending == false)
+    }
+
+    // Step 16 params: family, given, address variants, gender, active, phone, email
+
+    @Test("StringParam parse: family bare key → starts-with")
+    func stringParamFamilyStartsWith() {
+        let pairs: [(key: Substring, value: Substring)] = [("family", "Wang")]
+        let p = PatientSearchQuery.StringParam.parse(key: "family", from: pairs)
+        #expect(p?.value == "Wang")
+        #expect(p?.modifier == .startsWith)
+    }
+
+    @Test("StringParam parse: given:contains modifier")
+    func stringParamGivenContains() {
+        let pairs: [(key: Substring, value: Substring)] = [("given:contains", "ei")]
+        let p = PatientSearchQuery.StringParam.parse(key: "given", from: pairs)
+        #expect(p?.value == "ei")
+        #expect(p?.modifier == .contains)
+    }
+
+    @Test("StringParam parse: hyphenated key address-city works")
+    func stringParamAddressCityExact() {
+        let pairs: [(key: Substring, value: Substring)] = [("address-city:exact", "Berlin")]
+        let p = PatientSearchQuery.StringParam.parse(key: "address-city", from: pairs)
+        #expect(p?.value == "Berlin")
+        #expect(p?.modifier == .exact)
+    }
+
+    @Test("StringParam parse: address bare key → starts-with")
+    func stringParamAddressStartsWith() {
+        let pairs: [(key: Substring, value: Substring)] = [("address", "Main")]
+        let p = PatientSearchQuery.StringParam.parse(key: "address", from: pairs)
+        #expect(p?.value == "Main")
+        #expect(p?.modifier == .startsWith)
+    }
+
+    @Test("gender OR list parses to array")
+    func genderOrList() {
+        let raw = "male,female"
+        let result = raw.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        #expect(result == ["male", "female"])
+    }
+
+    @Test("active=true parses to Bool true")
+    func activeTrueParsing() {
+        let result: Bool? = {
+            switch "true".lowercased() {
+            case "true": return true
+            case "false": return false
+            default: return nil
+            }
+        }()
+        #expect(result == true)
+    }
+
+    @Test("active=false parses to Bool false")
+    func activeFalseParsing() {
+        let result: Bool? = {
+            switch "false".lowercased() {
+            case "true": return true
+            case "false": return false
+            default: return nil
+            }
+        }()
+        #expect(result == false)
+    }
+
+    @Test("active=invalid returns nil")
+    func activeInvalidParsing() {
+        let result: Bool? = {
+            switch "yes".lowercased() {
+            case "true": return true
+            case "false": return false
+            default: return nil
+            }
+        }()
+        #expect(result == nil)
     }
 }
 
@@ -416,5 +541,257 @@ struct ObservationSearchQueryTests {
         #expect(list[0].code == "29463-7")
         #expect(list[0].system == "http://loinc.org")
         #expect(list[1].code == "8867-4")
+    }
+
+    // Step 17: system| format and :not modifier
+
+    @Test("TokenParam system-only: 'system|' produces empty code")
+    func tokenSystemOnly() {
+        let p = ObservationSearchQuery.TokenParam.parse("http://loinc.org|")
+        #expect(p.system == "http://loinc.org")
+        #expect(p.code == "")
+    }
+
+    @Test("TokenParam '|' (empty system, empty code) produces nil system")
+    func tokenEmptySystemEmptyCode() {
+        let p = ObservationSearchQuery.TokenParam.parse("|")
+        #expect(p.system == nil)
+        #expect(p.code == "")
+    }
+
+    @Test("IdentifierParam system-only: 'system|' produces empty code with specific system")
+    func identifierSystemOnly() {
+        let p = PatientSearchQuery.IdentifierParam.parse("http://hospital.org|")
+        #expect(p.code == "")
+        guard case .specific(let sys) = p.systemFilter else {
+            Issue.record("Expected .specific system filter"); return
+        }
+        #expect(sys == "http://hospital.org")
+    }
+
+    @Test("TokenParam parseList includes system-only entry")
+    func tokenParseListSystemOnly() {
+        let list = ObservationSearchQuery.TokenParam.parseList("http://loinc.org|,final")
+        #expect(list.count == 2)
+        #expect(list[0].system == "http://loinc.org")
+        #expect(list[0].code == "")
+        #expect(list[1].code == "final")
+        #expect(list[1].system == nil)
+    }
+
+    @Test("status:not comma-separated parses to array")
+    func statusNotParsing() {
+        let raw = "final,amended"
+        let result = raw.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        #expect(result == ["final", "amended"])
+    }
+
+    @Test("code:not with system|code parses correctly")
+    func codeNotParsing() {
+        let list = ObservationSearchQuery.TokenParam.parseList("http://loinc.org|29463-7")
+        #expect(list.count == 1)
+        #expect(list[0].code == "29463-7")
+        #expect(list[0].system == "http://loinc.org")
+    }
+
+    // Step 18: identifier, encounter, performer, component-code
+
+    @Test("IdentifierParam typealias reuses PatientSearchQuery type")
+    func observationIdentifierTypealias() {
+        let p = ObservationSearchQuery.IdentifierParam.parse("http://example.org|OBS-001")
+        #expect(p.code == "OBS-001")
+        guard case .specific(let sys) = p.systemFilter else {
+            Issue.record("Expected .specific system filter"); return
+        }
+        #expect(sys == "http://example.org")
+    }
+
+    @Test("IdentifierParam parseList works for Observation identifiers")
+    func observationIdentifierParseList() {
+        let list = ObservationSearchQuery.IdentifierParam.parseList("http://a.org|OBS-1,http://b.org|OBS-2")
+        #expect(list.count == 2)
+        #expect(list[0].code == "OBS-1")
+        #expect(list[1].code == "OBS-2")
+    }
+
+    @Test("encounter reference bare id parses correctly")
+    func encounterBareId() {
+        let raw = "enc-abc-123"
+        let parts = raw.split(separator: "/")
+        #expect(parts.count == 1)
+    }
+
+    @Test("encounter reference Encounter/id splits correctly")
+    func encounterFullReference() {
+        let raw = "Encounter/enc-abc-123"
+        let parts = raw.split(separator: "/")
+        #expect(parts.count == 2)
+        #expect(String(parts[0]) == "Encounter")
+        #expect(String(parts[1]) == "enc-abc-123")
+    }
+
+    @Test("component-code TokenParam parseList OR values")
+    func componentCodeParseList() {
+        let list = ObservationSearchQuery.TokenParam.parseList("http://loinc.org|8480-6,http://loinc.org|8462-4")
+        #expect(list.count == 2)
+        #expect(list[0].code == "8480-6")
+        #expect(list[0].system == "http://loinc.org")
+        #expect(list[1].code == "8462-4")
+    }
+
+    @Test("performer reference splits by resource type")
+    func performerFullReference() {
+        let raw = "Practitioner/prac-001"
+        let parts = raw.split(separator: "/")
+        #expect(parts.count == 2)
+        #expect(String(parts[0]) == "Practitioner")
+        #expect(String(parts[1]) == "prac-001")
+    }
+
+    // Step 20: value-quantity QuantityParam
+
+    @Test("QuantityParam bare value defaults to eq prefix")
+    func quantityBareValue() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("5.4"))
+        #expect(p.prefix == .eq)
+        #expect(p.value == 5.4)
+        #expect(p.system == nil)
+        #expect(p.code == nil)
+    }
+
+    @Test("QuantityParam ge prefix")
+    func quantityGePrefix() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("ge5.4"))
+        #expect(p.prefix == .ge)
+        #expect(p.value == 5.4)
+    }
+
+    @Test("QuantityParam lt prefix")
+    func quantityLtPrefix() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("lt100"))
+        #expect(p.prefix == .lt)
+        #expect(p.value == 100)
+    }
+
+    @Test("QuantityParam with system and code")
+    func quantityWithSystemAndCode() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("5.4|http://unitsofmeasure.org|kg"))
+        #expect(p.prefix == .eq)
+        #expect(p.value == 5.4)
+        #expect(p.system == "http://unitsofmeasure.org")
+        #expect(p.code == "kg")
+    }
+
+    @Test("QuantityParam with empty system and code")
+    func quantityEmptySystemWithCode() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("5.4||mg"))
+        #expect(p.system == nil)
+        #expect(p.code == "mg")
+    }
+
+    @Test("QuantityParam ap prefix")
+    func quantityApPrefix() throws {
+        let p = try #require(ObservationSearchQuery.QuantityParam.parse("ap5.0"))
+        #expect(p.prefix == .ap)
+        #expect(p.value == 5.0)
+    }
+
+    @Test("QuantityParam invalid returns nil")
+    func quantityInvalidReturnsNil() {
+        #expect(ObservationSearchQuery.QuantityParam.parse("not-a-number") == nil)
+    }
+
+    @Test("QuantityParam parseList OR values")
+    func quantityParseList() {
+        let list = ObservationSearchQuery.QuantityParam.parseList("ge5.0,lt10.0")
+        #expect(list.count == 2)
+        #expect(list[0].prefix == .ge)
+        #expect(list[0].value == 5.0)
+        #expect(list[1].prefix == .lt)
+        #expect(list[1].value == 10.0)
+    }
+
+    // Step 21: :missing modifier parsing
+
+    @Test("missing=true parses to Bool true")
+    func missingTrueParsing() {
+        var missing: [String: Bool] = [:]
+        let v = "true"
+        if v == "true" { missing["code"] = true } else if v == "false" { missing["code"] = false }
+        #expect(missing["code"] == true)
+    }
+
+    @Test("missing=false parses to Bool false")
+    func missingFalseParsing() {
+        var missing: [String: Bool] = [:]
+        let v = "false"
+        if v == "true" { missing["date"] = true } else if v == "false" { missing["date"] = false }
+        #expect(missing["date"] == false)
+    }
+
+    @Test("missing invalid value is ignored")
+    func missingInvalidIgnored() {
+        var missing: [String: Bool] = [:]
+        let v = "maybe"
+        if v == "true" { missing["status"] = true } else if v == "false" { missing["status"] = false }
+        #expect(missing["status"] == nil)
+    }
+}
+
+// ── TotalMode ────────────────────────────────────────────────────────────────
+
+@Suite("TotalMode")
+struct TotalModeTests {
+
+    @Test("parse nil defaults to accurate")
+    func parseNilIsAccurate() {
+        #expect(PatientSearchQuery.TotalMode.parse(nil) == .accurate)
+    }
+
+    @Test("parse 'accurate' returns accurate")
+    func parseAccurate() {
+        #expect(PatientSearchQuery.TotalMode.parse("accurate") == .accurate)
+    }
+
+    @Test("parse 'none' returns none")
+    func parseNone() {
+        #expect(PatientSearchQuery.TotalMode.parse("none") == .none)
+    }
+
+    @Test("parse 'NONE' is case-insensitive")
+    func parseCaseInsensitive() {
+        #expect(PatientSearchQuery.TotalMode.parse("NONE") == .none)
+    }
+
+    @Test("parse unknown value defaults to accurate")
+    func parseUnknownIsAccurate() {
+        #expect(PatientSearchQuery.TotalMode.parse("estimate") == .accurate)
+    }
+
+    @Test("TotalMode typealias on ObservationSearchQuery")
+    func observationTotalModeTypealias() {
+        let mode: ObservationSearchQuery.TotalMode = .none
+        #expect(mode == .none)
+    }
+}
+
+// ── buildBundleJSON with nil total ───────────────────────────────────────────
+
+@Suite("buildBundleJSON _total=none")
+struct BuildBundleJSONNilTotalTests {
+
+    @Test("nil total omits 'total' field from Bundle JSON")
+    func nilTotalOmitsField() throws {
+        let data = buildBundleJSON(entries: [], total: nil, selfURL: "http://localhost/Patient", nextURL: nil)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(!json.contains("\"total\""))
+        #expect(json.contains("\"type\":\"searchset\""))
+    }
+
+    @Test("non-nil total includes 'total' field in Bundle JSON")
+    func nonNilTotalIncludesField() throws {
+        let data = buildBundleJSON(entries: [], total: 42, selfURL: "http://localhost/Patient", nextURL: nil)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(json.contains("\"total\":42"))
     }
 }

@@ -106,23 +106,8 @@ func addObservationRoutes(
 
     // GET /Observation — search
     group.get { request, _ in
-        let qp = request.uri.queryParameters
-        let subject     = qp["subject"].map(String.init) ?? qp["patient"].map(String.init)
-        let code        = qp["code"].map     { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
-        let status      = qp["status"].map   { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
-        let category    = qp["category"].map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
-        let dates       = qp[values: "date"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
-        let id          = qp["_id"].map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
-        let lastUpdated = qp[values: "_lastUpdated"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
-        let sort        = ObservationSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
-        let count       = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
-        let cursor      = qp["_cursor"].flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
-
-        let query = ObservationSearchQuery(
-            subject: subject, code: code, date: dates,
-            status: status, category: category,
-            id: id, lastUpdated: lastUpdated,
-            count: count, sort: sort, cursor: cursor)
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let query = parseObservationQuery(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -135,6 +120,77 @@ func addObservationRoutes(
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
     }
+
+    // POST /Observation/_search — form-encoded search (FHIR R4 §3.1.1.7)
+    group.post("_search") { request, _ in
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        let pairs = parseFormPairs(from: bodyBuffer)
+        let query = parseObservationQuery(from: pairs)
+        let result = try await store.search(query: query)
+
+        let base = selfURL(request)
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { (fullUrl: "/Observation/\($0.id)", json: $0.jsonWithMeta) }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total,
+                                         selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+}
+
+// ── Query parser (shared by GET and POST /_search) ────────────────────────────
+
+func parseObservationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ObservationSearchQuery {
+    func first(_ key: String) -> Substring? {
+        pairs.first(where: { $0.key == key[...] })?.value
+    }
+    func all(_ key: String) -> [Substring] {
+        pairs.filter { $0.key == key[...] }.map { $0.value }
+    }
+
+    let subject       = first("subject").map(String.init) ?? first("patient").map(String.init)
+    let code          = first("code").map     { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let codeNot       = first("code:not").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let status        = first("status").map   { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
+    let statusNot     = first("status:not").map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
+    let category      = first("category").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let categoryNot   = first("category:not").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { ObservationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let encounter     = first("encounter").map(String.init)
+    let performer     = first("performer").map(String.init)
+    let componentCode = first("component-code").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let valueQuantity = first("value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
+    let dates         = all("date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let id            = first("_id").map {
+        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    } ?? []
+    let lastUpdated   = all("_lastUpdated").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let sort          = ObservationSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let count         = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
+    let cursor        = first("_cursor").flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
+    let totalMode     = ObservationSearchQuery.TotalMode.parse(first("_total").map(String.init))
+    var missing: [String: Bool] = [:]
+    for p in ["subject","patient","code","status","category","date","value-quantity",
+              "identifier","encounter","performer","component-code"] {
+        if let v = first("\(p):missing").map(String.init) {
+            if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
+        }
+    }
+    return ObservationSearchQuery(
+        subject: subject, code: code, codeNot: codeNot, date: dates,
+        status: status, statusNot: statusNot,
+        category: category, categoryNot: categoryNot,
+        identifier: identifier, encounter: encounter, performer: performer,
+        componentCode: componentCode, valueQuantity: valueQuantity,
+        id: id, lastUpdated: lastUpdated, missing: missing,
+        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

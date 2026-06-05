@@ -2,32 +2,77 @@ import Foundation
 
 public struct PatientSearchQuery: Sendable {
     public var name: StringParam?
+    public var family: StringParam?
+    public var given: StringParam?
+    public var gender: [String]           // token OR: ["male","female","other","unknown"]
+    public var active: Bool?              // nil = unfiltered
+    public var address: StringParam?
+    public var addressCity: StringParam?
+    public var addressState: StringParam?
+    public var addressPostalCode: StringParam?
+    public var addressCountry: StringParam?
+    public var phone: String?             // telecom.system=phone, exact match
+    public var email: String?             // telecom.system=email, exact match
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
+    public var genderNot: [String]               // gender:not modifier
     public var identifier: [IdentifierParam]
     public var id: [String]               // _id: filter by resource id (OR)
     public var birthdate: [BirthdateParam]
     public var lastUpdated: [BirthdateParam]  // _lastUpdated: filter on last write time
+    public var missing: [String: Bool]    // param:missing=true/false
+    public var totalMode: TotalMode
     public var sort: SortOrder
     public var count: Int
     public var cursor: SearchCursor?
 
     public init(
         name: StringParam? = nil,
+        family: StringParam? = nil,
+        given: StringParam? = nil,
+        gender: [String] = [],
+        active: Bool? = nil,
+        address: StringParam? = nil,
+        addressCity: StringParam? = nil,
+        addressState: StringParam? = nil,
+        addressPostalCode: StringParam? = nil,
+        addressCountry: StringParam? = nil,
+        phone: String? = nil,
+        email: String? = nil,
+        identifierNot: [IdentifierParam] = [],
+        genderNot: [String] = [],
         identifier: [IdentifierParam] = [],
         id: [String] = [],
         birthdate: [BirthdateParam] = [],
         lastUpdated: [BirthdateParam] = [],
+        missing: [String: Bool] = [:],
+        totalMode: TotalMode = .accurate,
         sort: SortOrder = .lastUpdatedDescending,
         count: Int = 20,
         cursor: SearchCursor? = nil
     ) {
-        self.name        = name
-        self.identifier  = identifier
-        self.id          = id
-        self.birthdate   = birthdate
-        self.lastUpdated = lastUpdated
-        self.sort        = sort
-        self.count       = count
-        self.cursor      = cursor
+        self.name              = name
+        self.family            = family
+        self.given             = given
+        self.gender            = gender
+        self.active            = active
+        self.address           = address
+        self.addressCity       = addressCity
+        self.addressState      = addressState
+        self.addressPostalCode = addressPostalCode
+        self.addressCountry    = addressCountry
+        self.phone             = phone
+        self.email             = email
+        self.identifierNot     = identifierNot
+        self.genderNot         = genderNot
+        self.identifier        = identifier
+        self.id                = id
+        self.birthdate         = birthdate
+        self.lastUpdated       = lastUpdated
+        self.missing           = missing
+        self.totalMode         = totalMode
+        self.sort              = sort
+        self.count             = count
+        self.cursor            = cursor
     }
 
     // ── String parameter ──────────────────────────────────────────────────────
@@ -54,17 +99,49 @@ public struct PatientSearchQuery: Sendable {
         }
     }
 
+    // ── Total mode ───────────────────────────────────────────────────────────
+
+    public enum TotalMode: Sendable {
+        case accurate   // COUNT(*) from ids — default
+        case none       // skip count, omit Bundle.total
+
+        public static func parse(_ raw: String?) -> TotalMode {
+            raw?.lowercased() == "none" ? .none : .accurate
+        }
+    }
+
     // ── Sort order ────────────────────────────────────────────────────────────
 
     public enum SortOrder: Sendable {
-        case lastUpdatedDescending  // -_lastUpdated (default)
-        case lastUpdatedAscending   // _lastUpdated
+        case lastUpdatedDescending   // -_lastUpdated (default)
+        case lastUpdatedAscending    // _lastUpdated
+        case nameAscending           // name / family → first family name from idx_string
+        case nameDescending          // -name / -family
+        case birthdateAscending      // birthdate → date_start from idx_date
+        case birthdateDescending     // -birthdate
+        case dateAscending           // date (Observation effective date)
+        case dateDescending          // -date
 
         public static func parse(_ raw: String) -> SortOrder {
             switch raw.trimmingCharacters(in: .whitespaces) {
-            case "_lastUpdated":  return .lastUpdatedAscending
-            case "-_lastUpdated": return .lastUpdatedDescending
-            default:              return .lastUpdatedDescending
+            case "_lastUpdated":          return .lastUpdatedAscending
+            case "-_lastUpdated":         return .lastUpdatedDescending
+            case "name", "family":        return .nameAscending
+            case "-name", "-family":      return .nameDescending
+            case "birthdate":             return .birthdateAscending
+            case "-birthdate":            return .birthdateDescending
+            case "date":                  return .dateAscending
+            case "-date":                 return .dateDescending
+            default:                      return .lastUpdatedDescending
+            }
+        }
+
+        public var isDescending: Bool {
+            switch self {
+            case .lastUpdatedDescending, .nameDescending, .birthdateDescending, .dateDescending:
+                return true
+            default:
+                return false
             }
         }
     }
@@ -151,13 +228,14 @@ public struct PatientSearchQuery: Sendable {
     // ── Pagination cursor ──────────────────────────────────────────────────────
 
     public struct SearchCursor: Sendable {
-        public let lastUpdated: Date
+        /// Sort key value: epoch timestamp string for date sorts, raw string for string sorts.
+        public let sortValue: String
         public let id: String
-        public let descending: Bool  // true = -_lastUpdated ordering
+        public let descending: Bool
 
-        // URL-safe base64: "<timestamp>|<id>|<1|0>"
+        // URL-safe base64: "<sortValue>|<id>|<1|0>"
         public func encode() -> String {
-            let s = "\(lastUpdated.timeIntervalSince1970)|\(id)|\(descending ? 1 : 0)"
+            let s = "\(sortValue)|\(id)|\(descending ? 1 : 0)"
             return Data(s.utf8).base64EncodedString()
                 .replacingOccurrences(of: "+", with: "-")
                 .replacingOccurrences(of: "/", with: "_")
@@ -172,10 +250,9 @@ public struct PatientSearchQuery: Sendable {
             guard let data = Data(base64Encoded: b64),
                   let s = String(data: data, encoding: .utf8) else { return nil }
             let parts = s.split(separator: "|", maxSplits: 2)
-            guard parts.count == 3,
-                  let ts = Double(parts[0]) else { return nil }
+            guard parts.count == 3 else { return nil }
             return SearchCursor(
-                lastUpdated: Date(timeIntervalSince1970: ts),
+                sortValue: String(parts[0]),
                 id: String(parts[1]),
                 descending: parts[2] == "1"
             )

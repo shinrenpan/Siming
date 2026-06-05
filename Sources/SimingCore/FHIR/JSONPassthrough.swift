@@ -57,7 +57,7 @@ public func injectMeta(into content: String, versionId: Int64, lastUpdated: Date
 /// It is embedded directly without re-parsing.
 public func buildBundleJSON(
     entries: [(fullUrl: String, json: Data)],
-    total: Int,
+    total: Int?,
     selfURL: String,
     nextURL: String?
 ) -> Data {
@@ -67,7 +67,11 @@ public func buildBundleJSON(
 
     func s(_ string: String) { out.append(contentsOf: string.utf8) }
 
-    s("{\"resourceType\":\"Bundle\",\"type\":\"searchset\",\"total\":\(total)")
+    if let total {
+        s("{\"resourceType\":\"Bundle\",\"type\":\"searchset\",\"total\":\(total)")
+    } else {
+        s("{\"resourceType\":\"Bundle\",\"type\":\"searchset\"")
+    }
     s(",\"link\":[{\"relation\":\"self\",\"url\":\"\(escapeJSON(selfURL))\"}")
     if let next = nextURL {
         s(",{\"relation\":\"next\",\"url\":\"\(escapeJSON(next))\"}")

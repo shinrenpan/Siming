@@ -29,7 +29,7 @@ public struct ObservationStore: Sendable {
 
     public struct SearchResult: Sendable {
         public let entries: [RawEntry]
-        public let total: Int
+        public let total: Int?   // nil when _total=none
         public let nextCursor: ObservationSearchQuery.SearchCursor?
     }
 
@@ -180,6 +180,9 @@ public struct ObservationStore: Sendable {
 
     public func search(query: ObservationSearchQuery) async throws -> SearchResult {
         if query.count == 0 {
+            if query.totalMode == .none {
+                return SearchResult(entries: [], total: nil, nextCursor: nil)
+            }
             return try await client.withConnection { conn in
                 let (countSQL, countBinds) = try buildCountSQL(query: query)
                 let rows = try await conn.query(PostgresQuery(unsafeSQL: countSQL, binds: countBinds), logger: logger)
@@ -194,24 +197,31 @@ public struct ObservationStore: Sendable {
             let rows = try await conn.query(pgQuery, logger: logger)
 
             var results: [RawEntry] = []
-            var total = 0
-            for try await (id, versionId, lastUpdated, content, rowTotal) in
-                rows.decode((String, Int64, Date, String, Int64).self, context: .default)
+            var sortValTexts: [String] = []
+            var rawTotal: Int64 = 0
+            for try await (id, versionId, lastUpdated, content, rowTotal, sortValText) in
+                rows.decode((String, Int64, Date, String, Int64, String).self, context: .default)
             {
-                total = Int(rowTotal)
+                rawTotal = rowTotal
                 let jsonData = injectMeta(into: content, versionId: versionId, lastUpdated: lastUpdated)
                 results.append(RawEntry(id: id, versionId: versionId, lastUpdated: lastUpdated, jsonWithMeta: jsonData))
+                sortValTexts.append(sortValText)
             }
 
             let pageSize = min(query.count, results.count)
             let hasNext  = results.count > query.count
             let page     = Array(results.prefix(pageSize))
-            let descending = (query.sort == .lastUpdatedDescending)
+            let pageSortVals = Array(sortValTexts.prefix(pageSize))
 
-            let nextCursor: ObservationSearchQuery.SearchCursor? = hasNext ? page.last.map { last in
-                ObservationSearchQuery.SearchCursor(lastUpdated: last.lastUpdated, id: last.id, descending: descending)
-            } : nil
+            let nextCursor: ObservationSearchQuery.SearchCursor?
+            if hasNext, let lastEntry = page.last, let lastSortVal = pageSortVals.last {
+                nextCursor = ObservationSearchQuery.SearchCursor(
+                    sortValue: lastSortVal, id: lastEntry.id, descending: query.sort.isDescending)
+            } else {
+                nextCursor = nil
+            }
 
+            let total: Int? = query.totalMode == .none ? nil : Int(rawTotal)
             return SearchResult(entries: page, total: total, nextCursor: nextCursor)
         }
     }
@@ -345,14 +355,18 @@ public struct ObservationStore: Sendable {
             }
         }
 
-        // code — token OR
+        // code — token OR (system| = system-only match when code is empty)
         if !query.code.isEmpty {
             var orClauses: [String] = []
             for tok in query.code {
-                let codeP = bind(tok.code)
-                var sysCond = ""
-                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
-                orClauses.append("(code = \(codeP)\(sysCond))")
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
             }
             filterCTEs.append(("f_code", """
                 SELECT DISTINCT resource_id FROM idx_token
@@ -375,14 +389,137 @@ public struct ObservationStore: Sendable {
         if !query.category.isEmpty {
             var orClauses: [String] = []
             for tok in query.category {
-                let codeP = bind(tok.code)
-                var sysCond = ""
-                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
-                orClauses.append("(code = \(codeP)\(sysCond))")
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
             }
             filterCTEs.append(("f_category", """
                 SELECT DISTINCT resource_id FROM idx_token
                 WHERE resource_type = 'Observation' AND param_name = 'category'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // identifier — token OR with system|code (same semantics as Patient identifier)
+        if !query.identifier.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifier {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                filterCTEs.append(("f_ident", """
+                    SELECT DISTINCT resource_id FROM idx_token
+                    WHERE resource_type = 'Observation' AND param_name = 'identifier'
+                      AND (\(orClauses.joined(separator: " OR ")))
+                    """))
+            }
+        }
+
+        // encounter — idx_reference
+        if let encounter = query.encounter {
+            let parts = encounter.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0]))
+                let refIdP   = bind(String(parts[1]))
+                filterCTEs.append(("f_encounter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Observation' AND param_name = 'encounter'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(encounter)
+                filterCTEs.append(("f_encounter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Observation' AND param_name = 'encounter'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // performer — idx_reference
+        if let performer = query.performer {
+            let parts = performer.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0]))
+                let refIdP   = bind(String(parts[1]))
+                filterCTEs.append(("f_performer", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Observation' AND param_name = 'performer'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(performer)
+                filterCTEs.append(("f_performer", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Observation' AND param_name = 'performer'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // component-code — token OR
+        if !query.componentCode.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.componentCode {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_component_code", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Observation' AND param_name = 'component-code'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // value-quantity — idx_quantity with numeric comparison and optional system/code
+        if !query.valueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.valueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_vquantity", """
+                SELECT DISTINCT resource_id FROM idx_quantity
+                WHERE resource_type = 'Observation' AND param_name = 'value-quantity'
                   AND (\(orClauses.joined(separator: " OR ")))
                 """))
         }
@@ -407,7 +544,7 @@ public struct ObservationStore: Sendable {
                 """))
         }
 
-        // ── `ids` CTE — _id and _lastUpdated as direct WHERE conditions ────────
+        // ── `ids` CTE — _id, _lastUpdated, and :not conditions ─────────────────
 
         var whereConditions = ["r.resource_type = 'Observation'", "r.deleted = false"]
 
@@ -431,6 +568,55 @@ public struct ObservationStore: Sendable {
             whereConditions.append(cond)
         }
 
+        // status:not — exclude resources where status matches any value
+        if !query.statusNot.isEmpty {
+            let phs = query.statusNot.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code IN (\(phs)))")
+        }
+
+        // code:not
+        if !query.codeNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.codeNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR "))))")
+        }
+
+        // category:not
+        if !query.categoryNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.categoryNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
+        }
+
+        // :missing modifier
+        for paramName in query.missing.keys.sorted() {
+            if let sub = observationMissingSubquery(param: paramName) {
+                if query.missing[paramName] == true {
+                    whereConditions.append("r.id NOT IN (\(sub))")
+                } else {
+                    whereConditions.append("r.id IN (\(sub))")
+                }
+            }
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -441,42 +627,75 @@ public struct ObservationStore: Sendable {
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
             + fromLines).joined(separator: "\n      ")
 
-        var cursorCond = ""
-        if let cursor = query.cursor {
-            let tsP = bind(cursor.lastUpdated)
-            let idP = bind(cursor.id)
-            if cursor.descending {
-                cursorCond = "WHERE (i.last_updated < \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))\n  "
-            } else {
-                cursorCond = "WHERE (i.last_updated > \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))\n  "
+        // ── Sort-specific paged CTE ───────────────────────────────────────────
+
+        let sortIsDescending = query.sort.isDescending
+        let orderDir = sortIsDescending ? "DESC" : "ASC"
+
+        var sortKeysCTE: (name: String, sql: String)? = nil
+        var cursorCondSQL = ""
+        var finalSortValSQL = ""
+        var useDateSort = false
+
+        switch query.sort {
+        case .dateAscending, .dateDescending:
+            sortKeysCTE = ("sort_keys",
+                "SELECT DISTINCT ON (resource_id) resource_id, date_start AS sv " +
+                "FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'date' " +
+                "ORDER BY resource_id, date_start ASC")
+            if let cursor = query.cursor, let ts = Double(cursor.sortValue) {
+                let dateP = bind(Date(timeIntervalSince1970: ts))
+                let idP = bind(cursor.id)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "(sort_val IS NOT NULL AND sort_val \(op) \(dateP)) OR " +
+                    "(sort_val IS NOT NULL AND sort_val = \(dateP) AND id > \(idP))"
             }
+            finalSortValSQL = "COALESCE(CAST(EXTRACT(EPOCH FROM p.sort_val) AS text), '')"
+            useDateSort = true
+
+        default:  // lastUpdated (and any unsupported sort → fallback)
+            if let cursor = query.cursor, let ts = Double(cursor.sortValue) {
+                let tsP = bind(Date(timeIntervalSince1970: ts))
+                let idP = bind(cursor.id)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "(i.last_updated \(op) \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))"
+            }
+            finalSortValSQL = "CAST(EXTRACT(EPOCH FROM p.last_updated) AS text)"
         }
 
-        let descending = (query.sort == .lastUpdatedDescending)
-        let orderSQL   = "ORDER BY i.last_updated \(descending ? "DESC" : "ASC"), i.id ASC"
-        let limitP     = bind(Int64(query.count + 1))
+        let limitP = bind(Int64(query.count + 1))
 
-        let pagedInner = """
-            SELECT i.id, i.version_id, i.last_updated
-            FROM ids i
-            \(cursorCond)\(orderSQL)
-            LIMIT \(limitP)
-            """
+        let pagedInner: String
+        if useDateSort {
+            let inner = "SELECT i.id, i.version_id, i.last_updated, sk.sv AS sort_val " +
+                "FROM ids i LEFT JOIN sort_keys sk ON sk.resource_id = i.id"
+            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
+            pagedInner = "SELECT id, version_id, last_updated, sort_val FROM (\n      \(inner)\n    ) sub" +
+                "\(whereLine)\n    ORDER BY sort_val \(orderDir) NULLS LAST, id ASC\n    LIMIT \(limitP)"
+        } else {
+            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
+            pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
+                "\(whereLine)\n    ORDER BY i.last_updated \(orderDir), i.id ASC\n    LIMIT \(limitP)"
+        }
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
         cteParts.append("ids AS (\n    \(idsInner)\n  )")
-        cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
+        let skipTotal = query.totalMode == .none
+        if !skipTotal {
+            cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
+        }
+        if let skCTE = sortKeysCTE {
+            cteParts.append("\(skCTE.name) AS (\n    \(skCTE.sql)\n  )")
+        }
         cteParts.append("paged AS (\n    \(pagedInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
 
-        let sql = """
-            \(withClause)
-            SELECT p.id, p.version_id, p.last_updated, r.content, t.n
-            FROM paged p
-            CROSS JOIN total_count t
-            JOIN resources r ON r.resource_type = 'Observation'
-              AND r.id = p.id AND r.version_id = p.version_id
-            """
+        let totalExpr = skipTotal ? "CAST(0 AS bigint)" : "t.n"
+        let fromClause = skipTotal
+            ? "FROM paged p JOIN resources r ON r.resource_type = 'Observation' AND r.id = p.id AND r.version_id = p.version_id"
+            : "FROM paged p CROSS JOIN total_count t JOIN resources r ON r.resource_type = 'Observation' AND r.id = p.id AND r.version_id = p.version_id"
+
+        let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), \(finalSortValSQL) AS sort_val_text\n\(fromClause)"
         return (sql, binds)
     }
 
@@ -505,10 +724,14 @@ public struct ObservationStore: Sendable {
         if !query.code.isEmpty {
             var orClauses: [String] = []
             for tok in query.code {
-                let codeP = bind(tok.code)
-                var sysCond = ""
-                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
-                orClauses.append("(code = \(codeP)\(sysCond))")
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
             }
             filterCTEs.append(("f_code",
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR ")))"))
@@ -521,13 +744,103 @@ public struct ObservationStore: Sendable {
         if !query.category.isEmpty {
             var orClauses: [String] = []
             for tok in query.category {
-                let codeP = bind(tok.code)
-                var sysCond = ""
-                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
-                orClauses.append("(code = \(codeP)\(sysCond))")
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
             }
             filterCTEs.append(("f_category",
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.identifier.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifier {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                filterCTEs.append(("f_ident",
+                    "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR ")))"))
+            }
+        }
+        if let encounter = query.encounter {
+            let parts = encounter.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_encounter",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'encounter' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(encounter)
+                filterCTEs.append(("f_encounter",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'encounter' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let performer = query.performer {
+            let parts = performer.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_performer",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'performer' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(performer)
+                filterCTEs.append(("f_performer",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'performer' AND ref_id = \(refIdP)"))
+            }
+        }
+        if !query.componentCode.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.componentCode {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_component_code",
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-code' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.valueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.valueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_vquantity",
+                "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
         }
         for (i, dp) in query.date.enumerated() {
             let dateP = bind(dp.date)
@@ -566,6 +879,47 @@ public struct ObservationStore: Sendable {
             }
             whereConditions.append(cond)
         }
+        if !query.statusNot.isEmpty {
+            let phs = query.statusNot.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code IN (\(phs)))")
+        }
+        if !query.codeNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.codeNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR "))))")
+        }
+        if !query.categoryNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.categoryNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
+        }
+        for paramName in query.missing.keys.sorted() {
+            if let sub = observationMissingSubquery(param: paramName) {
+                if query.missing[paramName] == true {
+                    whereConditions.append("r.id NOT IN (\(sub))")
+                } else {
+                    whereConditions.append("r.id IN (\(sub))")
+                }
+            }
+        }
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -578,6 +932,22 @@ public struct ObservationStore: Sendable {
         cteParts.append("ids AS (\n    \(idsInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
         return ("\(withClause)\nSELECT COUNT(*) FROM ids", binds)
+    }
+
+    private func observationMissingSubquery(param: String) -> String? {
+        switch param {
+        case "subject", "patient": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'subject'"
+        case "code":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code'"
+        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status'"
+        case "category":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category'"
+        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'identifier'"
+        case "encounter":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'encounter'"
+        case "performer":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'performer'"
+        case "component-code":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-code'"
+        case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'date'"
+        case "value-quantity":     return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity'"
+        default:                   return nil
+        }
     }
 
 }
