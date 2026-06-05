@@ -25,7 +25,7 @@ final class PatientStoreTests: XCTestCase {
     func testRead_returnsStoredFamily() async throws {
         let created = try await store.create(makePatient(family: "Tanaka"))
         let read = try await store.read(id: created.id)
-        let patient = try JSONDecoder().decode(Patient.self, from: read.jsonData)
+        let patient = try JSONDecoder().decode(ModelsR4.Patient.self, from: read.jsonData)
         XCTAssertEqual(patient.name?.first?.family?.value?.string, "Tanaka")
     }
 
@@ -80,7 +80,7 @@ final class PatientStoreTests: XCTestCase {
         let cutoff = PatientSearchQuery.BirthdateParam.parse("ge1990-01-01")!
         let result = try await store.search(query: PatientSearchQuery(birthdate: [cutoff]))
         XCTAssertEqual(result.total, 1)
-        let patient = try JSONDecoder().decode(Patient.self, from: result.entries[0].jsonWithMeta)
+        let patient = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
         XCTAssertEqual(patient.name?.first?.family?.value?.string, "Young")
     }
 

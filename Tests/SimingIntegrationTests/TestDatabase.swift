@@ -73,18 +73,18 @@ func requireDatabase() async throws {
     try await TestDatabase.shared.truncate()
 }
 
-func makePatient(family: String, given: String = "Test", birthYear: Int? = nil) throws -> Patient {
+func makePatient(family: String, given: String = "Test", birthYear: Int? = nil) throws -> ModelsR4.Patient {
     var json = #"{"resourceType":"Patient","name":[{"family":"\#(family)","given":["\#(given)"]}]"#
     if let year = birthYear { json += #","birthDate":"\#(year)-01-01""# }
     json += "}"
-    return try JSONDecoder().decode(Patient.self, from: Data(json.utf8))
+    return try JSONDecoder().decode(ModelsR4.Patient.self, from: Data(json.utf8))
 }
 
-func makeObservation(subjectId: String, code: String = "29463-7") throws -> Observation {
+func makeObservation(subjectId: String, code: String = "29463-7") throws -> ModelsR4.Observation {
     let json = #"""
     {"resourceType":"Observation","status":"final",
      "code":{"coding":[{"system":"http://loinc.org","code":"\#(code)"}]},
      "subject":{"reference":"Patient/\#(subjectId)"}}
     """#
-    return try JSONDecoder().decode(Observation.self, from: Data(json.utf8))
+    return try JSONDecoder().decode(ModelsR4.Observation.self, from: Data(json.utf8))
 }

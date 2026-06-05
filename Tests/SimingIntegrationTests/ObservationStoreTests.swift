@@ -28,7 +28,7 @@ final class ObservationStoreTests: XCTestCase {
         let created = try await store.create(makeObservation(subjectId: patientId, code: "8867-4"))
 
         let read = try await store.read(id: created.id)
-        let obs = try JSONDecoder().decode(Observation.self, from: read.jsonData)
+        let obs = try JSONDecoder().decode(ModelsR4.Observation.self, from: read.jsonData)
         let code = obs.code.coding?.first?.code?.value?.string
         XCTAssertEqual(code, "8867-4")
     }
@@ -57,7 +57,7 @@ final class ObservationStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 2)
         XCTAssertTrue(result.entries.allSatisfy { entry in
-            (try? JSONDecoder().decode(Observation.self, from: entry.jsonWithMeta))?
+            (try? JSONDecoder().decode(ModelsR4.Observation.self, from: entry.jsonWithMeta))?
                 .subject?.reference?.value?.string == "Patient/\(pid1)"
         })
     }
