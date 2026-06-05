@@ -47,6 +47,9 @@ private func serverRest() -> CapabilityStatementRest {
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
     ]
+    rest.interaction = [
+        CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
+    ]
     return rest
 }
 
@@ -180,6 +183,7 @@ private func patientResource() -> CapabilityStatementRestResource {
     )
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
     return r
 }
 
@@ -284,5 +288,6 @@ private func observationResource() -> CapabilityStatementRestResource {
     )
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
     return r
 }

@@ -95,13 +95,15 @@ public func buildBundleJSON(
 
 /// One version entry for a FHIR `_history` Bundle.
 public struct HistoryRawEntry: Sendable {
-    public let id: String        // resource logical id
+    public let resourceType: String  // e.g. "Patient", "Observation"
+    public let id: String            // resource logical id
     public let versionId: Int64
     public let lastUpdated: Date
-    public let jsonData: Data?   // nil for delete markers
+    public let jsonData: Data?       // nil for delete markers
     public let deleted: Bool
 
-    public init(id: String, versionId: Int64, lastUpdated: Date, jsonData: Data?, deleted: Bool) {
+    public init(resourceType: String, id: String, versionId: Int64, lastUpdated: Date, jsonData: Data?, deleted: Bool) {
+        self.resourceType = resourceType
         self.id = id
         self.versionId = versionId
         self.lastUpdated = lastUpdated
@@ -111,15 +113,13 @@ public struct HistoryRawEntry: Sendable {
 }
 
 /// Builds a FHIR `_history` Bundle as raw bytes.
-/// Works for both instance history and type-level history — uses `entry.id` per entry.
+/// Works for instance, type-level, and system-level history — uses `entry.resourceType`/`entry.id` per entry.
 ///
 /// - Parameters:
 ///   - entries: Versions ordered newest-first. `jsonData` is nil for delete-marker versions.
-///   - resourceType: e.g. "Patient"
 ///   - baseURL: Server base URL (no trailing slash), e.g. "http://localhost:8080"
 public func buildHistoryBundleJSON(
     entries: [HistoryRawEntry],
-    resourceType: String,
     baseURL: String
 ) -> Data {
     var out = Data()
@@ -132,7 +132,8 @@ public func buildHistoryBundleJSON(
 
     for (i, entry) in entries.enumerated() {
         if i > 0 { s(",") }
-        let fullUrl = "\(baseURL)/\(resourceType)/\(entry.id)/_history/\(entry.versionId)"
+        let rt = entry.resourceType
+        let fullUrl = "\(baseURL)/\(rt)/\(entry.id)/_history/\(entry.versionId)"
         let ts = iso8601.string(from: entry.lastUpdated)
 
         s("{\"fullUrl\":\"\(escapeJSON(fullUrl))\"")
@@ -147,13 +148,13 @@ public func buildHistoryBundleJSON(
         let requestUrl: String
         if entry.deleted {
             method = "DELETE"
-            requestUrl = "\(resourceType)/\(entry.id)"
+            requestUrl = "\(rt)/\(entry.id)"
         } else if entry.versionId == 1 {
             method = "POST"
-            requestUrl = resourceType
+            requestUrl = rt
         } else {
             method = "PUT"
-            requestUrl = "\(resourceType)/\(entry.id)"
+            requestUrl = "\(rt)/\(entry.id)"
         }
         s(",\"request\":{\"method\":\"\(method)\",\"url\":\"\(escapeJSON(requestUrl))\"}")
 

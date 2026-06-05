@@ -104,7 +104,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Patient/\($0.id)", json: $0.jsonWithMeta) }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
@@ -127,7 +127,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Patient/\($0.id)", json: $0.jsonWithMeta) }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
@@ -160,7 +160,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         let entries = try await store.typeHistory(since: since, count: count)
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"
-        let bundleData = buildHistoryBundleJSON(entries: entries, resourceType: "Patient", baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -173,8 +173,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         let entries = try await store.history(id: id)
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"
-        let bundleData = buildHistoryBundleJSON(
-            entries: entries, resourceType: "Patient", baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -210,6 +209,32 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // DELETE /Patient?<search> — conditional delete (no id in URL)
+    group.delete { request, _ in
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        guard !qpPairs.isEmpty else {
+            throw FHIRRouteError.invalidBody("DELETE /Patient requires search parameters for conditional delete")
+        }
+        var checkQuery = parsePatientQuery(from: qpPairs)
+        checkQuery.count = 2
+        checkQuery.totalMode = .none
+        checkQuery.cursor = nil
+        let matches = try await store.search(query: checkQuery)
+        switch matches.entries.count {
+        case 0:
+            throw FHIRServerError.notFound(resourceType: "Patient", id: "(search)")
+        case 1:
+            let ifMatch = parseETag(request.headers[.ifMatch])
+            let result = try await store.delete(id: matches.entries[0].id, ifMatch: ifMatch)
+            var headers = HTTPFields()
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            return Response(status: .noContent, headers: headers, body: .init())
+        default:
+            throw FHIRServerError.multipleMatches(resourceType: "Patient")
+        }
     }
 
     // DELETE /Patient/:id — logical delete

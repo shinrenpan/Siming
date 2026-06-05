@@ -145,7 +145,7 @@ public struct PatientStore: Sendable {
                 rows.decode((Int64, Date, String, Bool).self, context: .default)
             {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
-                entries.append(HistoryRawEntry(id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+                entries.append(HistoryRawEntry(resourceType: "Patient", id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             guard !entries.isEmpty else {
                 throw FHIRServerError.notFound(resourceType: "Patient", id: id)
@@ -182,7 +182,7 @@ public struct PatientStore: Sendable {
                 rows.decode((String, Int64, Date, String, Bool).self, context: .default)
             {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
-                entries.append(HistoryRawEntry(id: rid, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+                entries.append(HistoryRawEntry(resourceType: "Patient", id: rid, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             return entries
         }

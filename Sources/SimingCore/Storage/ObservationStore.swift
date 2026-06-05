@@ -140,7 +140,7 @@ public struct ObservationStore: Sendable {
                 rows.decode((Int64, Date, String, Bool).self, context: .default)
             {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
-                entries.append(HistoryRawEntry(id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+                entries.append(HistoryRawEntry(resourceType: "Observation", id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             guard !entries.isEmpty else {
                 throw FHIRServerError.notFound(resourceType: "Observation", id: id)
@@ -177,7 +177,7 @@ public struct ObservationStore: Sendable {
                 rows.decode((String, Int64, Date, String, Bool).self, context: .default)
             {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
-                entries.append(HistoryRawEntry(id: rid, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+                entries.append(HistoryRawEntry(resourceType: "Observation", id: rid, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             return entries
         }

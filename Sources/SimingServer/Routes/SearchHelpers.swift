@@ -1,5 +1,11 @@
 import Foundation
+import Hummingbird
 import NIOCore
+
+/// Returns the server base URL (scheme + authority only), e.g. "http://localhost:8080".
+func serverBaseURL(_ request: Request) -> String {
+    "http://\(request.head.authority ?? "localhost")"
+}
 
 /// Parses a FHIR instant string (ISO 8601) into a Date. Accepts e.g. "2023-01-01T00:00:00Z".
 func parseFHIRInstant(_ raw: String) -> Date? {

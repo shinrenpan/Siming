@@ -124,7 +124,7 @@ func addObservationRoutes(
         let entries = try await store.typeHistory(since: since, count: count)
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"
-        let bundleData = buildHistoryBundleJSON(entries: entries, resourceType: "Observation", baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -137,8 +137,7 @@ func addObservationRoutes(
         let entries = try await store.history(id: id)
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"
-        let bundleData = buildHistoryBundleJSON(
-            entries: entries, resourceType: "Observation", baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -176,6 +175,32 @@ func addObservationRoutes(
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
+    // DELETE /Observation?<search> — conditional delete (no id in URL)
+    group.delete { request, _ in
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        guard !qpPairs.isEmpty else {
+            throw FHIRRouteError.invalidBody("DELETE /Observation requires search parameters for conditional delete")
+        }
+        var checkQuery = parseObservationQuery(from: qpPairs)
+        checkQuery.count = 2
+        checkQuery.totalMode = .none
+        checkQuery.cursor = nil
+        let matches = try await store.search(query: checkQuery)
+        switch matches.entries.count {
+        case 0:
+            throw FHIRServerError.notFound(resourceType: "Observation", id: "(search)")
+        case 1:
+            let ifMatch = parseETag(request.headers[.ifMatch])
+            let result = try await store.delete(id: matches.entries[0].id, ifMatch: ifMatch)
+            var headers = HTTPFields()
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            return Response(status: .noContent, headers: headers, body: .init())
+        default:
+            throw FHIRServerError.multipleMatches(resourceType: "Observation")
+        }
+    }
+
     // DELETE /Observation/:id — logical delete
     group.delete(":id") { request, context in
         let id = context.parameters.get("id") ?? ""
@@ -195,7 +220,7 @@ func addObservationRoutes(
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "/Observation/\($0.id)", json: $0.jsonWithMeta) }
+        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Observation/\($0.id)", json: $0.jsonWithMeta) }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
@@ -218,7 +243,7 @@ func addObservationRoutes(
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "/Observation/\($0.id)", json: $0.jsonWithMeta) }
+        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Observation/\($0.id)", json: $0.jsonWithMeta) }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()

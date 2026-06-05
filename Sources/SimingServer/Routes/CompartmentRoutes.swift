@@ -29,7 +29,7 @@ func addCompartmentRoutes(
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "/Observation/\($0.id)", json: $0.jsonWithMeta) }
+        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Observation/\($0.id)", json: $0.jsonWithMeta) }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
