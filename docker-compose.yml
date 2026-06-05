@@ -15,5 +15,15 @@ services:
       timeout: 5s
       retries: 5
 
+  server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://siming:siming@db:5432/siming
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   siming_pgdata:

@@ -51,7 +51,8 @@ let jsonData = try JSONEncoder().encode(patient)
 - Run server: `swift run SimingServer` — listens on `0.0.0.0:8080`
 - Test: `swift test` — prefer running single tests during iteration
 - Regenerate search extractors: `swift run SimingGenerator`
-- Local Postgres: `docker compose up -d db`
+- Local Postgres only: `docker compose up -d db`
+- Full stack via Docker: `docker compose up --build` — builds image, starts db + server
 - DB connection env vars (defaults match docker-compose):
   - `DATABASE_URL=postgres://siming:siming@localhost:5432/siming` (takes priority)
   - or discrete: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
@@ -186,7 +187,7 @@ Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the mat
 
 All Layer 1 baseline interactions are complete: create, read, update, delete, search, vread, history-instance, history-type, `Last-Modified`, conditional read (`If-None-Match` / `If-Modified-Since`), conditional create (`If-None-Exist`), conditional update (`PUT /[type]?<search>`).
 
-**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional delete, `Prefer` header, type/system-level history.
+**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, `Prefer` header.
 
 ## Pagination
 
@@ -218,6 +219,8 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 ```
 Siming/
 ├── Package.swift
+├── Dockerfile
+├── .dockerignore
 ├── docker-compose.yml
 ├── docker-compose.benchmark.yml    # adds HAPI + hapi-db services
 ├── benchmarks/

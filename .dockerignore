@@ -1,0 +1,8 @@
+.build/
+.git/
+.swiftpm/
+*.md
+benchmarks/
+Tests/
+docker-compose*.yml
+.env
