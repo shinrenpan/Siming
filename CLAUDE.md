@@ -201,8 +201,11 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Search modifiers: `:contains`, `:exact`, `:text` (case-insensitive substring), `:not`, `:missing`, `system|` format
 - Date prefixes: eq/lt/gt/le/ge/sa/eb; quantity prefix `ap` (±10%)
 - `_sort`: ±`_lastUpdated`, ±`name`/`family`, ±`birthdate` (Patient), ±`date` (Observation), ±`_id` (both)
+- `_total`: `accurate` (default) / `none` (omit Bundle.total, skip COUNT)
+- `_elements`: comma-separated top-level field filter; mandatory fields (id, meta, resourceType) always returned; SUBSETTED meta tag applied
 - Cursor pagination; `_count=0` count-only mode; correct Bundle.total across pages
-- Compartment search: `GET /Patient/:id/Observation`
+- Compartment search: `GET /Patient/:id/Observation`, `POST /Patient/:id/Observation/_search`
+- POST-based search: `POST /Patient/_search`, `POST /Observation/_search` (application/x-www-form-urlencoded; URL + body params merged)
 - Conditional read: `If-None-Match` / `If-Modified-Since` → 304
 - Conditional create: `POST /[type]` + `If-None-Exist: <search>` — 0 matches creates, 1 match returns 200, >1 returns 412
 - Conditional update: `PUT /[type]?<search>` — 0 matches creates (201), 1 match updates (200), >1 returns 412
@@ -214,7 +217,7 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - `/metadata` CapabilityStatement reflecting all supported params
 - `Prefer: return=minimal` on create/update → 201/200 with no response body (headers present)
 - Prometheus metrics + trace IDs (`GET /metrics`)
-- 89 unit tests (no DB dependency) + 16 integration tests (require PostgreSQL, auto-skip otherwise)
+- 93 unit tests (no DB dependency) + 16 integration tests (require PostgreSQL, auto-skip otherwise)
 
 ## Project structure / conventions
 

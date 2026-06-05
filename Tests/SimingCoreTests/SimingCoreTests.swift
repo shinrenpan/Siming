@@ -159,6 +159,49 @@ struct JSONPassthroughTests {
         #expect(parseHTTPDate("not-a-date") == nil)
         #expect(parseHTTPDate("") == nil)
     }
+
+    // applyElements
+
+    @Test("applyElements keeps only requested + mandatory fields")
+    func applyElementsFilters() throws {
+        let input = #"{"resourceType":"Patient","id":"abc","name":[{"family":"Wang"}],"birthDate":"1990-01-01","active":true,"meta":{"versionId":"1","lastUpdated":"2024-01-01T00:00:00Z"}}"#
+        let result = applyElements(input.data(using: .utf8)!, elements: ["name"])
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        #expect(obj["resourceType"] as? String == "Patient")
+        #expect(obj["id"] as? String == "abc")
+        #expect(obj["name"] != nil)
+        #expect(obj["meta"] != nil)
+        #expect(obj["birthDate"] == nil)
+        #expect(obj["active"] == nil)
+    }
+
+    @Test("applyElements adds SUBSETTED tag to meta")
+    func applyElementsSubsetted() throws {
+        let input = #"{"resourceType":"Patient","id":"abc","meta":{"versionId":"1"}}"#
+        let result = applyElements(input.data(using: .utf8)!, elements: ["id"])
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        let meta = obj["meta"] as! [String: Any]
+        let tags = meta["tag"] as! [[String: Any]]
+        #expect(tags.contains(where: { $0["code"] as? String == "SUBSETTED" }))
+    }
+
+    @Test("applyElements does not duplicate SUBSETTED tag")
+    func applyElementsNoDuplicateSubsetted() throws {
+        let input = #"{"resourceType":"Patient","id":"abc","meta":{"versionId":"1","tag":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ObservationValue","code":"SUBSETTED"}]}}"#
+        let result = applyElements(input.data(using: .utf8)!, elements: ["id"])
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        let meta = obj["meta"] as! [String: Any]
+        let tags = meta["tag"] as! [[String: Any]]
+        let count = tags.filter { $0["code"] as? String == "SUBSETTED" }.count
+        #expect(count == 1)
+    }
+
+    @Test("applyElements returns original data on invalid JSON")
+    func applyElementsInvalidJSON() {
+        let input = Data("not json".utf8)
+        let result = applyElements(input, elements: ["id"])
+        #expect(result == input)
+    }
 }
 
 // ── PatientSearchQuery ────────────────────────────────────────────────────────

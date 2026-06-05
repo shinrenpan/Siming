@@ -58,3 +58,12 @@ func parseFormPairs(from buffer: ByteBuffer) -> [(key: Substring, value: Substri
 private func formDecode(_ s: Substring) -> String {
     String(s).replacingOccurrences(of: "+", with: " ").removingPercentEncoding ?? String(s)
 }
+
+/// Parses `_elements=a,b,c` from query/form pairs into a Set, or nil if absent.
+func parseElements(from pairs: some Collection<(key: Substring, value: Substring)>) -> Set<String>? {
+    guard let raw = pairs.first(where: { String($0.key) == "_elements" })?.value else { return nil }
+    let names = String(raw).split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty }
+    return names.isEmpty ? nil : Set(names)
+}

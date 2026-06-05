@@ -103,11 +103,16 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     group.get { request, _ in
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         let query = parsePatientQuery(from: qpPairs)
+        let elements = parseElements(from: qpPairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let baseURL = serverBaseURL(request)
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            return ("\(baseURL)/Patient/\(e.id)", json)
+        }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
@@ -117,6 +122,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     }
 
     // POST /Patient/_search — form-encoded search (FHIR R4 §3.1.1.7)
+    // URL params and body params are merged per spec ("same semantics as GET").
     group.post("_search") { request, _ in
         let ct = request.headers[.contentType] ?? ""
         guard ct.contains("application/x-www-form-urlencoded") else {
@@ -124,13 +130,19 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
-        let pairs = parseFormPairs(from: bodyBuffer)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
         let query = parsePatientQuery(from: pairs)
+        let elements = parseElements(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Patient/\($0.id)", json: $0.jsonWithMeta) }
+        let baseURL = serverBaseURL(request)
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            return ("\(baseURL)/Patient/\(e.id)", json)
+        }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
@@ -147,12 +159,14 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         }
         let result = try await store.vread(id: id, versionId: vid)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
         return Response(status: .ok, headers: headers,
-                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: jsonData)))
     }
 
     // GET /Patient/_history — type-level history; optional _since and _count
@@ -188,12 +202,14 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         let id = context.parameters.get("id") ?? ""
         let result = try await store.read(id: id)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
         return Response(status: .ok, headers: headers,
-                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: jsonData)))
     }
 
     // PUT /Patient/:id — update

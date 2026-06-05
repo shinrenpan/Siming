@@ -18,18 +18,50 @@ func addCompartmentRoutes(
 
     group.get(":patientId/Observation") { request, context in
         let patientId = context.parameters.get("patientId") ?? ""
-        let qp = request.uri.queryParameters
-
-        let pairs = qp.map { (key: $0.key, value: $0.value) }
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         var query = parseObservationQuery(from: pairs)
-        // Compartment constraint: force subject = Patient/:patientId server-side.
         query.subject = "Patient/\(patientId)"
-
+        let elements = parseElements(from: pairs)
         let result = try await observationStore.search(query: query)
 
         let base = selfURL(request)
         let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
-        let entries = result.entries.map { (fullUrl: "\(serverBaseURL(request))/Observation/\($0.id)", json: $0.jsonWithMeta) }
+        let baseURL = serverBaseURL(request)
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            return ("\(baseURL)/Observation/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total,
+                                         selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/:patientId/Observation/_search — compartment form-encoded search
+    group.post(":patientId/Observation/_search") { request, context in
+        let patientId = context.parameters.get("patientId") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: 1 * 1024 * 1024)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        var query = parseObservationQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let result = try await observationStore.search(query: query)
+
+        let base = selfURL(request)
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let baseURL = serverBaseURL(request)
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            return ("\(baseURL)/Observation/\(e.id)", json)
+        }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
                                          selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()

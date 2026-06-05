@@ -175,6 +175,32 @@ public func buildHistoryBundleJSON(
     return out
 }
 
+/// Filters a resource's JSON to only the requested top-level elements.
+///
+/// Mandatory elements (`id`, `meta`, `resourceType`) are always included.
+/// Marks the result with the SUBSETTED security tag per FHIR R4 §3.3.
+public func applyElements(_ jsonData: Data, elements: Set<String>) -> Data {
+    guard var obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+        return jsonData
+    }
+    let mandatory: Set<String> = ["id", "meta", "resourceType"]
+    let keep = elements.union(mandatory)
+    obj = obj.filter { keep.contains($0.key) }
+
+    var meta = (obj["meta"] as? [String: Any]) ?? [:]
+    var tags = (meta["tag"] as? [[String: Any]]) ?? []
+    if !tags.contains(where: { ($0["code"] as? String) == "SUBSETTED" }) {
+        tags.append([
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+            "code": "SUBSETTED"
+        ])
+    }
+    meta["tag"] = tags
+    obj["meta"] = meta
+
+    return (try? JSONSerialization.data(withJSONObject: obj)) ?? jsonData
+}
+
 private func escapeJSON(_ value: String) -> String {
     value
         .replacingOccurrences(of: "\\", with: "\\\\")
