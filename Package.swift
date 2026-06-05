@@ -43,5 +43,13 @@ let package = Package(
                 .target(name: "SimingCore"),
             ]
         ),
+        .testTarget(
+            name: "SimingIntegrationTests",
+            dependencies: [
+                .target(name: "SimingCore"),
+                .product(name: "PostgresNIO", package: "postgres-nio"),
+                .product(name: "ModelsR4", package: "FHIRModels"),
+            ]
+        ),
     ]
 )

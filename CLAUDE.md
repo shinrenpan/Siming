@@ -49,7 +49,9 @@ let jsonData = try JSONEncoder().encode(patient)
 
 - Build: `swift build`
 - Run server: `swift run SimingServer` — listens on `0.0.0.0:8080`
-- Test: `swift test` — prefer running single tests during iteration
+- Unit tests: `swift test --filter SimingCoreTests` — no DB required
+- Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests` — requires Postgres
+- Run all tests: `swift test` — integration tests auto-skip if no DB configured
 - Regenerate search extractors: `swift run SimingGenerator`
 - Local Postgres only: `docker compose up -d db`
 - Full stack via Docker: `docker compose up --build` — builds image, starts db + server
@@ -212,7 +214,7 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Bundle `entry.fullUrl` now uses absolute URLs (`http://host/Patient/id`)
 - `/metadata` CapabilityStatement reflecting all supported params
 - Prometheus metrics + trace IDs (`GET /metrics`)
-- 87 unit tests (no DB dependency)
+- 87 unit tests (no DB dependency) + 14 integration tests (require PostgreSQL, auto-skip otherwise)
 
 ## Project structure / conventions
 
@@ -269,8 +271,12 @@ Siming/
 │       ├── PatientHandlers.swift
 │       └── main.swift
 └── Tests/
-    └── SimingCoreTests/
-        └── SimingCoreTests.swift
+    ├── SimingCoreTests/
+    │   └── SimingCoreTests.swift
+    └── SimingIntegrationTests/         # require PostgreSQL; auto-skip without DB
+        ├── TestDatabase.swift          # shared DB setup actor + resource helpers
+        ├── PatientStoreTests.swift     # 9 tests: CRUD, search, pagination, history
+        └── ObservationStoreTests.swift # 5 tests: CRUD, search, history
 ```
 
 Pinned dependency versions (confirm against GitHub releases before changing):

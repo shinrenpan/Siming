@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siming
+          POSTGRES_PASSWORD: siming
+          POSTGRES_DB: siming
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Swift build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+
+      - name: Unit tests
+        run: swift test --filter SimingCoreTests
+
+      - name: Integration tests
+        env:
+          PGHOST: postgres
+          PGUSER: siming
+          PGPASSWORD: siming
+          PGDATABASE: siming
+          MIGRATIONS_PATH: migrations
+        run: swift test --filter SimingIntegrationTests
