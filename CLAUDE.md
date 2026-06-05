@@ -205,6 +205,7 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Conditional create: `POST /[type]` + `If-None-Exist: <search>` — 0 matches creates, 1 match returns 200, >1 returns 412
 - Conditional update: `PUT /[type]?<search>` — 0 matches creates (201), 1 match updates (200), >1 returns 412
 - Type-level history: `GET /Patient/_history` and `GET /Observation/_history` with `_since` (ISO 8601) and `_count`
+- `_format` parameter: `?_format=json|application/fhir+json` accepted; other formats → 406 Not Acceptable
 - `/metadata` CapabilityStatement reflecting all supported params
 - Prometheus metrics + trace IDs (`GET /metrics`)
 - 87 unit tests (no DB dependency)

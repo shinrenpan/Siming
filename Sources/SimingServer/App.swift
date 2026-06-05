@@ -34,6 +34,7 @@ struct SimingApp {
 
         let router = Router()
         router.middlewares.add(MetricsMiddleware())
+        router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
         addMetadataRoutes(to: router)
         addMetricsRoute(to: router, registry: registry)
