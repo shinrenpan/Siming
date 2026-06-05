@@ -4,20 +4,13 @@ public struct ObservationSearchQuery: Sendable {
 
     // ── Filters ───────────────────────────────────────────────────────────────
 
-    /// subject or patient: "Patient/abc-123" or plain "abc-123"
     public var subject: String?
-
-    /// code token: optional system + code  ("http://loinc.org|8867-4" or "8867-4")
-    public var code: TokenParam?
-
-    /// date range on Observation.effective (same prefix semantics as Patient.birthdate)
+    public var code: [TokenParam]       // OR: "http://loinc.org|29463-7,http://loinc.org|8867-4"
     public var date: [DateParam]
-
-    /// status token ("final", "preliminary", etc.)
-    public var status: String?
-
-    /// category token (system|code or plain code)
-    public var category: TokenParam?
+    public var status: [String]         // OR: "final,amended"
+    public var category: [TokenParam]   // OR: "vital-signs,laboratory"
+    public var id: [String]             // _id filter (OR)
+    public var lastUpdated: [DateParam] // _lastUpdated range filter
 
     // ── Pagination / sort ─────────────────────────────────────────────────────
 
@@ -27,31 +20,34 @@ public struct ObservationSearchQuery: Sendable {
 
     public init(
         subject: String? = nil,
-        code: TokenParam? = nil,
+        code: [TokenParam] = [],
         date: [DateParam] = [],
-        status: String? = nil,
-        category: TokenParam? = nil,
+        status: [String] = [],
+        category: [TokenParam] = [],
+        id: [String] = [],
+        lastUpdated: [DateParam] = [],
         count: Int = 20,
         sort: SortOrder = .lastUpdatedDescending,
         cursor: SearchCursor? = nil
     ) {
-        self.subject  = subject
-        self.code     = code
-        self.date     = date
-        self.status   = status
-        self.category = category
-        self.count    = count
-        self.sort     = sort
-        self.cursor   = cursor
+        self.subject     = subject
+        self.code        = code
+        self.date        = date
+        self.status      = status
+        self.category    = category
+        self.id          = id
+        self.lastUpdated = lastUpdated
+        self.count       = count
+        self.sort        = sort
+        self.cursor      = cursor
     }
 
-    // ── Nested types (shared with PatientSearchQuery where possible) ──────────
+    // ── Nested types ──────────────────────────────────────────────────────────
 
     public struct TokenParam: Sendable {
         public let system: String?
         public let code: String
 
-        /// Parse "system|code", "|code" (null system), or bare "code"
         public static func parse(_ raw: String) -> TokenParam {
             if let pipe = raw.firstIndex(of: "|") {
                 let sys  = String(raw[raw.startIndex..<pipe])
@@ -60,10 +56,15 @@ public struct ObservationSearchQuery: Sendable {
             }
             return TokenParam(system: nil, code: raw)
         }
+
+        // Parses comma-separated OR list: "system|code1,system|code2"
+        public static func parseList(_ raw: String) -> [TokenParam] {
+            raw.split(separator: ",").map { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
     }
 
-    // Reuse PatientSearchQuery types
-    public typealias DateParam  = PatientSearchQuery.BirthdateParam
-    public typealias SortOrder  = PatientSearchQuery.SortOrder
+    // Reuse PatientSearchQuery types (includes sa/eb prefixes)
+    public typealias DateParam    = PatientSearchQuery.BirthdateParam
+    public typealias SortOrder    = PatientSearchQuery.SortOrder
     public typealias SearchCursor = PatientSearchQuery.SearchCursor
 }

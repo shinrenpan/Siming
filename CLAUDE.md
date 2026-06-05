@@ -513,6 +513,14 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 13. ✅ Automated unit tests — 32 pure-logic tests, no DB dependency (`swift test`). Suites: `JSONPassthrough` (injectMeta, buildBundleJSON, buildHistoryBundleJSON, httpDate/parseHTTPDate); `PatientSearchQuery` (SortOrder, IdentifierParam, BirthdateParam with prefixes/partial dates, SearchCursor encode/decode); `ObservationSearchQuery` (TokenParam, DateParam); `DatabaseConfiguration`. Side-fix: `parseFHIRDate` now validates month (1–12) and day (1–31) — previously Calendar silently overflowed invalid values.
 
+15. ✅ Search compliance round 1 — FHIR R4 search semantics corrections:
+    - **String starts-with** (default) replaces previous `contains` behaviour; `name:contains` and `name:exact` modifiers now supported. `PatientSearchQuery.StringParam` struct added.
+    - **Token OR**: comma-separated values parsed as OR (`status=final,amended`, `code=A,B`). `IdentifierParam.parseList()` / `TokenParam.parseList()` added; all token params in ObservationSearchQuery changed to `[TokenParam]` / `[String]` arrays.
+    - **`_id` filter**: `GET /Patient?_id=abc-123` and `GET /Observation?_id=x` supported (direct `r.id IN (...)` condition in ids CTE); comma-separated for multi-id OR.
+    - **`_lastUpdated` filter**: `GET /Patient?_lastUpdated=ge2024-01-01` supported; same prefix semantics as birthdate/date; applies to `r.last_updated` in the ids CTE.
+    - **`sa` / `eb` date prefixes**: `sa` (starts-after → `date_start > X`) and `eb` (ends-before → `date_end < X`) added to `BirthdateParam.Prefix`; supported in birthdate and Observation date filters.
+    - Tests expanded from 32 → 42 (StringParam parse, IdentifierParam/TokenParam parseList, sa/eb prefixes).
+
 14. ✅ Compartment search + count-only query + Bundle.total fix:
     - `GET /Patient/:id/Observation[?params]` — FHIR patient compartment (`CompartmentRoutes.swift`); forces `subject=Patient/:id` server-side; returns same searchset Bundle as regular Observation search. `CapabilityStatementRest.compartment` added to `/metadata`.
     - `_count=0` — count-only mode; `ObservationStore.search()` / `PatientStore.search()` detect `count=0` early and call `buildCountSQL()` which returns `SELECT COUNT(*) FROM ids` — no content fetch, no paged CTE.
@@ -526,7 +534,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors (validation hook, auth middleware, generator) unwelded in every change — apply the weld test above.
-- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** This applies to: search parameter semantics (string starts-with vs contains, token OR with commas, date prefixes sa/eb/ap), HTTP interaction rules (status codes, headers, conditional logic), resource structure, and Bundle assembly. Do not guess or rely on memory — the spec is the source of truth. Known open gaps vs spec: string search uses contains instead of starts-with; token OR (comma-separated values) not implemented; `_id` and `_lastUpdated` filter parameters missing; `sa`/`eb`/`ap` date prefixes missing; `system|` token format missing.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** This applies to: search parameter semantics (string starts-with vs contains, token OR with commas, date prefixes sa/eb/ap), HTTP interaction rules (status codes, headers, conditional logic), resource structure, and Bundle assembly. Do not guess or rely on memory — the spec is the source of truth. Known open gaps vs spec: `ap` (approximate) date prefix not implemented; `system|` token format (match any code for a given system) not implemented; `_sort` only supports `_lastUpdated`; no `:text` or `:not` modifiers.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split across requests or do half-writes.

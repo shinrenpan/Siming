@@ -31,15 +31,19 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     // GET /Patient — search
     group.get { request, _ in
         let qp = request.uri.queryParameters
-        let name = qp["name"].map(String.init)
-        let identifier = qp["identifier"].map { PatientSearchQuery.IdentifierParam.parse(String($0)) }
+        let qpPairs = qp.map { (key: $0.key, value: $0.value) }
+        let name       = PatientSearchQuery.StringParam.parse(key: "name", from: qpPairs)
+        let identifier = qp["identifier"].map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+        let id         = qp["_id"].map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
         let birthdates = qp[values: "birthdate"].compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
-        let sort = PatientSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
-        let count = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
-        let cursor = qp["_cursor"].flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
+        let lastUpdated = qp[values: "_lastUpdated"].compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
+        let sort       = PatientSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
+        let count      = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
+        let cursor     = qp["_cursor"].flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
 
         let query = PatientSearchQuery(
-            name: name, identifier: identifier, birthdate: birthdates,
+            name: name, identifier: identifier, id: id,
+            birthdate: birthdates, lastUpdated: lastUpdated,
             sort: sort, count: count, cursor: cursor)
         let result = try await store.search(query: query)
 

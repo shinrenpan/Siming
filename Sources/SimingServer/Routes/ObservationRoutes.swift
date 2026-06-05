@@ -107,18 +107,21 @@ func addObservationRoutes(
     // GET /Observation — search
     group.get { request, _ in
         let qp = request.uri.queryParameters
-        let subject  = qp["subject"].map(String.init) ?? qp["patient"].map(String.init)
-        let code     = qp["code"].map { ObservationSearchQuery.TokenParam.parse(String($0)) }
-        let status   = qp["status"].map(String.init)
-        let category = qp["category"].map { ObservationSearchQuery.TokenParam.parse(String($0)) }
-        let dates    = qp[values: "date"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
-        let sort     = ObservationSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
-        let count    = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
-        let cursor   = qp["_cursor"].flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
+        let subject     = qp["subject"].map(String.init) ?? qp["patient"].map(String.init)
+        let code        = qp["code"].map     { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+        let status      = qp["status"].map   { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
+        let category    = qp["category"].map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+        let dates       = qp[values: "date"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+        let id          = qp["_id"].map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
+        let lastUpdated = qp[values: "_lastUpdated"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+        let sort        = ObservationSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated")
+        let count       = min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount)
+        let cursor      = qp["_cursor"].flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
 
         let query = ObservationSearchQuery(
             subject: subject, code: code, date: dates,
             status: status, category: category,
+            id: id, lastUpdated: lastUpdated,
             count: count, sort: sort, cursor: cursor)
         let result = try await store.search(query: query)
 

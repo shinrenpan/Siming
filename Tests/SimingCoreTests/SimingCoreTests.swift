@@ -217,7 +217,76 @@ struct PatientSearchQueryTests {
         }
     }
 
+    // StringParam
+
+    @Test("StringParam parse: bare key → starts-with modifier")
+    func stringParamStartsWith() {
+        let pairs: [(key: Substring, value: Substring)] = [("name", "Wang")]
+        let p = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+        #expect(p?.value == "Wang")
+        #expect(p?.modifier == .startsWith)
+    }
+
+    @Test("StringParam parse: name:contains key → contains modifier")
+    func stringParamContains() {
+        let pairs: [(key: Substring, value: Substring)] = [("name:contains", "ang")]
+        let p = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+        #expect(p?.value == "ang")
+        #expect(p?.modifier == .contains)
+    }
+
+    @Test("StringParam parse: name:exact key → exact modifier")
+    func stringParamExact() {
+        let pairs: [(key: Substring, value: Substring)] = [("name:exact", "Wang Wei")]
+        let p = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+        #expect(p?.value == "Wang Wei")
+        #expect(p?.modifier == .exact)
+    }
+
+    @Test("StringParam parse: modifier takes precedence over bare key")
+    func stringParamModifierPrecedence() {
+        let pairs: [(key: Substring, value: Substring)] = [("name", "fallback"), ("name:contains", "preferred")]
+        let p = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+        #expect(p?.modifier == .contains)
+        #expect(p?.value == "preferred")
+    }
+
+    @Test("StringParam parse: missing key returns nil")
+    func stringParamMissing() {
+        let pairs: [(key: Substring, value: Substring)] = [("other", "value")]
+        #expect(PatientSearchQuery.StringParam.parse(key: "name", from: pairs) == nil)
+    }
+
+    // IdentifierParam OR list
+
+    @Test("IdentifierParam parseList single value")
+    func identifierParseListSingle() {
+        let list = PatientSearchQuery.IdentifierParam.parseList("MRN-001")
+        #expect(list.count == 1)
+        #expect(list[0].code == "MRN-001")
+    }
+
+    @Test("IdentifierParam parseList comma-separated OR values")
+    func identifierParseListMultiple() {
+        let list = PatientSearchQuery.IdentifierParam.parseList("http://a.org|MRN-001,http://b.org|MRN-002")
+        #expect(list.count == 2)
+        #expect(list[0].code == "MRN-001")
+        #expect(list[1].code == "MRN-002")
+        guard case .specific(let s0) = list[0].systemFilter else {
+            Issue.record("Expected .specific"); return
+        }
+        #expect(s0 == "http://a.org")
+    }
+
     // BirthdateParam
+
+    @Test("BirthdateParam sa and eb prefixes")
+    func birthdateSaEbPrefix() throws {
+        let sa = try #require(PatientSearchQuery.BirthdateParam.parse("sa2024-01-01"))
+        #expect(sa.prefix == .sa)
+        let eb = try #require(PatientSearchQuery.BirthdateParam.parse("eb2024-06-30"))
+        #expect(eb.prefix == .eb)
+    }
 
     @Test("BirthdateParam full date YYYY-MM-DD defaults to eq")
     func birthdateFullDate() throws {
@@ -329,5 +398,23 @@ struct ObservationSearchQueryTests {
     func dateParamGEPrefix() throws {
         let p = try #require(ObservationSearchQuery.DateParam.parse("ge2024-01-01"))
         #expect(p.prefix == .ge)
+    }
+
+    @Test("TokenParam parseList comma-separated OR values")
+    func tokenParseListMultiple() {
+        let list = ObservationSearchQuery.TokenParam.parseList("final,amended")
+        #expect(list.count == 2)
+        #expect(list[0].code == "final")
+        #expect(list[1].code == "amended")
+        #expect(list[0].system == nil)
+    }
+
+    @Test("TokenParam parseList with systems")
+    func tokenParseListWithSystems() {
+        let list = ObservationSearchQuery.TokenParam.parseList("http://loinc.org|29463-7,http://loinc.org|8867-4")
+        #expect(list.count == 2)
+        #expect(list[0].code == "29463-7")
+        #expect(list[0].system == "http://loinc.org")
+        #expect(list[1].code == "8867-4")
     }
 }

@@ -318,14 +318,13 @@ public struct ObservationStore: Sendable {
     private func buildSearchSQL(query: ObservationSearchQuery) throws -> (String, PostgresBindings) {
         var binds = PostgresBindings()
         var n = 0
-
         func bind(_ val: some PostgresDynamicTypeEncodable) -> String {
             n += 1; binds.append(val); return "$\(n)"
         }
 
         var filterCTEs: [(name: String, sql: String)] = []
 
-        // subject / patient — idx_reference lookup
+        // subject — idx_reference
         if let subject = query.subject {
             let parts = subject.split(separator: "/")
             if parts.count == 2 {
@@ -346,41 +345,49 @@ public struct ObservationStore: Sendable {
             }
         }
 
-        // code — idx_token
-        if let code = query.code {
-            let codeP = bind(code.code)
-            var sysCond = ""
-            if let sys = code.system { sysCond = " AND system = \(bind(sys))" }
+        // code — token OR
+        if !query.code.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.code {
+                let codeP = bind(tok.code)
+                var sysCond = ""
+                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                orClauses.append("(code = \(codeP)\(sysCond))")
+            }
             filterCTEs.append(("f_code", """
                 SELECT DISTINCT resource_id FROM idx_token
                 WHERE resource_type = 'Observation' AND param_name = 'code'
-                  AND code = \(codeP)\(sysCond)
+                  AND (\(orClauses.joined(separator: " OR ")))
                 """))
         }
 
-        // status — idx_token (exact match, no system needed)
-        if let status = query.status {
-            let statusP = bind(status)
+        // status — token OR (no system for status)
+        if !query.status.isEmpty {
+            let phs = query.status.map { bind($0) }.joined(separator: ", ")
             filterCTEs.append(("f_status", """
                 SELECT DISTINCT resource_id FROM idx_token
                 WHERE resource_type = 'Observation' AND param_name = 'status'
-                  AND code = \(statusP)
+                  AND code IN (\(phs))
                 """))
         }
 
-        // category — idx_token
-        if let cat = query.category {
-            let codeP = bind(cat.code)
-            var sysCond = ""
-            if let sys = cat.system { sysCond = " AND system = \(bind(sys))" }
+        // category — token OR
+        if !query.category.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.category {
+                let codeP = bind(tok.code)
+                var sysCond = ""
+                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                orClauses.append("(code = \(codeP)\(sysCond))")
+            }
             filterCTEs.append(("f_category", """
                 SELECT DISTINCT resource_id FROM idx_token
                 WHERE resource_type = 'Observation' AND param_name = 'category'
-                  AND code = \(codeP)\(sysCond)
+                  AND (\(orClauses.joined(separator: " OR ")))
                 """))
         }
 
-        // date — idx_date range (same prefix logic as Patient birthdate)
+        // date — idx_date range with sa/eb
         for (i, dp) in query.date.enumerated() {
             let dateP = bind(dp.date)
             let cond: String
@@ -391,6 +398,8 @@ public struct ObservationStore: Sendable {
             case .le: cond = "date_start <= \(dateP)"
             case .gt: cond = "date_end > \(dateP)"
             case .ge: cond = "date_end >= \(dateP)"
+            case .sa: cond = "date_start > \(dateP)"
+            case .eb: cond = "date_end < \(dateP)"
             }
             filterCTEs.append(("f_date\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -398,18 +407,40 @@ public struct ObservationStore: Sendable {
                 """))
         }
 
-        // `ids` CTE — no content; enables index-only scan on resources_live_idx
+        // ── `ids` CTE — _id and _lastUpdated as direct WHERE conditions ────────
+
+        var whereConditions = ["r.resource_type = 'Observation'", "r.deleted = false"]
+
+        if !query.id.isEmpty {
+            let phs = query.id.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id IN (\(phs))")
+        }
+        for lu in query.lastUpdated {
+            let tsP = bind(lu.date)
+            let cond: String
+            switch lu.prefix {
+            case .eq: cond = "r.last_updated = \(tsP)"
+            case .ne: cond = "r.last_updated != \(tsP)"
+            case .lt: cond = "r.last_updated < \(tsP)"
+            case .le: cond = "r.last_updated <= \(tsP)"
+            case .gt: cond = "r.last_updated > \(tsP)"
+            case .ge: cond = "r.last_updated >= \(tsP)"
+            case .sa: cond = "r.last_updated > \(tsP)"
+            case .eb: cond = "r.last_updated < \(tsP)"
+            }
+            whereConditions.append(cond)
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
         }
-        fromLines.append("WHERE r.resource_type = 'Observation' AND r.deleted = false")
+        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
         fromLines.append("ORDER BY r.id, r.version_id DESC")
 
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
             + fromLines).joined(separator: "\n      ")
 
-        // `paged` CTE — cursor + sort + limit on lightweight rows
         var cursorCond = ""
         if let cursor = query.cursor {
             let tsP = bind(cursor.lastUpdated)
@@ -471,24 +502,32 @@ public struct ObservationStore: Sendable {
                     "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'subject' AND ref_id = \(refIdP)"))
             }
         }
-        if let code = query.code {
-            let codeP = bind(code.code)
-            var sysCond = ""
-            if let sys = code.system { sysCond = " AND system = \(bind(sys))" }
+        if !query.code.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.code {
+                let codeP = bind(tok.code)
+                var sysCond = ""
+                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                orClauses.append("(code = \(codeP)\(sysCond))")
+            }
             filterCTEs.append(("f_code",
-                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND code = \(codeP)\(sysCond)"))
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR ")))"))
         }
-        if let status = query.status {
-            let statusP = bind(status)
+        if !query.status.isEmpty {
+            let phs = query.status.map { bind($0) }.joined(separator: ", ")
             filterCTEs.append(("f_status",
-                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code = \(statusP)"))
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code IN (\(phs))"))
         }
-        if let cat = query.category {
-            let codeP = bind(cat.code)
-            var sysCond = ""
-            if let sys = cat.system { sysCond = " AND system = \(bind(sys))" }
+        if !query.category.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.category {
+                let codeP = bind(tok.code)
+                var sysCond = ""
+                if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                orClauses.append("(code = \(codeP)\(sysCond))")
+            }
             filterCTEs.append(("f_category",
-                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND code = \(codeP)\(sysCond)"))
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR ")))"))
         }
         for (i, dp) in query.date.enumerated() {
             let dateP = bind(dp.date)
@@ -500,14 +539,37 @@ public struct ObservationStore: Sendable {
             case .le: cond = "date_start <= \(dateP)"
             case .gt: cond = "date_end > \(dateP)"
             case .ge: cond = "date_end >= \(dateP)"
+            case .sa: cond = "date_start > \(dateP)"
+            case .eb: cond = "date_end < \(dateP)"
             }
             filterCTEs.append(("f_date\(i)",
                 "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'date' AND \(cond)"))
         }
 
+        var whereConditions = ["r.resource_type = 'Observation'", "r.deleted = false"]
+        if !query.id.isEmpty {
+            let phs = query.id.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id IN (\(phs))")
+        }
+        for lu in query.lastUpdated {
+            let tsP = bind(lu.date)
+            let cond: String
+            switch lu.prefix {
+            case .eq: cond = "r.last_updated = \(tsP)"
+            case .ne: cond = "r.last_updated != \(tsP)"
+            case .lt: cond = "r.last_updated < \(tsP)"
+            case .le: cond = "r.last_updated <= \(tsP)"
+            case .gt: cond = "r.last_updated > \(tsP)"
+            case .ge: cond = "r.last_updated >= \(tsP)"
+            case .sa: cond = "r.last_updated > \(tsP)"
+            case .eb: cond = "r.last_updated < \(tsP)"
+            }
+            whereConditions.append(cond)
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE r.resource_type = 'Observation' AND r.deleted = false")
+        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
         fromLines.append("ORDER BY r.id, r.version_id DESC")
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id"]
             + fromLines).joined(separator: "\n      ")

@@ -1,27 +1,57 @@
 import Foundation
 
 public struct PatientSearchQuery: Sendable {
-    public var name: String?
-    public var identifier: IdentifierParam?
+    public var name: StringParam?
+    public var identifier: [IdentifierParam]
+    public var id: [String]               // _id: filter by resource id (OR)
     public var birthdate: [BirthdateParam]
+    public var lastUpdated: [BirthdateParam]  // _lastUpdated: filter on last write time
     public var sort: SortOrder
     public var count: Int
     public var cursor: SearchCursor?
 
     public init(
-        name: String? = nil,
-        identifier: IdentifierParam? = nil,
+        name: StringParam? = nil,
+        identifier: [IdentifierParam] = [],
+        id: [String] = [],
         birthdate: [BirthdateParam] = [],
+        lastUpdated: [BirthdateParam] = [],
         sort: SortOrder = .lastUpdatedDescending,
         count: Int = 20,
         cursor: SearchCursor? = nil
     ) {
-        self.name = name
-        self.identifier = identifier
-        self.birthdate = birthdate
-        self.sort = sort
-        self.count = count
-        self.cursor = cursor
+        self.name        = name
+        self.identifier  = identifier
+        self.id          = id
+        self.birthdate   = birthdate
+        self.lastUpdated = lastUpdated
+        self.sort        = sort
+        self.count       = count
+        self.cursor      = cursor
+    }
+
+    // ── String parameter ──────────────────────────────────────────────────────
+    // FHIR R4 default: starts-with, case+accent insensitive.
+    // :contains → substring match; :exact → case-sensitive exact match.
+
+    public struct StringParam: Sendable {
+        public enum Modifier: Sendable { case startsWith, contains, exact }
+        public let value: String
+        public let modifier: Modifier
+
+        // Tries key:contains, key:exact, then bare key.
+        public static func parse(key: String, from qp: some Collection<(key: Substring, value: Substring)>) -> StringParam? {
+            if let v = qp.first(where: { $0.key == "\(key):contains" })?.value {
+                return StringParam(value: String(v), modifier: .contains)
+            }
+            if let v = qp.first(where: { $0.key == "\(key):exact" })?.value {
+                return StringParam(value: String(v), modifier: .exact)
+            }
+            if let v = qp.first(where: { $0.key == Substring(key) })?.value {
+                return StringParam(value: String(v), modifier: .startsWith)
+            }
+            return nil
+        }
     }
 
     // ── Sort order ────────────────────────────────────────────────────────────
@@ -58,20 +88,27 @@ public struct PatientSearchQuery: Sendable {
             let code = String(raw[raw.index(after: pipe)...])
             return IdentifierParam(systemFilter: .specific(sys.isEmpty ? nil : sys), code: code)
         }
+
+        // Parses comma-separated OR list: "sys|code1,sys|code2"
+        public static func parseList(_ raw: String) -> [IdentifierParam] {
+            raw.split(separator: ",").map { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
     }
 
-    // ── Birthdate range search ─────────────────────────────────────────────────
+    // ── Birthdate / date range search ─────────────────────────────────────────
 
     public struct BirthdateParam: Sendable {
         public enum Prefix: String, Sendable {
             case eq, ne, lt, gt, le, ge
+            case sa  // starts-after: stored period start > given date
+            case eb  // ends-before:  stored period end   < given date
         }
         public let prefix: Prefix
         public let date: Date
 
-        // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), etc.
+        // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), "sa2024-01-01", etc.
         public static func parse(_ raw: String) -> BirthdateParam? {
-            let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge"]
+            let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb"]
             let (pfxStr, dateStr): (String, String)
             let candidate = String(raw.prefix(2))
             if knownPrefixes.contains(candidate) {

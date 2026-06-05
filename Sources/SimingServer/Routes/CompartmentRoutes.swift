@@ -21,14 +21,16 @@ func addCompartmentRoutes(
         let qp = request.uri.queryParameters
 
         let query = ObservationSearchQuery(
-            subject: "Patient/\(patientId)",
-            code:     qp["code"].map     { ObservationSearchQuery.TokenParam.parse(String($0)) },
-            date:     qp[values: "date"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) },
-            status:   qp["status"].map(String.init),
-            category: qp["category"].map { ObservationSearchQuery.TokenParam.parse(String($0)) },
-            count:    min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount),
-            sort:     ObservationSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated"),
-            cursor:   qp["_cursor"].flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
+            subject:     "Patient/\(patientId)",
+            code:        qp["code"].map     { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? [],
+            date:        qp[values: "date"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) },
+            status:      qp["status"].map   { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? [],
+            category:    qp["category"].map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? [],
+            id:          qp["_id"].map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? [],
+            lastUpdated: qp[values: "_lastUpdated"].compactMap { ObservationSearchQuery.DateParam.parse(String($0)) },
+            count:       min(qp["_count"].flatMap { Int($0) } ?? 20, maxCount),
+            sort:        ObservationSearchQuery.SortOrder.parse(qp["_sort"].map(String.init) ?? "-_lastUpdated"),
+            cursor:      qp["_cursor"].flatMap { ObservationSearchQuery.SearchCursor.decode(String($0)) }
         )
 
         let result = try await observationStore.search(query: query)

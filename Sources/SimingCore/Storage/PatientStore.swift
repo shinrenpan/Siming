@@ -345,49 +345,51 @@ public struct PatientStore: Sendable {
         }
     }
 
-    /// Builds the parameterised search SQL for GET /Patient.
-    /// Returns (unsafeSQL, binds) ready for PostgresQuery(unsafeSQL:binds:).
-    ///
-    /// Strategy: each active filter becomes a pre-filter CTE that selects matching
-    /// resource_ids from the appropriate index table. These CTEs are then JOIN-ed into
-    /// the `current` CTE so PostgreSQL only materialises the matching rows — instead of
-    /// scanning all resources and running a correlated EXISTS per row.
     private func buildSearchSQL(query: PatientSearchQuery) throws -> (String, PostgresBindings) {
         var binds = PostgresBindings()
         var n = 0
-
         func bind(_ val: some PostgresDynamicTypeEncodable) -> String {
             n += 1; binds.append(val); return "$\(n)"
         }
 
-        // ── Build one pre-filter CTE per active search param ──────────────────
-
-        // Each entry: (cte_name, inner_sql)
         var filterCTEs: [(name: String, sql: String)] = []
 
-        if let name = query.name {
-            let p = bind("%\(name)%")
+        // name — starts-with (default), :contains, or :exact
+        if let nameParam = query.name {
+            let (bindVal, op): (String, String)
+            switch nameParam.modifier {
+            case .startsWith: bindVal = "\(nameParam.value)%"; op = "ILIKE"
+            case .contains:   bindVal = "%\(nameParam.value)%"; op = "ILIKE"
+            case .exact:      bindVal = nameParam.value; op = "="
+            }
+            let p = bind(bindVal)
             filterCTEs.append(("f_name", """
                 SELECT DISTINCT resource_id FROM idx_string
-                WHERE resource_type = 'Patient' AND param_name = 'name' AND value ILIKE \(p)
+                WHERE resource_type = 'Patient' AND param_name = 'name' AND value \(op) \(p)
                 """))
         }
 
-        if let ident = query.identifier {
-            let codeP = bind(ident.code)
-            var sysCond = ""
-            switch ident.systemFilter {
-            case .any: break
-            case .specific(nil): sysCond = " AND system IS NULL"
-            case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+        // identifier — token OR (comma-separated values become OR clauses)
+        if !query.identifier.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifier {
+                let codeP = bind(ident.code)
+                var sysCond = ""
+                switch ident.systemFilter {
+                case .any: break
+                case .specific(nil): sysCond = " AND system IS NULL"
+                case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                }
+                orClauses.append("(code = \(codeP)\(sysCond))")
             }
             filterCTEs.append(("f_ident", """
                 SELECT DISTINCT resource_id FROM idx_token
                 WHERE resource_type = 'Patient' AND param_name = 'identifier'
-                  AND code = \(codeP)\(sysCond)
+                  AND (\(orClauses.joined(separator: " OR ")))
                 """))
         }
 
+        // birthdate — date range; sa/eb for period semantics
         for (i, bd) in query.birthdate.enumerated() {
             let dateP = bind(bd.date)
             let cond: String
@@ -398,6 +400,8 @@ public struct PatientStore: Sendable {
             case .le: cond = "date_start <= \(dateP)"
             case .gt: cond = "date_end > \(dateP)"
             case .ge: cond = "date_end >= \(dateP)"
+            case .sa: cond = "date_start > \(dateP)"   // period starts after
+            case .eb: cond = "date_end < \(dateP)"     // period ends before
             }
             filterCTEs.append(("f_date\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -405,19 +409,41 @@ public struct PatientStore: Sendable {
                 """))
         }
 
-        // ── `ids` CTE — no content; enables index-only scan on resources_live_idx ─
+        // ── `ids` CTE — _id and _lastUpdated go directly into WHERE ──────────
+
+        var whereConditions = ["r.resource_type = 'Patient'", "r.deleted = false"]
+
+        if !query.id.isEmpty {
+            let phs = query.id.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id IN (\(phs))")
+        }
+        for lu in query.lastUpdated {
+            let tsP = bind(lu.date)
+            let cond: String
+            switch lu.prefix {
+            case .eq: cond = "r.last_updated = \(tsP)"
+            case .ne: cond = "r.last_updated != \(tsP)"
+            case .lt: cond = "r.last_updated < \(tsP)"
+            case .le: cond = "r.last_updated <= \(tsP)"
+            case .gt: cond = "r.last_updated > \(tsP)"
+            case .ge: cond = "r.last_updated >= \(tsP)"
+            case .sa: cond = "r.last_updated > \(tsP)"
+            case .eb: cond = "r.last_updated < \(tsP)"
+            }
+            whereConditions.append(cond)
+        }
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
         }
-        fromLines.append("WHERE r.resource_type = 'Patient' AND r.deleted = false")
+        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
         fromLines.append("ORDER BY r.id, r.version_id DESC")
 
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
             + fromLines).joined(separator: "\n      ")
 
-        // ── `paged` CTE — cursor + sort + limit on lightweight rows ──────────
+        // ── `paged` CTE ───────────────────────────────────────────────────────
 
         var cursorCond = ""
         if let cursor = query.cursor {
@@ -432,7 +458,7 @@ public struct PatientStore: Sendable {
 
         let descending = (query.sort == .lastUpdatedDescending)
         let orderSQL = "ORDER BY i.last_updated \(descending ? "DESC" : "ASC"), i.id ASC"
-        let limitP = bind(Int64(query.count + 1))  // +1 to detect next page
+        let limitP = bind(Int64(query.count + 1))
 
         let pagedInner = """
             SELECT i.id, i.version_id, i.last_updated
@@ -440,8 +466,6 @@ public struct PatientStore: Sendable {
             \(cursorCond)\(orderSQL)
             LIMIT \(limitP)
             """
-
-        // ── Assemble final SQL — fetch content only for the page ─────────────
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
         cteParts.append("ids AS (\n    \(idsInner)\n  )")
@@ -469,21 +493,31 @@ public struct PatientStore: Sendable {
 
         var filterCTEs: [(name: String, sql: String)] = []
 
-        if let name = query.name {
-            let p = bind("%\(name)%")
+        if let nameParam = query.name {
+            let (bindVal, op): (String, String)
+            switch nameParam.modifier {
+            case .startsWith: bindVal = "\(nameParam.value)%"; op = "ILIKE"
+            case .contains:   bindVal = "%\(nameParam.value)%"; op = "ILIKE"
+            case .exact:      bindVal = nameParam.value; op = "="
+            }
+            let p = bind(bindVal)
             filterCTEs.append(("f_name",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND value ILIKE \(p)"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND value \(op) \(p)"))
         }
-        if let ident = query.identifier {
-            let codeP = bind(ident.code)
-            var sysCond = ""
-            switch ident.systemFilter {
-            case .any: break
-            case .specific(nil): sysCond = " AND system IS NULL"
-            case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+        if !query.identifier.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifier {
+                let codeP = bind(ident.code)
+                var sysCond = ""
+                switch ident.systemFilter {
+                case .any: break
+                case .specific(nil): sysCond = " AND system IS NULL"
+                case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                }
+                orClauses.append("(code = \(codeP)\(sysCond))")
             }
             filterCTEs.append(("f_ident",
-                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier' AND code = \(codeP)\(sysCond)"))
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR ")))"))
         }
         for (i, bd) in query.birthdate.enumerated() {
             let dateP = bind(bd.date)
@@ -495,14 +529,37 @@ public struct PatientStore: Sendable {
             case .le: cond = "date_start <= \(dateP)"
             case .gt: cond = "date_end > \(dateP)"
             case .ge: cond = "date_end >= \(dateP)"
+            case .sa: cond = "date_start > \(dateP)"
+            case .eb: cond = "date_end < \(dateP)"
             }
             filterCTEs.append(("f_date\(i)",
                 "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'birthdate' AND \(cond)"))
         }
 
+        var whereConditions = ["r.resource_type = 'Patient'", "r.deleted = false"]
+        if !query.id.isEmpty {
+            let phs = query.id.map { bind($0) }.joined(separator: ", ")
+            whereConditions.append("r.id IN (\(phs))")
+        }
+        for lu in query.lastUpdated {
+            let tsP = bind(lu.date)
+            let cond: String
+            switch lu.prefix {
+            case .eq: cond = "r.last_updated = \(tsP)"
+            case .ne: cond = "r.last_updated != \(tsP)"
+            case .lt: cond = "r.last_updated < \(tsP)"
+            case .le: cond = "r.last_updated <= \(tsP)"
+            case .gt: cond = "r.last_updated > \(tsP)"
+            case .ge: cond = "r.last_updated >= \(tsP)"
+            case .sa: cond = "r.last_updated > \(tsP)"
+            case .eb: cond = "r.last_updated < \(tsP)"
+            }
+            whereConditions.append(cond)
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE r.resource_type = 'Patient' AND r.deleted = false")
+        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
         fromLines.append("ORDER BY r.id, r.version_id DESC")
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id"]
             + fromLines).joined(separator: "\n      ")
