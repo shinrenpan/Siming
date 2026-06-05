@@ -184,9 +184,9 @@ Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the mat
 
 ## FHIR R4 interaction compliance
 
-All Layer 1 baseline interactions are complete: create, read, update, delete, search, vread, history-instance, `Last-Modified`, conditional read (`If-None-Match` / `If-Modified-Since`).
+All Layer 1 baseline interactions are complete: create, read, update, delete, search, vread, history-instance, `Last-Modified`, conditional read (`If-None-Match` / `If-Modified-Since`), conditional create (`If-None-Exist`), conditional update (`PUT /[type]?<search>`).
 
-**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional create/update/delete, `Prefer` header, type/system-level history.
+**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, conditional delete, `Prefer` header, type/system-level history.
 
 ## Pagination
 
@@ -202,9 +202,11 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Cursor pagination; `_count=0` count-only mode; correct Bundle.total across pages
 - Compartment search: `GET /Patient/:id/Observation`
 - Conditional read: `If-None-Match` / `If-Modified-Since` → 304
+- Conditional create: `POST /[type]` + `If-None-Exist: <search>` — 0 matches creates, 1 match returns 200, >1 returns 412
+- Conditional update: `PUT /[type]?<search>` — 0 matches creates (201), 1 match updates (200), >1 returns 412
 - `/metadata` CapabilityStatement reflecting all supported params
 - Prometheus metrics + trace IDs (`GET /metrics`)
-- 79 unit tests (no DB dependency)
+- 87 unit tests (no DB dependency)
 
 ## Project structure / conventions
 

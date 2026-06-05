@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import Logging
 import ModelsR4
@@ -8,16 +9,40 @@ import SimingCore
 private let maxCount = 100
 private let fhirJSON = "application/fhir+json"
 private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
+private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 
 func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStore, logger: Logger) {
     let group = router.group("Patient")
 
-    // POST /Patient — create
+    // POST /Patient — create (with optional If-None-Exist conditional create)
     group.post { request, _ in
         try requireFHIRContentType(request)
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
+
+        if let ifNoneExist = request.headers[ifNoneExistHeader] {
+            let pairs = parseQueryString(ifNoneExist)
+            var checkQuery = parsePatientQuery(from: pairs)
+            checkQuery.count = 2
+            checkQuery.totalMode = .none
+            checkQuery.cursor = nil
+            let matches = try await store.search(query: checkQuery)
+            if matches.entries.count > 1 {
+                throw FHIRServerError.multipleMatches(resourceType: "Patient")
+            }
+            if let existing = matches.entries.first {
+                var headers = HTTPFields()
+                headers[.contentType]  = fhirJSON
+                headers[.eTag]         = "W/\"\(existing.versionId)\""
+                headers[.lastModified] = httpDate(existing.lastUpdated)
+                headers[.location]     = "/Patient/\(existing.id)/_history/\(existing.versionId)"
+                return Response(status: .ok, headers: headers,
+                                body: ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+            }
+            // 0 matches — fall through to normal create
+        }
+
         let result = try await store.create(patient)
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
@@ -26,6 +51,49 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // PUT /Patient?<search> — conditional update (no id in URL)
+    group.put { request, _ in
+        try requireFHIRContentType(request)
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        guard !qpPairs.isEmpty else {
+            throw FHIRRouteError.invalidBody("PUT /Patient requires search parameters for conditional update")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
+        let ifMatch = parseETag(request.headers[.ifMatch])
+
+        var checkQuery = parsePatientQuery(from: qpPairs)
+        checkQuery.count = 2
+        checkQuery.totalMode = .none
+        checkQuery.cursor = nil
+        let matches = try await store.search(query: checkQuery)
+
+        switch matches.entries.count {
+        case 0:
+            let result = try await store.create(patient)
+            var headers = HTTPFields()
+            headers[.contentType]  = fhirJSON
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
+            return Response(status: .created, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+        case 1:
+            let existingId = matches.entries[0].id
+            let result = try await store.update(id: existingId, patient: patient, ifMatch: ifMatch)
+            var headers = HTTPFields()
+            headers[.contentType]  = fhirJSON
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+        default:
+            throw FHIRServerError.multipleMatches(resourceType: "Patient")
+        }
     }
 
     // GET /Patient — search
@@ -316,6 +384,7 @@ extension FHIRServerError: HTTPResponseError {
         case .notFound:                     .notFound
         case .gone:                         .gone
         case .versionConflict:              .preconditionFailed
+        case .multipleMatches:              .preconditionFailed
         }
     }
 
@@ -332,6 +401,9 @@ extension FHIRServerError: HTTPResponseError {
         case .versionConflict(let id, let expected, let actual):
             (.error, .conflict,
              "Version conflict for Patient/\(id): expected W/\"\(expected)\", current is W/\"\(actual.map(String.init) ?? "none")\"")
+        case .multipleMatches(let rt):
+            (.error, .multipleMatches,
+             "Multiple \(rt) resources match the search criteria; criteria are not selective enough")
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()

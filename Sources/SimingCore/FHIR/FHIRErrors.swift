@@ -7,6 +7,7 @@ public enum FHIRServerError: Error {
     case notFound(resourceType: String, id: String)
     case gone(resourceType: String, id: String)
     case versionConflict(id: String, expected: Int64, actual: Int64?)
+    case multipleMatches(resourceType: String)
 }
 
 // Build a minimal OperationOutcome. Never return ad-hoc JSON errors.

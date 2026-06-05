@@ -61,10 +61,10 @@ private let baselineInteractions: [CapabilityStatementRestResourceInteraction] =
 ]
 
 private func patientResource() -> CapabilityStatementRestResource {
-    CapabilityStatementRestResource(
+    var r = CapabilityStatementRestResource(
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
-            "Supports read, vread, create, update, delete, history-instance, and search (GET and POST /_search). " +
+            "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Patient?<search>), delete, history-instance, and search (GET and POST /_search). " +
             "Search supports _sort=±_lastUpdated/±name/±family/±birthdate, _count (0–100; 0=count-only), _total (accurate|none), and cursor-based pagination via _cursor. " +
             "Compartment: GET /Patient/:id/Observation returns Observations scoped to that patient."
         )),
@@ -177,13 +177,16 @@ private func patientResource() -> CapabilityStatementRestResource {
         type: FHIRPrimitive(.patient),
         versioning: FHIRPrimitive(.versioned)
     )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    return r
 }
 
 private func observationResource() -> CapabilityStatementRestResource {
-    CapabilityStatementRestResource(
+    var r = CapabilityStatementRestResource(
         documentation: FHIRPrimitive(FHIRString(
             "Observation resource. " +
-            "Supports read, vread, create, update, delete, history-instance, and search (GET and POST /_search). " +
+            "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Observation?<search>), delete, history-instance, and search (GET and POST /_search). " +
             "Search supports subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity. " +
             "_sort supports ±_lastUpdated and ±date. _total: accurate (default) or none."
         )),
@@ -278,4 +281,7 @@ private func observationResource() -> CapabilityStatementRestResource {
         type: FHIRPrimitive(.observation),
         versioning: FHIRPrimitive(.versioned)
     )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    return r
 }

@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import Logging
 import ModelsR4
@@ -8,6 +9,7 @@ import SimingCore
 private let maxCount = 100
 private let fhirJSON = "application/fhir+json"
 private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
+private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 
 func addObservationRoutes(
     to router: Router<BasicRequestContext>,
@@ -16,12 +18,35 @@ func addObservationRoutes(
 ) {
     let group = router.group("Observation")
 
-    // POST /Observation — create
+    // POST /Observation — create (with optional If-None-Exist conditional create)
     group.post { request, _ in
         try requireFHIRContentType(request)
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
+
+        if let ifNoneExist = request.headers[ifNoneExistHeader] {
+            let pairs = parseQueryString(ifNoneExist)
+            var checkQuery = parseObservationQuery(from: pairs)
+            checkQuery.count = 2
+            checkQuery.totalMode = .none
+            checkQuery.cursor = nil
+            let matches = try await store.search(query: checkQuery)
+            if matches.entries.count > 1 {
+                throw FHIRServerError.multipleMatches(resourceType: "Observation")
+            }
+            if let existing = matches.entries.first {
+                var headers = HTTPFields()
+                headers[.contentType]  = fhirJSON
+                headers[.eTag]         = "W/\"\(existing.versionId)\""
+                headers[.lastModified] = httpDate(existing.lastUpdated)
+                headers[.location]     = "/Observation/\(existing.id)/_history/\(existing.versionId)"
+                return Response(status: .ok, headers: headers,
+                                body: ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+            }
+            // 0 matches — fall through to normal create
+        }
+
         let result = try await store.create(obs)
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
@@ -30,6 +55,49 @@ func addObservationRoutes(
         headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
+    // PUT /Observation?<search> — conditional update (no id in URL)
+    group.put { request, _ in
+        try requireFHIRContentType(request)
+        let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        guard !qpPairs.isEmpty else {
+            throw FHIRRouteError.invalidBody("PUT /Observation requires search parameters for conditional update")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
+        let ifMatch = parseETag(request.headers[.ifMatch])
+
+        var checkQuery = parseObservationQuery(from: qpPairs)
+        checkQuery.count = 2
+        checkQuery.totalMode = .none
+        checkQuery.cursor = nil
+        let matches = try await store.search(query: checkQuery)
+
+        switch matches.entries.count {
+        case 0:
+            let result = try await store.create(obs)
+            var headers = HTTPFields()
+            headers[.contentType]  = fhirJSON
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
+            return Response(status: .created, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+        case 1:
+            let existingId = matches.entries[0].id
+            let result = try await store.update(id: existingId, observation: obs, ifMatch: ifMatch)
+            var headers = HTTPFields()
+            headers[.contentType]  = fhirJSON
+            headers[.eTag]         = "W/\"\(result.versionId)\""
+            headers[.lastModified] = httpDate(result.lastUpdated)
+            headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+        default:
+            throw FHIRServerError.multipleMatches(resourceType: "Observation")
+        }
     }
 
     // GET /Observation/:id/_history/:vid — vread
