@@ -6,12 +6,21 @@ A high-performance FHIR R4 server written in Swift.
 
 ## Quick start
 
+Requires macOS and a running PostgreSQL instance.
+
 ```bash
-# Requires Docker
-docker compose up --build
+# Start PostgreSQL only (Docker)
+docker compose up -d db
+
+# Run server
+PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run SimingServer
 ```
 
-Server listens on `http://localhost:8080`. PostgreSQL starts automatically and migrations run at boot.
+Server listens on `http://localhost:8080`.
+
+> **Note:** Linux / Docker builds are currently unsupported. FHIRModels 0.9.2 depends on
+> Apple's `os` framework (`import os`), which is unavailable on Linux. This will be
+> restored once FHIRModels ships a Linux-compatible release.
 
 ## FHIR R4 capabilities
 
@@ -21,7 +30,7 @@ Server listens on `http://localhost:8080`. PostgreSQL starts automatically and m
 | vread (`/[type]/[id]/_history/[vid]`) | ✓ |
 | History — instance, type, system | ✓ |
 | Search — 15 Patient / 12+ Observation params | ✓ |
-| Search modifiers: `:contains` `:exact` `:not` `:missing` | ✓ |
+| Search modifiers: `:contains` `:exact` `:text` `:not` `:missing` | ✓ |
 | Date prefixes: `eq` `lt` `gt` `le` `ge` `sa` `eb` | ✓ |
 | `_sort`, `_count`, cursor pagination | ✓ |
 | Compartment search (`GET /Patient/:id/Observation`) | ✓ |
@@ -30,6 +39,7 @@ Server listens on `http://localhost:8080`. PostgreSQL starts automatically and m
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
+| `Prefer: return=minimal` on create/update | ✓ |
 | CapabilityStatement (`GET /metadata`) | ✓ |
 | Prometheus metrics (`GET /metrics`) | ✓ |
 
@@ -49,7 +59,7 @@ All error responses are `OperationOutcome`. `ETag` / `If-Match` optimistic locki
 
 ## Building from source
 
-Requires Swift 6.2+ and a running PostgreSQL instance.
+Requires Swift 6.2+ and a running PostgreSQL instance (macOS only).
 
 ```bash
 swift build -c release

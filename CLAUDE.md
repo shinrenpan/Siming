@@ -54,7 +54,6 @@ let jsonData = try JSONEncoder().encode(patient)
 - Run all tests: `swift test` — integration tests auto-skip if no DB configured
 - Regenerate search extractors: `swift run SimingGenerator`
 - Local Postgres only: `docker compose up -d db`
-- Full stack via Docker: `docker compose up --build` — builds image, starts db + server
 - DB connection env vars (defaults match docker-compose):
   - `DATABASE_URL=postgres://siming:siming@localhost:5432/siming` (takes priority)
   - or discrete: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
@@ -223,9 +222,7 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 Siming/
 ├── Package.swift
 ├── README.md
-├── Dockerfile
-├── .dockerignore
-├── docker-compose.yml
+├── docker-compose.yml          # db service only (Postgres); no server image
 ├── docker-compose.benchmark.yml    # adds HAPI + hapi-db services
 ├── benchmarks/
 │   ├── seed.sh                     # seed N patients into any FHIR server
