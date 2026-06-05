@@ -526,7 +526,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors (validation hook, auth middleware, generator) unwelded in every change — apply the weld test above.
-- When unsure about FHIR semantics, check the official R4 spec rather than guessing.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** This applies to: search parameter semantics (string starts-with vs contains, token OR with commas, date prefixes sa/eb/ap), HTTP interaction rules (status codes, headers, conditional logic), resource structure, and Bundle assembly. Do not guess or rely on memory — the spec is the source of truth. Known open gaps vs spec: string search uses contains instead of starts-with; token OR (comma-separated values) not implemented; `_id` and `_lastUpdated` filter parameters missing; `sa`/`eb`/`ap` date prefixes missing; `system|` token format missing.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split across requests or do half-writes.
