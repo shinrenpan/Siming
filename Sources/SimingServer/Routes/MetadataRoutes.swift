@@ -57,6 +57,7 @@ private let baselineInteractions: [CapabilityStatementRestResourceInteraction] =
     CapabilityStatementRestResourceInteraction(code: FHIRPrimitive(.update)),
     CapabilityStatementRestResourceInteraction(code: FHIRPrimitive(.delete)),
     CapabilityStatementRestResourceInteraction(code: FHIRPrimitive(.historyInstance)),
+    CapabilityStatementRestResourceInteraction(code: FHIRPrimitive(.historyType)),
     CapabilityStatementRestResourceInteraction(code: FHIRPrimitive(.searchType)),
 ]
 

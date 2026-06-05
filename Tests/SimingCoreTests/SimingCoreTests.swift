@@ -98,10 +98,10 @@ struct JSONPassthroughTests {
 
     @Test("buildHistoryBundleJSON produces type=history bundle")
     func historyBundleType() throws {
-        let entry = HistoryRawEntry(versionId: 1, lastUpdated: Date(timeIntervalSince1970: 0),
+        let entry = HistoryRawEntry(id: "p1", versionId: 1, lastUpdated: Date(timeIntervalSince1970: 0),
                                     jsonData: Data(#"{"resourceType":"Patient","id":"p1"}"#.utf8),
                                     deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient", id: "p1",
+        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient",
                                           baseURL: "http://localhost")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(json["type"] as? String == "history")
@@ -110,9 +110,9 @@ struct JSONPassthroughTests {
 
     @Test("buildHistoryBundleJSON first version uses POST method")
     func historyFirstVersionPOST() throws {
-        let entry = HistoryRawEntry(versionId: 1, lastUpdated: Date(),
+        let entry = HistoryRawEntry(id: "x", versionId: 1, lastUpdated: Date(),
                                     jsonData: Data(#"{"resourceType":"Patient"}"#.utf8), deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient", id: "x",
+        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient",
                                           baseURL: "http://localhost")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])
@@ -122,8 +122,8 @@ struct JSONPassthroughTests {
 
     @Test("buildHistoryBundleJSON delete marker uses DELETE, no resource")
     func historyDeleteMarker() throws {
-        let entry = HistoryRawEntry(versionId: 3, lastUpdated: Date(), jsonData: nil, deleted: true)
-        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient", id: "x",
+        let entry = HistoryRawEntry(id: "x", versionId: 3, lastUpdated: Date(), jsonData: nil, deleted: true)
+        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient",
                                           baseURL: "http://localhost")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])
@@ -134,9 +134,9 @@ struct JSONPassthroughTests {
 
     @Test("buildHistoryBundleJSON subsequent versions use PUT method")
     func historySubsequentVersionPUT() throws {
-        let entry = HistoryRawEntry(versionId: 2, lastUpdated: Date(),
+        let entry = HistoryRawEntry(id: "x", versionId: 2, lastUpdated: Date(),
                                     jsonData: Data(#"{"resourceType":"Patient"}"#.utf8), deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient", id: "x",
+        let data = buildHistoryBundleJSON(entries: [entry], resourceType: "Patient",
                                           baseURL: "http://localhost")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])

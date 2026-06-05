@@ -116,6 +116,21 @@ func addObservationRoutes(
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
+    // GET /Observation/_history — type-level history; optional _since and _count
+    group.get("_history") { request, _ in
+        let qp = request.uri.queryParameters
+        let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
+        let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maxCount)
+        let entries = try await store.typeHistory(since: since, count: count)
+        let authority = request.head.authority ?? "localhost"
+        let baseURL = "http://\(authority)"
+        let bundleData = buildHistoryBundleJSON(entries: entries, resourceType: "Observation", baseURL: baseURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
     // GET /Observation/:id/_history — instance history
     group.get(":id/_history") { request, context in
         let id = context.parameters.get("id") ?? ""
@@ -123,7 +138,7 @@ func addObservationRoutes(
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"
         let bundleData = buildHistoryBundleJSON(
-            entries: entries, resourceType: "Observation", id: id, baseURL: baseURL)
+            entries: entries, resourceType: "Observation", baseURL: baseURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,

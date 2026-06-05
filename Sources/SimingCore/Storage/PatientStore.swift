@@ -145,10 +145,44 @@ public struct PatientStore: Sendable {
                 rows.decode((Int64, Date, String, Bool).self, context: .default)
             {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
-                entries.append(HistoryRawEntry(versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
+                entries.append(HistoryRawEntry(id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             guard !entries.isEmpty else {
                 throw FHIRServerError.notFound(resourceType: "Patient", id: id)
+            }
+            return entries
+        }
+    }
+
+    /// GET /Patient/_history — all Patient versions across all instances, optional _since filter.
+    public func typeHistory(since: Date?, count: Int) async throws -> [HistoryRawEntry] {
+        try await client.withConnection { conn in
+            let rows: PostgresRowSequence
+            if let since {
+                rows = try await conn.query(
+                    """
+                    SELECT id, version_id, last_updated, content, deleted
+                    FROM resources
+                    WHERE resource_type = 'Patient' AND last_updated >= \(since)
+                    ORDER BY last_updated DESC, id, version_id DESC
+                    LIMIT \(Int64(count))
+                    """, logger: logger)
+            } else {
+                rows = try await conn.query(
+                    """
+                    SELECT id, version_id, last_updated, content, deleted
+                    FROM resources
+                    WHERE resource_type = 'Patient'
+                    ORDER BY last_updated DESC, id, version_id DESC
+                    LIMIT \(Int64(count))
+                    """, logger: logger)
+            }
+            var entries: [HistoryRawEntry] = []
+            for try await (rid, vid, lastUpdated, content, deleted) in
+                rows.decode((String, Int64, Date, String, Bool).self, context: .default)
+            {
+                let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
+                entries.append(HistoryRawEntry(id: rid, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
             return entries
         }

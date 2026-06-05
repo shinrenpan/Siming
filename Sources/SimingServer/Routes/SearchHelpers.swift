@@ -1,6 +1,23 @@
 import Foundation
 import NIOCore
 
+/// Parses a FHIR instant string (ISO 8601) into a Date. Accepts e.g. "2023-01-01T00:00:00Z".
+func parseFHIRInstant(_ raw: String) -> Date? {
+    iso8601Instant.date(from: raw) ?? iso8601InstantMs.date(from: raw)
+}
+
+private let iso8601Instant: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime]
+    return f
+}()
+
+private let iso8601InstantMs: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
+
 /// Parses a URL query string (e.g., from an If-None-Exist header) into key-value pairs.
 func parseQueryString(_ raw: String) -> [(key: Substring, value: Substring)] {
     raw.split(separator: "&", omittingEmptySubsequences: true).compactMap { pair in
