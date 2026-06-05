@@ -12,6 +12,12 @@ private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
 private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
+let knownObservationParams: Set<String> = [
+    "subject", "patient", "code", "status", "category", "date",
+    "identifier", "encounter", "performer", "component-code", "value-quantity",
+    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format",
+]
+
 func addObservationRoutes(
     to router: Router<BasicRequestContext>,
     store: ObservationStore,
@@ -223,6 +229,10 @@ func addObservationRoutes(
     // GET /Observation — search
     group.get { request, _ in
         let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownObservationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         let query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let result = try await store.search(query: query)
@@ -253,6 +263,10 @@ func addObservationRoutes(
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownObservationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         let query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let result = try await store.search(query: query)

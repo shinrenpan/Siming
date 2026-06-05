@@ -102,6 +102,10 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     // GET /Patient — search
     group.get { request, _ in
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: qpPairs, known: knownPatientParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         let query = parsePatientQuery(from: qpPairs)
         let elements = parseElements(from: qpPairs)
         let result = try await store.search(query: query)
@@ -132,6 +136,10 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownPatientParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         let query = parsePatientQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let result = try await store.search(query: query)
@@ -405,11 +413,21 @@ private func parseETag(_ raw: String?) -> Int64? {
     return Int64(stripped)
 }
 
+// ── Known search parameters (for Prefer: handling=strict validation) ──────────
+
+private let knownPatientParams: Set<String> = [
+    "name", "family", "given", "gender", "active",
+    "address", "address-city", "address-state", "address-postalcode", "address-country",
+    "phone", "email", "identifier", "birthdate",
+    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format",
+]
+
 // ── Route-level errors ────────────────────────────────────────────────────────
 
 enum FHIRRouteError: Error {
     case unsupportedMediaType
     case invalidBody(String)
+    case unknownParams([String])
 }
 
 extension FHIRRouteError: HTTPResponseError {
@@ -417,6 +435,7 @@ extension FHIRRouteError: HTTPResponseError {
         switch self {
         case .unsupportedMediaType: .unsupportedMediaType
         case .invalidBody:          .badRequest
+        case .unknownParams:        .badRequest
         }
     }
 
@@ -426,6 +445,8 @@ extension FHIRRouteError: HTTPResponseError {
             (.error, .notSupported, "Content-Type must be application/fhir+json")
         case .invalidBody(let msg):
             (.error, .invalid, "Request body is not valid FHIR JSON: \(msg)")
+        case .unknownParams(let names):
+            (.error, .notSupported, "Unknown search parameter(s): \(names.joined(separator: ", "))")
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()

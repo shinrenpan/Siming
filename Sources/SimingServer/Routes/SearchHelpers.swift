@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import Hummingbird
 import NIOCore
 
@@ -66,4 +67,21 @@ func parseElements(from pairs: some Collection<(key: Substring, value: Substring
         .map { $0.trimmingCharacters(in: .whitespaces) }
         .filter { !$0.isEmpty }
     return names.isEmpty ? nil : Set(names)
+}
+
+/// Returns parameter keys not present in `known` (base name before `:` stripped).
+/// Used for `Prefer: handling=strict` validation.
+func unknownParams(
+    in pairs: some Collection<(key: Substring, value: Substring)>,
+    known: Set<String>
+) -> [String] {
+    pairs.compactMap { pair in
+        let base = String(pair.key.split(separator: ":").first ?? pair.key)
+        return known.contains(base) ? nil : String(pair.key)
+    }
+}
+
+/// Returns true when the request carries `Prefer: handling=strict`.
+func isStrictHandling(_ request: Request) -> Bool {
+    (request.headers[HTTPField.Name("Prefer")!] ?? "").contains("handling=strict")
 }

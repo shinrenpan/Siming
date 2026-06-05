@@ -22,7 +22,7 @@ func addMetadataRoutes(to router: Router<BasicRequestContext>) {
 
 private func buildCapabilityStatement() -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-04")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-05")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
@@ -31,11 +31,11 @@ private func buildCapabilityStatement() -> CapabilityStatement {
         rest: [serverRest()],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.1.0"))
+            version: FHIRPrimitive(FHIRString("0.5.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.1.0"))
+        version: FHIRPrimitive(FHIRString("0.5.0"))
     )
 }
 
@@ -49,6 +49,14 @@ private func serverRest() -> CapabilityStatementRest {
     ]
     rest.interaction = [
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
+    ]
+    // Declare global search params supported across all resources
+    rest.searchParam = [
+        CapabilityStatementRestResourceSearchParam(
+            documentation: FHIRPrimitive(FHIRString("Filter by top-level element names. Mandatory elements (id, meta, resourceType) always returned. SUBSETTED tag added to meta.")),
+            name: FHIRPrimitive(FHIRString("_elements")),
+            type: FHIRPrimitive(.string)
+        ),
     ]
     return rest
 }
@@ -69,10 +77,11 @@ private func patientResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Patient?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search supports _sort=±_lastUpdated/±name/±family/±birthdate/±_id, _count (0–100; 0=count-only), _total (accurate|none), and cursor-based pagination via _cursor. " +
-            "String params support modifiers: :contains, :exact, :text (case-insensitive substring). " +
-            "Prefer: return=minimal on write returns 201/200 with no body. " +
-            "Compartment: GET /Patient/:id/Observation returns Observations scoped to that patient."
+            "Search: _sort=±_lastUpdated/±name/±family/±birthdate/±_id; _count (0–100; 0=count-only); _total (accurate|none); _elements (field filter); cursor pagination via _cursor. " +
+            "String modifiers: :contains, :exact, :text (case-insensitive substring); :not, :missing on all params. " +
+            "Prefer: return=minimal on write → 201/200 with no body. " +
+            "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them. " +
+            "Compartment: GET /Patient/:id/Observation and POST /Patient/:id/Observation/_search."
         )),
         interaction: baselineInteractions,
         readHistory: FHIRPrimitive(FHIRBool(true)),
@@ -194,9 +203,10 @@ private func observationResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Observation resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Observation?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search supports subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity. " +
-            "_sort supports ±_lastUpdated, ±date, and ±_id. _total: accurate (default) or none. " +
-            "Prefer: return=minimal on write returns 201/200 with no body."
+            "Search: subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter). " +
+            ":not and :missing modifiers supported. " +
+            "Prefer: return=minimal on write → 201/200 with no body. " +
+            "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them."
         )),
         interaction: baselineInteractions,
         readHistory: FHIRPrimitive(FHIRBool(true)),

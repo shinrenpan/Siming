@@ -19,6 +19,10 @@ func addCompartmentRoutes(
     group.get(":patientId/Observation") { request, context in
         let patientId = context.parameters.get("patientId") ?? ""
         let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownObservationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         var query = parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
@@ -50,6 +54,10 @@ func addCompartmentRoutes(
         let bodyBuffer = try await req.collectBody(upTo: 1 * 1024 * 1024)
         let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownObservationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
         var query = parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
