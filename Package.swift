@@ -8,6 +8,7 @@ let package = Package(
         .executable(name: "SimingServer", targets: ["SimingServer"]),
         .executable(name: "SimingGenerator", targets: ["SimingGenerator"]),
         .library(name: "SimingCore", targets: ["SimingCore"]),
+        .library(name: "SimingServerLib", targets: ["SimingServerLib"]),
     ],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.0"),
@@ -20,10 +21,22 @@ let package = Package(
         .executableTarget(
             name: "SimingServer",
             dependencies: [
+                .target(name: "SimingServerLib"),
                 .target(name: "SimingCore"),
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "Metrics", package: "swift-metrics"),
                 .product(name: "Prometheus", package: "swift-prometheus"),
+                .product(name: "PostgresNIO", package: "postgres-nio"),
+            ]
+        ),
+        .target(
+            name: "SimingServerLib",
+            dependencies: [
+                .target(name: "SimingCore"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "Metrics", package: "swift-metrics"),
+                .product(name: "Prometheus", package: "swift-prometheus"),
+                .product(name: "ModelsR4", package: "FHIRModels"),
             ]
         ),
         .target(
@@ -49,6 +62,16 @@ let package = Package(
                 .target(name: "SimingCore"),
                 .product(name: "PostgresNIO", package: "postgres-nio"),
                 .product(name: "ModelsR4", package: "FHIRModels"),
+            ]
+        ),
+        .testTarget(
+            name: "SimingRouteTests",
+            dependencies: [
+                .target(name: "SimingServerLib"),
+                .target(name: "SimingCore"),
+                .product(name: "Hummingbird", package: "hummingbird"),
+                .product(name: "HummingbirdTesting", package: "hummingbird"),
+                .product(name: "PostgresNIO", package: "postgres-nio"),
             ]
         ),
     ]

@@ -2,7 +2,6 @@ import Foundation
 import Hummingbird
 import NIOCore
 
-// Acceptable _format values that map to application/fhir+json.
 private let jsonFormats: Set<String> = [
     "json", "application/json", "application/fhir+json", "text/json",
 ]
@@ -16,8 +15,10 @@ private let unsupportedFormatBody = Data("""
 
 /// Validates the FHIR _format query parameter on every request.
 /// If _format is present and not a JSON variant, returns 406 Not Acceptable.
-struct FormatMiddleware<Context: RequestContext>: RouterMiddleware {
-    func handle(
+public struct FormatMiddleware<Context: RequestContext>: RouterMiddleware {
+    public init() {}
+
+    public func handle(
         _ request: Request,
         context: Context,
         next: (Request, Context) async throws -> Response

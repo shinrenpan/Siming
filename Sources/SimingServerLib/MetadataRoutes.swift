@@ -3,7 +3,7 @@ import Hummingbird
 import ModelsR4
 import NIOCore
 
-func addMetadataRoutes(to router: Router<BasicRequestContext>) {
+public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
     // GET /metadata — FHIR CapabilityStatement
     router.get("metadata") { _, _ in
         let cs = buildCapabilityStatement()
@@ -50,7 +50,6 @@ private func serverRest() -> CapabilityStatementRest {
     rest.interaction = [
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
     ]
-    // Declare global search params supported across all resources
     rest.searchParam = [
         CapabilityStatementRestResourceSearchParam(
             documentation: FHIRPrimitive(FHIRString("Filter by top-level element names. Mandatory elements (id, meta, resourceType) always returned. SUBSETTED tag added to meta.")),

@@ -5,6 +5,7 @@ import Metrics
 import PostgresNIO
 import Prometheus
 import SimingCore
+import SimingServerLib
 
 @main
 struct SimingApp {
@@ -12,7 +13,6 @@ struct SimingApp {
         var logger = Logger(label: "siming")
         logger.logLevel = .info
 
-        // Bootstrap Prometheus as the global metrics backend (must happen before any metric is created).
         let registry = PrometheusCollectorRegistry()
         MetricsSystem.bootstrap(PrometheusMetricsFactory(registry: registry))
 
@@ -32,16 +32,12 @@ struct SimingApp {
         let patientStore     = PatientStore(client: postgresClient, logger: logger)
         let observationStore = ObservationStore(client: postgresClient, logger: logger)
 
-        let router = Router()
-        router.middlewares.add(MetricsMiddleware())
-        router.middlewares.add(FormatMiddleware())
-        router.get("health") { _, _ in HTTPResponse.Status.ok }
-        addMetadataRoutes(to: router)
-        addMetricsRoute(to: router, registry: registry)
-        addPatientRoutes(to: router, store: patientStore, logger: logger)
-        addObservationRoutes(to: router, store: observationStore, logger: logger)
-        addCompartmentRoutes(to: router, observationStore: observationStore, logger: logger)
-        addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore, logger: logger)
+        let router = buildRouter(
+            patientStore: patientStore,
+            observationStore: observationStore,
+            registry: registry,
+            logger: logger
+        )
 
         let app = Application(
             router: router,
@@ -51,13 +47,8 @@ struct SimingApp {
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { await postgresClient.run() }
-
-            // Migrations run after the pool is up; connections are made on demand.
             try await migrationRunner.run()
-
             group.addTask { try await app.runService() }
-
-            // First completion (normal shutdown or error) ends the group.
             do {
                 try await group.next()
             } catch {

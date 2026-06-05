@@ -38,10 +38,6 @@ func parseQueryString(_ raw: String) -> [(key: Substring, value: Substring)] {
 }
 
 /// Parses an `application/x-www-form-urlencoded` body into key-value pairs.
-///
-/// Handles `+`-as-space and percent-decoding for both keys and values.
-/// Returns the same `[(key: Substring, value: Substring)]` shape as URI query parameters
-/// so callers can pass the result directly to the same query-building helpers.
 func parseFormPairs(from buffer: ByteBuffer) -> [(key: Substring, value: Substring)] {
     guard let raw = buffer.getString(at: buffer.readerIndex, length: buffer.readableBytes) else {
         return []

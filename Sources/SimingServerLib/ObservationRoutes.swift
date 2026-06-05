@@ -18,7 +18,7 @@ let knownObservationParams: Set<String> = [
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format",
 ]
 
-func addObservationRoutes(
+public func addObservationRoutes(
     to router: Router<BasicRequestContext>,
     store: ObservationStore,
     logger: Logger
@@ -253,7 +253,6 @@ func addObservationRoutes(
     }
 
     // POST /Observation/_search — form-encoded search (FHIR R4 §3.1.1.7)
-    // URL params and body params are merged per spec ("same semantics as GET").
     group.post("_search") { request, _ in
         let ct = request.headers[.contentType] ?? ""
         guard ct.contains("application/x-www-form-urlencoded") else {
@@ -287,7 +286,7 @@ func addObservationRoutes(
     }
 }
 
-// ── Query parser (shared by GET and POST /_search) ────────────────────────────
+// ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseObservationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ObservationSearchQuery {
     func first(_ key: String) -> Substring? {

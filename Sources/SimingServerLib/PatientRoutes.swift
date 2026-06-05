@@ -12,7 +12,7 @@ private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
 private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
-func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStore, logger: Logger) {
+public func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStore, logger: Logger) {
     let group = router.group("Patient")
 
     // POST /Patient — create (with optional If-None-Exist conditional create)
@@ -126,7 +126,6 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     }
 
     // POST /Patient/_search — form-encoded search (FHIR R4 §3.1.1.7)
-    // URL params and body params are merged per spec ("same semantics as GET").
     group.post("_search") { request, _ in
         let ct = request.headers[.contentType] ?? ""
         guard ct.contains("application/x-www-form-urlencoded") else {
@@ -277,7 +276,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     }
 }
 
-// ── Query parser (shared by GET and POST /_search) ────────────────────────────
+// ── Query parser ──────────────────────────────────────────────────────────────
 
 private func parsePatientQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PatientSearchQuery {
     func first(_ key: String) -> Substring? {
@@ -342,9 +341,6 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/// Returns a 304 Not Modified response if the client's conditional headers match,
-/// otherwise returns nil (caller should proceed with the full response).
-/// If-None-Match takes precedence over If-Modified-Since per RFC 7232 §6.
 private func conditionalResponse(request: Request, versionId: Int64, lastUpdated: Date) -> Response? {
     let etag = "W/\"\(versionId)\""
     if let inm = request.headers[.ifNoneMatch] {
@@ -355,11 +351,10 @@ private func conditionalResponse(request: Request, versionId: Int64, lastUpdated
             h[.lastModified] = httpDate(lastUpdated)
             return Response(status: .notModified, headers: h, body: .init())
         }
-        return nil  // If-None-Match present but did not match — skip If-Modified-Since
+        return nil
     }
     if let ims = request.headers[.ifModifiedSince],
        let since = parseHTTPDate(ims) {
-        // Truncate to second precision: HTTP-date has no sub-second granularity.
         let truncated = Date(timeIntervalSince1970: lastUpdated.timeIntervalSince1970.rounded(.down))
         if truncated <= since {
             var h = HTTPFields()
@@ -413,7 +408,7 @@ private func parseETag(_ raw: String?) -> Int64? {
     return Int64(stripped)
 }
 
-// ── Known search parameters (for Prefer: handling=strict validation) ──────────
+// ── Known search parameters ───────────────────────────────────────────────────
 
 private let knownPatientParams: Set<String> = [
     "name", "family", "given", "gender", "active",

@@ -9,15 +9,15 @@ private let fhirJSON = "application/fhir+json"
 
 /// GET /Patient/:patientId/Observation — Patient compartment search.
 /// Forces subject=Patient/:patientId; delegates to ObservationStore.search().
-func addCompartmentRoutes(
+public func addCompartmentRoutes(
     to router: Router<BasicRequestContext>,
     observationStore: ObservationStore,
     logger: Logger
 ) {
     let group = router.group("Patient")
 
-    group.get(":patientId/Observation") { request, context in
-        let patientId = context.parameters.get("patientId") ?? ""
+    group.get(":id/Observation") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
         let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         if isStrictHandling(request) {
             let bad = unknownParams(in: pairs, known: knownObservationParams)
@@ -44,8 +44,8 @@ func addCompartmentRoutes(
     }
 
     // POST /Patient/:patientId/Observation/_search — compartment form-encoded search
-    group.post(":patientId/Observation/_search") { request, context in
-        let patientId = context.parameters.get("patientId") ?? ""
+    group.post(":id/Observation/_search") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
         let ct = request.headers[.contentType] ?? ""
         guard ct.contains("application/x-www-form-urlencoded") else {
             throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")

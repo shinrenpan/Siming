@@ -4,7 +4,7 @@ import Logging
 import NIOCore
 import SimingCore
 
-func addSystemRoutes(
+public func addSystemRoutes(
     to router: Router<BasicRequestContext>,
     patientStore: PatientStore,
     observationStore: ObservationStore,

@@ -6,15 +6,16 @@ import Metrics
 
 private let xRequestIDName = HTTPField.Name("X-Request-ID")!
 
-// FHIR resource type names whose following path segment is an ID.
 private let fhirResourceTypes: Set<String> = [
     "Patient", "Observation", "Encounter", "Condition", "Medication",
     "MedicationRequest", "DiagnosticReport", "Procedure", "AllergyIntolerance",
     "Immunization", "ServiceRequest", "Practitioner", "Organization", "Location",
 ]
 
-struct MetricsMiddleware<Context: RequestContext>: RouterMiddleware {
-    func handle(
+public struct MetricsMiddleware<Context: RequestContext>: RouterMiddleware {
+    public init() {}
+
+    public func handle(
         _ request: Request,
         context: Context,
         next: (Request, Context) async throws -> Response
