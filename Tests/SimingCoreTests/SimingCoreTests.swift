@@ -202,6 +202,69 @@ struct JSONPassthroughTests {
         let result = applyElements(input, elements: ["id"])
         #expect(result == input)
     }
+
+    // applySummary
+
+    @Test("applySummary true keeps only summary + mandatory fields with SUBSETTED")
+    func applySummaryTrue() throws {
+        let input = #"{"resourceType":"Patient","id":"x","name":[{"family":"Smith"}],"text":{"status":"generated","div":"<div/>"},"contact":[]}"#
+        let result = applySummary(Data(input.utf8), mode: .true, summaryFields: patientSummaryFields)
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        #expect(obj["id"] != nil)
+        #expect(obj["resourceType"] as? String == "Patient")
+        #expect(obj["name"] != nil)
+        #expect(obj["contact"] == nil)
+        #expect(obj["text"] == nil)
+        let tags = (obj["meta"] as? [String: Any])?["tag"] as? [[String: Any]]
+        #expect(tags?.contains(where: { $0["code"] as? String == "SUBSETTED" }) == true)
+    }
+
+    @Test("applySummary text keeps only text + mandatory fields")
+    func applySummaryText() throws {
+        let input = #"{"resourceType":"Patient","id":"x","name":[{"family":"Smith"}],"text":{"status":"generated","div":"<div/>"}}"#
+        let result = applySummary(Data(input.utf8), mode: .text, summaryFields: patientSummaryFields)
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        #expect(obj["id"] != nil)
+        #expect(obj["text"] != nil)
+        #expect(obj["name"] == nil)
+    }
+
+    @Test("applySummary data removes text field and adds SUBSETTED")
+    func applySummaryData() throws {
+        let input = #"{"resourceType":"Patient","id":"x","name":[{"family":"Smith"}],"text":{"status":"generated","div":"<div/>"}}"#
+        let result = applySummary(Data(input.utf8), mode: .data, summaryFields: patientSummaryFields)
+        let obj = try JSONSerialization.jsonObject(with: result) as! [String: Any]
+        #expect(obj["text"] == nil)
+        #expect(obj["name"] != nil)
+        let tags = (obj["meta"] as? [String: Any])?["tag"] as? [[String: Any]]
+        #expect(tags?.contains(where: { $0["code"] as? String == "SUBSETTED" }) == true)
+    }
+
+    @Test("applySummary false returns input unchanged")
+    func applySummaryFalse() {
+        let input = #"{"resourceType":"Patient","id":"x","name":[]}"#
+        let data = Data(input.utf8)
+        let result = applySummary(data, mode: .false, summaryFields: patientSummaryFields)
+        #expect(result == data)
+    }
+
+    @Test("applySummary count returns input unchanged")
+    func applySummaryCount() {
+        let input = #"{"resourceType":"Patient","id":"x"}"#
+        let data = Data(input.utf8)
+        let result = applySummary(data, mode: .count, summaryFields: patientSummaryFields)
+        #expect(result == data)
+    }
+
+    @Test("SummaryMode rawValue parsing")
+    func summaryModeRawValue() {
+        #expect(SummaryMode(rawValue: "true")  == .true)
+        #expect(SummaryMode(rawValue: "false") == .false)
+        #expect(SummaryMode(rawValue: "count") == .count)
+        #expect(SummaryMode(rawValue: "text")  == .text)
+        #expect(SummaryMode(rawValue: "data")  == .data)
+        #expect(SummaryMode(rawValue: "bogus") == nil)
+    }
 }
 
 // ── PatientSearchQuery ────────────────────────────────────────────────────────

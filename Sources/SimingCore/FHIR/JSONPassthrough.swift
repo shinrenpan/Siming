@@ -175,6 +175,66 @@ public func buildHistoryBundleJSON(
     return out
 }
 
+/// FHIR R4 §3.3.3 `_summary` parameter values.
+public enum SummaryMode: String, Sendable {
+    case `true`  = "true"
+    case text    = "text"
+    case data    = "data"
+    case count   = "count"
+    case `false` = "false"
+}
+
+/// Patient Σ-marked elements per FHIR R4 §10.1 (excluding mandatory id/meta/resourceType).
+public let patientSummaryFields: Set<String> = [
+    "identifier", "active", "name", "telecom", "gender",
+    "birthDate", "deceasedBoolean", "deceasedDateTime",
+    "address", "managingOrganization", "link",
+]
+
+/// Observation Σ-marked elements per FHIR R4 §11.1 (excluding mandatory id/meta/resourceType).
+public let observationSummaryFields: Set<String> = [
+    "identifier", "basedOn", "partOf", "status", "category", "code",
+    "subject", "focus", "encounter",
+    "effectiveDateTime", "effectivePeriod", "effectiveTiming", "effectiveInstant",
+    "issued", "performer",
+    "valueQuantity", "valueCodeableConcept", "valueString", "valueBoolean",
+    "valueInteger", "valueRange", "valueRatio", "valueSampledData",
+    "valueTime", "valueDateTime", "valuePeriod",
+    "dataAbsentReason", "interpretation", "hasMember", "derivedFrom", "component",
+]
+
+/// Applies `_summary` filtering to a resource's JSON bytes.
+/// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
+/// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.
+/// - `.data`:  removes `text`; adds SUBSETTED tag.
+/// - `.false`/`.count`: returns input unchanged (`.count` is handled at route level).
+public func applySummary(_ jsonData: Data, mode: SummaryMode, summaryFields: Set<String>) -> Data {
+    switch mode {
+    case .false, .count:
+        return jsonData
+    case .true:
+        return applyElements(jsonData, elements: summaryFields)
+    case .text:
+        return applyElements(jsonData, elements: ["text"])
+    case .data:
+        guard var obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return jsonData
+        }
+        obj.removeValue(forKey: "text")
+        var meta = (obj["meta"] as? [String: Any]) ?? [:]
+        var tags = (meta["tag"] as? [[String: Any]]) ?? []
+        if !tags.contains(where: { ($0["code"] as? String) == "SUBSETTED" }) {
+            tags.append([
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+                "code": "SUBSETTED",
+            ])
+        }
+        meta["tag"] = tags
+        obj["meta"] = meta
+        return (try? JSONSerialization.data(withJSONObject: obj)) ?? jsonData
+    }
+}
+
 /// Filters a resource's JSON to only the requested top-level elements.
 ///
 /// Mandatory elements (`id`, `meta`, `resourceType`) are always included.

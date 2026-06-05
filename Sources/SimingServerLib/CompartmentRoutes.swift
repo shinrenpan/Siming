@@ -26,13 +26,26 @@ public func addCompartmentRoutes(
         var query = parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
         let result = try await observationStore.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: observationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Observation/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
@@ -61,13 +74,26 @@ public func addCompartmentRoutes(
         var query = parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
         let result = try await observationStore.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: observationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Observation/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,

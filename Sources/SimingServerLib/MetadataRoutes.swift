@@ -22,7 +22,7 @@ public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
 
 private func buildCapabilityStatement() -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-05")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-06")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
@@ -31,11 +31,11 @@ private func buildCapabilityStatement() -> CapabilityStatement {
         rest: [serverRest()],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.5.0"))
+            version: FHIRPrimitive(FHIRString("0.6.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.5.0"))
+        version: FHIRPrimitive(FHIRString("0.6.0"))
     )
 }
 
@@ -55,6 +55,11 @@ private func serverRest() -> CapabilityStatementRest {
             documentation: FHIRPrimitive(FHIRString("Filter by top-level element names. Mandatory elements (id, meta, resourceType) always returned. SUBSETTED tag added to meta.")),
             name: FHIRPrimitive(FHIRString("_elements")),
             type: FHIRPrimitive(.string)
+        ),
+        CapabilityStatementRestResourceSearchParam(
+            documentation: FHIRPrimitive(FHIRString("Controls response content. Values: true (Σ-marked summary fields), text (text + mandatory), data (all except text), count (total only, no resource payloads), false (all fields, default). SUBSETTED tag added to meta when subsetting.")),
+            name: FHIRPrimitive(FHIRString("_summary")),
+            type: FHIRPrimitive(.token)
         ),
     ]
     return rest
@@ -76,7 +81,7 @@ private func patientResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Patient?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: _sort=±_lastUpdated/±name/±family/±birthdate/±_id; _count (0–100; 0=count-only); _total (accurate|none); _elements (field filter); cursor pagination via _cursor. " +
+            "Search: _sort=±_lastUpdated/±name/±family/±birthdate/±_id; _count (0–100; 0=count-only); _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false); cursor pagination via _cursor. " +
             "String modifiers: :contains, :exact, :text (case-insensitive substring); :not, :missing on all params. " +
             "Prefer: return=minimal on write → 201/200 with no body. " +
             "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them. " +
@@ -202,7 +207,7 @@ private func observationResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Observation resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Observation?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter). " +
+            "Search: subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Prefer: return=minimal on write → 201/200 with no body. " +
             "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them."

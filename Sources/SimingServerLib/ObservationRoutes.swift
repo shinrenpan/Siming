@@ -15,7 +15,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 let knownObservationParams: Set<String> = [
     "subject", "patient", "code", "status", "category", "date",
     "identifier", "encounter", "performer", "component-code", "value-quantity",
-    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format",
+    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
 ]
 
 public func addObservationRoutes(
@@ -118,7 +118,12 @@ public func addObservationRoutes(
         let result = try await store.vread(id: id, versionId: vid)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
-        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
+        var jsonData = result.jsonData
+        if let s = parseSummary(from: qpPairs), s != .false && s != .count {
+            jsonData = applySummary(jsonData, mode: s, summaryFields: observationSummaryFields)
+        } else if let elems = parseElements(from: qpPairs) {
+            jsonData = applyElements(jsonData, elements: elems)
+        }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -161,7 +166,12 @@ public func addObservationRoutes(
         let result = try await store.read(id: id)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
-        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
+        var jsonData = result.jsonData
+        if let s = parseSummary(from: qpPairs), s != .false && s != .count {
+            jsonData = applySummary(jsonData, mode: s, summaryFields: observationSummaryFields)
+        } else if let elems = parseElements(from: qpPairs) {
+            jsonData = applyElements(jsonData, elements: elems)
+        }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -235,13 +245,26 @@ public func addObservationRoutes(
         }
         let query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: observationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Observation/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
@@ -268,13 +291,26 @@ public func addObservationRoutes(
         }
         let query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: observationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Observation/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
@@ -299,8 +335,12 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let subject       = first("subject").map(String.init) ?? first("patient").map(String.init)
     let code          = first("code").map     { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let codeNot       = first("code:not").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
-    let status        = first("status").map   { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
-    let statusNot     = first("status:not").map { String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } } ?? []
+    let status    = all("status").flatMap { v in
+        String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    }
+    let statusNot = all("status:not").flatMap { v in
+        String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    }
     let category      = first("category").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let categoryNot   = first("category:not").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier    = first("identifier").map { ObservationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []

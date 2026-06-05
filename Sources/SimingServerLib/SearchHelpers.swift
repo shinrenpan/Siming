@@ -2,6 +2,7 @@ import Foundation
 import HTTPTypes
 import Hummingbird
 import NIOCore
+import SimingCore
 
 /// Returns the server base URL (scheme + authority only), e.g. "http://localhost:8080".
 func serverBaseURL(_ request: Request) -> String {
@@ -75,6 +76,12 @@ func unknownParams(
         let base = String(pair.key.split(separator: ":").first ?? pair.key)
         return known.contains(base) ? nil : String(pair.key)
     }
+}
+
+/// Parses `_summary` from query/form pairs, or nil if absent or unrecognized.
+func parseSummary(from pairs: some Collection<(key: Substring, value: Substring)>) -> SummaryMode? {
+    guard let raw = pairs.first(where: { String($0.key) == "_summary" })?.value else { return nil }
+    return SummaryMode(rawValue: String(raw))
 }
 
 /// Returns true when the request carries `Prefer: handling=strict`.

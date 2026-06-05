@@ -108,13 +108,26 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         }
         let query = parsePatientQuery(from: qpPairs)
         let elements = parseElements(from: qpPairs)
+        let summary = parseSummary(from: qpPairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: patientSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Patient/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
@@ -141,13 +154,26 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         }
         let query = parsePatientQuery(from: pairs)
         let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
-        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total,
+                                             selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
         let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
-            let json = elements.map { applyElements(e.jsonWithMeta, elements: $0) } ?? e.jsonWithMeta
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: patientSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Patient/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total,
@@ -167,7 +193,12 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         let result = try await store.vread(id: id, versionId: vid)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
-        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
+        var jsonData = result.jsonData
+        if let s = parseSummary(from: qpPairs), s != .false && s != .count {
+            jsonData = applySummary(jsonData, mode: s, summaryFields: patientSummaryFields)
+        } else if let elems = parseElements(from: qpPairs) {
+            jsonData = applyElements(jsonData, elements: elems)
+        }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -210,7 +241,12 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         let result = try await store.read(id: id)
         if let r = conditionalResponse(request: request, versionId: result.versionId, lastUpdated: result.lastUpdated) { return r }
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
-        let jsonData = parseElements(from: qpPairs).map { applyElements(result.jsonData, elements: $0) } ?? result.jsonData
+        var jsonData = result.jsonData
+        if let s = parseSummary(from: qpPairs), s != .false && s != .count {
+            jsonData = applySummary(jsonData, mode: s, summaryFields: patientSummaryFields)
+        } else if let elems = parseElements(from: qpPairs) {
+            jsonData = applyElements(jsonData, elements: elems)
+        }
         var headers = HTTPFields()
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
@@ -294,9 +330,9 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     let addressState     = PatientSearchQuery.StringParam.parse(key: "address-state", from: pairs)
     let addressPostalCode = PatientSearchQuery.StringParam.parse(key: "address-postalcode", from: pairs)
     let addressCountry   = PatientSearchQuery.StringParam.parse(key: "address-country", from: pairs)
-    let gender = first("gender").map {
-        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-    } ?? []
+    let gender = all("gender").flatMap { v in
+        String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    }
     let active = first("active").flatMap { v -> Bool? in
         switch String(v).lowercased() {
         case "true":  return true
@@ -307,9 +343,9 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     let phone         = first("phone").map(String.init)
     let email         = first("email").map(String.init)
     let identifierNot = first("identifier:not").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let genderNot     = first("gender:not").map {
-        String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-    } ?? []
+    let genderNot = all("gender:not").flatMap { v in
+        String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    }
     let identifier = first("identifier").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let id         = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -414,7 +450,7 @@ private let knownPatientParams: Set<String> = [
     "name", "family", "given", "gender", "active",
     "address", "address-city", "address-state", "address-postalcode", "address-country",
     "phone", "email", "identifier", "birthdate",
-    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format",
+    "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
 ]
 
 // ── Route-level errors ────────────────────────────────────────────────────────
