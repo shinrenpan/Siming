@@ -49,7 +49,7 @@ All error responses are `OperationOutcome`. `ETag` / `If-Match` optimistic locki
 
 ## Building from source
 
-Requires Swift 5.10+ and a running PostgreSQL instance.
+Requires Swift 6.1+ and a running PostgreSQL instance.
 
 ```bash
 swift build -c release

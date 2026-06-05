@@ -1,5 +1,5 @@
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
-FROM swift:6.0-jammy AS builder
+FROM swift:6.1-jammy AS builder
 WORKDIR /build
 
 # Resolve dependencies first (layer cached until Package files change)

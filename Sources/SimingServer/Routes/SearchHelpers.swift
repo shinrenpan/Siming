@@ -12,13 +12,13 @@ func parseFHIRInstant(_ raw: String) -> Date? {
     iso8601Instant.date(from: raw) ?? iso8601InstantMs.date(from: raw)
 }
 
-private let iso8601Instant: ISO8601DateFormatter = {
+nonisolated(unsafe) private let iso8601Instant: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime]
     return f
 }()
 
-private let iso8601InstantMs: ISO8601DateFormatter = {
+nonisolated(unsafe) private let iso8601InstantMs: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return f

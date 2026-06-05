@@ -1,14 +1,15 @@
 import Foundation
 
 // Shared formatter — ISO8601DateFormatter is expensive to construct.
-private let iso8601: ISO8601DateFormatter = {
+// nonisolated(unsafe): initialized once, read-only after that.
+nonisolated(unsafe) private let iso8601: ISO8601DateFormatter = {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     return f
 }()
 
 // RFC 7231 HTTP-date formatter for Last-Modified header.
-private let httpDateFormatter: DateFormatter = {
+nonisolated(unsafe) private let httpDateFormatter: DateFormatter = {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US_POSIX")
     f.timeZone = TimeZone(abbreviation: "GMT")

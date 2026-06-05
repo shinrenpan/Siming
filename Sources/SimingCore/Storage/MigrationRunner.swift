@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import PostgresNIO
 
-public struct MigrationRunner {
+public struct MigrationRunner: Sendable {
     public let client: PostgresClient
     public let logger: Logger
     public let migrationsPath: String

@@ -1,6 +1,6 @@
 import Foundation
 
-public struct TokenIndexRow {
+public struct TokenIndexRow: Sendable {
     public let paramName: String
     public let system: String?
     public let code: String
@@ -10,7 +10,7 @@ public struct TokenIndexRow {
     }
 }
 
-public struct StringIndexRow {
+public struct StringIndexRow: Sendable {
     public let paramName: String
     public let value: String
 
@@ -19,7 +19,7 @@ public struct StringIndexRow {
     }
 }
 
-public struct DateIndexRow {
+public struct DateIndexRow: Sendable {
     public let paramName: String
     public let dateStart: Date
     public let dateEnd: Date
@@ -29,7 +29,7 @@ public struct DateIndexRow {
     }
 }
 
-public struct ReferenceIndexRow {
+public struct ReferenceIndexRow: Sendable {
     public let paramName: String
     public let refType: String?
     public let refId: String
@@ -39,7 +39,7 @@ public struct ReferenceIndexRow {
     }
 }
 
-public struct QuantityIndexRow {
+public struct QuantityIndexRow: Sendable {
     public let paramName: String
     public let system: String?
     public let code: String?
