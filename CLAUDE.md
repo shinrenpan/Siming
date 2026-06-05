@@ -1,5 +1,11 @@
 # CLAUDE.md
 
+## Scope of this file
+
+Working rules, constraints, and code patterns only.
+**Do not add:** feature lists, capability counts, project structure trees, test counts, or round summaries — those belong in README.md.
+Only include information that prevents mistakes.
+
 ## Project
 
 Server-side Swift FHIR R4 server. Goal priority: **A > B > C**, in that order.
@@ -186,108 +192,13 @@ Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the mat
 
 ## FHIR R4 interaction compliance
 
-All Layer 1 baseline interactions are complete: create, read, update, delete, search, vread, history-instance, history-type, `Last-Modified`, conditional read (`If-None-Match` / `If-Modified-Since`), conditional create (`If-None-Exist`), conditional update (`PUT /[type]?<search>`).
-
 **Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles.
 
 ## Pagination
 
 Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 
-## Current capabilities
-
-- Patient + Observation: full CRUD, vread, history-instance, logical delete (410 Gone)
-- Search: 15 Patient params, 12+ Observation params
-- Search modifiers: `:contains`, `:exact`, `:text` (case-insensitive substring), `:not`, `:missing`, `system|` format
-- Date prefixes: eq/lt/gt/le/ge/sa/eb; quantity prefix `ap` (±10%)
-- `_sort`: ±`_lastUpdated`, ±`name`/`family`, ±`birthdate` (Patient), ±`date` (Observation), ±`_id` (both)
-- `_total`: `accurate` (default) / `none` (omit Bundle.total, skip COUNT)
-- `_elements`: comma-separated top-level field filter; mandatory fields (id, meta, resourceType) always returned; SUBSETTED meta tag applied
-- Cursor pagination; `_count=0` count-only mode; correct Bundle.total across pages
-- Compartment search: `GET /Patient/:id/Observation`, `POST /Patient/:id/Observation/_search`
-- POST-based search: `POST /Patient/_search`, `POST /Observation/_search` (application/x-www-form-urlencoded; URL + body params merged)
-- Conditional read: `If-None-Match` / `If-Modified-Since` → 304
-- Conditional create: `POST /[type]` + `If-None-Exist: <search>` — 0 matches creates, 1 match returns 200, >1 returns 412
-- Conditional update: `PUT /[type]?<search>` — 0 matches creates (201), 1 match updates (200), >1 returns 412
-- Type-level history: `GET /Patient/_history` and `GET /Observation/_history` with `_since` (ISO 8601) and `_count`
-- `_format` parameter: `?_format=json|application/fhir+json` accepted; other formats → 406 Not Acceptable
-- System-level history: `GET /_history` with `_since` / `_count` across all resource types
-- Conditional delete: `DELETE /[type]?<search>` — 0 matches 404, 1 match deletes (204), >1 → 412
-- Bundle `entry.fullUrl` now uses absolute URLs (`http://host/Patient/id`)
-- `/metadata` CapabilityStatement reflecting all supported params
-- `Prefer: return=minimal` on create/update → 201/200 with no response body (headers present)
-- Prometheus metrics + trace IDs (`GET /metrics`)
-- 93 unit tests (no DB dependency) + 16 integration tests (require PostgreSQL, auto-skip otherwise)
-
-## Project structure / conventions
-
-```
-Siming/
-├── Package.swift
-├── README.md
-├── docker-compose.yml          # db service only (Postgres); no server image
-├── docker-compose.benchmark.yml    # adds HAPI + hapi-db services
-├── benchmarks/
-│   ├── seed.sh                     # seed N patients into any FHIR server
-│   ├── bench.sh                    # run 4-scenario oha benchmark, output markdown
-│   ├── README.md                   # benchmark instructions + results history
-│   └── results/                    # benchmark result files (gitignored)
-├── migrations/
-│   ├── 0001_init.sql               # resources + 5 index tables
-│   └── 0002_search_indexes.sql     # covering indexes for index-only scans
-├── Resources/
-│   └── fhir/
-│       └── search-parameters-r4.json   # FHIR R4 SearchParameter bundle (generator input)
-├── Sources/
-│   ├── SimingServer/
-│   │   ├── App.swift
-│   │   ├── Middleware/
-│   │   │   └── MetricsMiddleware.swift     # trace ID + Prometheus counter/histogram
-│   │   └── Routes/
-│   │       ├── CompartmentRoutes.swift     # GET /Patient/:id/Observation
-│   │       ├── MetadataRoutes.swift        # GET /metadata → CapabilityStatement
-│   │       ├── MetricsRoutes.swift         # GET /metrics → Prometheus text format
-│   │       ├── ObservationRoutes.swift
-│   │       └── PatientRoutes.swift
-│   ├── SimingCore/
-│   │   ├── FHIR/
-│   │   │   ├── FHIRErrors.swift            # FHIRServerError enum + buildOutcome helper
-│   │   │   └── JSONPassthrough.swift       # injectMeta() + buildBundleJSON() + buildHistoryBundleJSON()
-│   │   ├── Storage/
-│   │   │   ├── DatabaseConfiguration.swift
-│   │   │   ├── IndexRows.swift
-│   │   │   ├── MigrationRunner.swift
-│   │   │   ├── ObservationSearchQuery.swift
-│   │   │   ├── ObservationStore.swift
-│   │   │   ├── PatientSearchQuery.swift
-│   │   │   ├── PatientStore.swift
-│   │   │   └── SearchParams.swift
-│   │   └── Generated/              # committed, never hand-edited
-│   │       ├── Observation+SearchExtractor.swift  # 38 params
-│   │       └── Patient+SearchExtractor.swift      # 23 params
-│   └── SimingGenerator/
-│       ├── BundleTypes.swift
-│       ├── Emit.swift
-│       ├── ObservationHandlers.swift
-│       ├── PatientHandlers.swift
-│       └── main.swift
-└── Tests/
-    ├── SimingCoreTests/
-    │   └── SimingCoreTests.swift
-    └── SimingIntegrationTests/         # require PostgreSQL; auto-skip without DB
-        ├── TestDatabase.swift          # shared DB setup actor + resource helpers
-        ├── PatientStoreTests.swift     # 9 tests: CRUD, search, pagination, history
-        └── ObservationStoreTests.swift # 5 tests: CRUD, search, history
-```
-
-Pinned dependency versions (confirm against GitHub releases before changing):
-- Hummingbird `2.25.0`
-- PostgresNIO `1.33.0`
-- FHIRModels `0.9.2`
-- swift-metrics `2.11.0`
-- swift-prometheus `2.3.0`
-
-Conventions:
+## Conventions
 - **Generated code IS committed to git** — reviewable, diffable. Never hand-edit; change the generator instead.
 - Generator inputs live under `Resources/fhir/search-parameters-r4.json`.
 - SQL migrations under `migrations/`. Filename without `.sql` = migration version in `schema_migrations`.
