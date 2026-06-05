@@ -36,15 +36,20 @@ struct RouteTests {
             configuration: dbConfig.postgresClientConfiguration,
             backgroundLogger: logger
         )
-        let patientStore = PatientStore(client: client, logger: logger)
+        let patientStore     = PatientStore(client: client, logger: logger)
         let observationStore = ObservationStore(client: client, logger: logger)
+        let encounterStore   = EncounterStore(client: client, logger: logger)
+        let conditionStore   = ConditionStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
         addMetadataRoutes(to: router)
         addPatientRoutes(to: router, store: patientStore, logger: logger)
         addObservationRoutes(to: router, store: observationStore, logger: logger)
-        addCompartmentRoutes(to: router, observationStore: observationStore, logger: logger)
+        addEncounterRoutes(to: router, store: encounterStore, logger: logger)
+        addConditionRoutes(to: router, store: conditionStore, logger: logger)
+        addCompartmentRoutes(to: router, observationStore: observationStore,
+                             encounterStore: encounterStore, conditionStore: conditionStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore, logger: logger)
         return Application(responder: router.buildResponder())
     }

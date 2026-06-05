@@ -238,11 +238,11 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors unwelded in every change — apply the weld test above.
-- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports `_lastUpdated`/`name`/`family`/`birthdate`/`_id` (Patient) and `date`/`_id` (Observation) only.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports `_lastUpdated`/`name`/`family`/`birthdate`/`_id` (Patient), `date`/`_id` (Observation), `date`/`_id` (Encounter), `date`(onset)/`_id` (Condition), and `_lastUpdated`/`_id` all resources.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
 - **DELETE** returns 204 No Content; subsequent GET on deleted resource returns **410 Gone** (not 404).
 - **`If-None-Match` takes precedence** over `If-Modified-Since` when both headers are present (RFC 7232 §6).
-- **Compartment constraint** (`GET /Patient/:id/Observation`) is injected server-side; client cannot override the subject filter.
+- **Compartment constraint** (`GET /Patient/:id/Observation`, `/Patient/:id/Encounter`, `/Patient/:id/Condition`) is injected server-side; client cannot override the subject filter.
 - Benchmarking: compare under the same feature set only — state what's supported alongside any number. See `benchmarks/README.md`.

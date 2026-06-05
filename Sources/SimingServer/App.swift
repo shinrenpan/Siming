@@ -31,10 +31,14 @@ struct SimingApp {
 
         let patientStore     = PatientStore(client: postgresClient, logger: logger)
         let observationStore = ObservationStore(client: postgresClient, logger: logger)
+        let encounterStore   = EncounterStore(client: postgresClient, logger: logger)
+        let conditionStore   = ConditionStore(client: postgresClient, logger: logger)
 
         let router = buildRouter(
             patientStore: patientStore,
             observationStore: observationStore,
+            encounterStore: encounterStore,
+            conditionStore: conditionStore,
             registry: registry,
             logger: logger
         )

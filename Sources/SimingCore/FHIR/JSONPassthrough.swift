@@ -191,6 +191,23 @@ public let patientSummaryFields: Set<String> = [
     "address", "managingOrganization", "link",
 ]
 
+/// Encounter Σ-marked elements per FHIR R4 §11.14 (excluding mandatory id/meta/resourceType).
+public let encounterSummaryFields: Set<String> = [
+    "identifier", "status", "class", "type", "serviceType", "priority",
+    "subject", "episodeOfCare", "basedOn", "participant", "appointment",
+    "period", "length", "reasonCode", "reasonReference",
+    "hospitalization", "location", "serviceProvider", "partOf",
+]
+
+/// Condition Σ-marked elements per FHIR R4 §9.2 (excluding mandatory id/meta/resourceType).
+public let conditionSummaryFields: Set<String> = [
+    "identifier", "clinicalStatus", "verificationStatus", "category",
+    "severity", "code", "bodySite", "subject", "encounter",
+    "onsetDateTime", "onsetAge", "onsetPeriod", "onsetRange", "onsetString",
+    "abatementDateTime", "abatementAge", "abatementPeriod", "abatementRange", "abatementString",
+    "recordedDate", "recorder", "asserter", "stage", "evidence", "note",
+]
+
 /// Observation Σ-marked elements per FHIR R4 §11.1 (excluding mandatory id/meta/resourceType).
 public let observationSummaryFields: Set<String> = [
     "identifier", "basedOn", "partOf", "status", "category", "code",

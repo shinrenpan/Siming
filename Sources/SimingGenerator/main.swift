@@ -13,6 +13,22 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let encounterParams = try loadParams(resourceType: "Encounter", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let encounterCode = generateEncounterExtractor(params: encounterParams)
+let encounterOut  = "\(outputDir)/Encounter+SearchExtractor.swift"
+try encounterCode.write(toFile: encounterOut, atomically: true, encoding: .utf8)
+print("Generated \(encounterOut) — \(encounterParams.count) Encounter params")
+
+let conditionParams = try loadParams(resourceType: "Condition", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let conditionCode = generateConditionExtractor(params: conditionParams)
+let conditionOut  = "\(outputDir)/Condition+SearchExtractor.swift"
+try conditionCode.write(toFile: conditionOut, atomically: true, encoding: .utf8)
+print("Generated \(conditionOut) — \(conditionParams.count) Condition params")
+
 let patientParams = try loadParams(resourceType: "Patient", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 
