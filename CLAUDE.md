@@ -189,7 +189,7 @@ Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the mat
 
 All Layer 1 baseline interactions are complete: create, read, update, delete, search, vread, history-instance, history-type, `Last-Modified`, conditional read (`If-None-Match` / `If-Modified-Since`), conditional create (`If-None-Exist`), conditional update (`PUT /[type]?<search>`).
 
-**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles, `Prefer` header.
+**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles.
 
 ## Pagination
 
@@ -199,9 +199,9 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 
 - Patient + Observation: full CRUD, vread, history-instance, logical delete (410 Gone)
 - Search: 15 Patient params, 12+ Observation params
-- Search modifiers: `:contains`, `:exact`, `:not`, `:missing`, `system|` format
+- Search modifiers: `:contains`, `:exact`, `:text` (case-insensitive substring), `:not`, `:missing`, `system|` format
 - Date prefixes: eq/lt/gt/le/ge/sa/eb; quantity prefix `ap` (±10%)
-- `_sort`: ±`_lastUpdated`, ±`name`/`family`, ±`birthdate` (Patient), ±`date` (Observation)
+- `_sort`: ±`_lastUpdated`, ±`name`/`family`, ±`birthdate` (Patient), ±`date` (Observation), ±`_id` (both)
 - Cursor pagination; `_count=0` count-only mode; correct Bundle.total across pages
 - Compartment search: `GET /Patient/:id/Observation`
 - Conditional read: `If-None-Match` / `If-Modified-Since` → 304
@@ -213,8 +213,9 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Conditional delete: `DELETE /[type]?<search>` — 0 matches 404, 1 match deletes (204), >1 → 412
 - Bundle `entry.fullUrl` now uses absolute URLs (`http://host/Patient/id`)
 - `/metadata` CapabilityStatement reflecting all supported params
+- `Prefer: return=minimal` on create/update → 201/200 with no response body (headers present)
 - Prometheus metrics + trace IDs (`GET /metrics`)
-- 87 unit tests (no DB dependency) + 14 integration tests (require PostgreSQL, auto-skip otherwise)
+- 89 unit tests (no DB dependency) + 16 integration tests (require PostgreSQL, auto-skip otherwise)
 
 ## Project structure / conventions
 
@@ -326,7 +327,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors unwelded in every change — apply the weld test above.
-- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports only `_lastUpdated`/`name`/`family`/`birthdate` (Patient) and `date` (Observation); no `:text` modifier for string searches.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports `_lastUpdated`/`name`/`family`/`birthdate`/`_id` (Patient) and `date`/`_id` (Observation) only.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.

@@ -80,12 +80,15 @@ public struct PatientSearchQuery: Sendable {
     // :contains → substring match; :exact → case-sensitive exact match.
 
     public struct StringParam: Sendable {
-        public enum Modifier: Sendable { case startsWith, contains, exact }
+        public enum Modifier: Sendable { case startsWith, contains, exact, text }
         public let value: String
         public let modifier: Modifier
 
-        // Tries key:contains, key:exact, then bare key.
+        // Tries key:text, key:contains, key:exact, then bare key (starts-with).
         public static func parse(key: String, from qp: some Collection<(key: Substring, value: Substring)>) -> StringParam? {
+            if let v = qp.first(where: { $0.key == "\(key):text" })?.value {
+                return StringParam(value: String(v), modifier: .text)
+            }
             if let v = qp.first(where: { $0.key == "\(key):contains" })?.value {
                 return StringParam(value: String(v), modifier: .contains)
             }
@@ -121,6 +124,8 @@ public struct PatientSearchQuery: Sendable {
         case birthdateDescending     // -birthdate
         case dateAscending           // date (Observation effective date)
         case dateDescending          // -date
+        case _idAscending            // _id
+        case _idDescending           // -_id
 
         public static func parse(_ raw: String) -> SortOrder {
             switch raw.trimmingCharacters(in: .whitespaces) {
@@ -132,13 +137,16 @@ public struct PatientSearchQuery: Sendable {
             case "-birthdate":            return .birthdateDescending
             case "date":                  return .dateAscending
             case "-date":                 return .dateDescending
+            case "_id":                   return ._idAscending
+            case "-_id":                  return ._idDescending
             default:                      return .lastUpdatedDescending
             }
         }
 
         public var isDescending: Bool {
             switch self {
-            case .lastUpdatedDescending, .nameDescending, .birthdateDescending, .dateDescending:
+            case .lastUpdatedDescending, .nameDescending, .birthdateDescending, .dateDescending,
+                 ._idDescending:
                 return true
             default:
                 return false

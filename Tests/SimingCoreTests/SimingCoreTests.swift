@@ -243,6 +243,14 @@ struct PatientSearchQueryTests {
         #expect(p?.modifier == .exact)
     }
 
+    @Test("StringParam parse: name:text key → text modifier")
+    func stringParamText() {
+        let pairs: [(key: Substring, value: Substring)] = [("name:text", "mur")]
+        let p = PatientSearchQuery.StringParam.parse(key: "name", from: pairs)
+        #expect(p?.value == "mur")
+        #expect(p?.modifier == .text)
+    }
+
     @Test("StringParam parse: modifier takes precedence over bare key")
     func stringParamModifierPrecedence() {
         let pairs: [(key: Substring, value: Substring)] = [("name", "fallback"), ("name:contains", "preferred")]
@@ -403,6 +411,12 @@ struct PatientSearchQueryTests {
         #expect(PatientSearchQuery.SortOrder.parse("-date") == .dateDescending)
     }
 
+    @Test("SortOrder parse _id ascending and descending")
+    func sortOrderId() {
+        #expect(PatientSearchQuery.SortOrder.parse("_id") == ._idAscending)
+        #expect(PatientSearchQuery.SortOrder.parse("-_id") == ._idDescending)
+    }
+
     @Test("SortOrder isDescending property")
     func sortOrderIsDescending() {
         #expect(PatientSearchQuery.SortOrder.lastUpdatedDescending.isDescending == true)
@@ -413,6 +427,8 @@ struct PatientSearchQueryTests {
         #expect(PatientSearchQuery.SortOrder.birthdateAscending.isDescending == false)
         #expect(PatientSearchQuery.SortOrder.dateDescending.isDescending == true)
         #expect(PatientSearchQuery.SortOrder.dateAscending.isDescending == false)
+        #expect(PatientSearchQuery.SortOrder._idDescending.isDescending == true)
+        #expect(PatientSearchQuery.SortOrder._idAscending.isDescending == false)
     }
 
     // Step 16 params: family, given, address variants, gender, active, phone, email

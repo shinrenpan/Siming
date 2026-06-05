@@ -669,7 +669,7 @@ public struct ObservationStore: Sendable {
         var sortKeysCTE: (name: String, sql: String)? = nil
         var cursorCondSQL = ""
         var finalSortValSQL = ""
-        var useDateSort = false
+        var sortKind = 0  // 0=lastUpdated, 1=date, 2=_id
 
         switch query.sort {
         case .dateAscending, .dateDescending:
@@ -685,7 +685,16 @@ public struct ObservationStore: Sendable {
                     "(sort_val IS NOT NULL AND sort_val = \(dateP) AND id > \(idP))"
             }
             finalSortValSQL = "COALESCE(CAST(EXTRACT(EPOCH FROM p.sort_val) AS text), '')"
-            useDateSort = true
+            sortKind = 1
+
+        case ._idAscending, ._idDescending:
+            if let cursor = query.cursor {
+                let idP = bind(cursor.sortValue)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "i.id \(op) \(idP)"
+            }
+            finalSortValSQL = "p.id"
+            sortKind = 2
 
         default:  // lastUpdated (and any unsupported sort → fallback)
             if let cursor = query.cursor, let ts = Double(cursor.sortValue) {
@@ -700,13 +709,18 @@ public struct ObservationStore: Sendable {
         let limitP = bind(Int64(query.count + 1))
 
         let pagedInner: String
-        if useDateSort {
+        switch sortKind {
+        case 1:  // date sort — sort_val via LEFT JOIN idx_date
             let inner = "SELECT i.id, i.version_id, i.last_updated, sk.sv AS sort_val " +
                 "FROM ids i LEFT JOIN sort_keys sk ON sk.resource_id = i.id"
             let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
             pagedInner = "SELECT id, version_id, last_updated, sort_val FROM (\n      \(inner)\n    ) sub" +
                 "\(whereLine)\n    ORDER BY sort_val \(orderDir) NULLS LAST, id ASC\n    LIMIT \(limitP)"
-        } else {
+        case 2:  // _id sort
+            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
+            pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
+                "\(whereLine)\n    ORDER BY i.id \(orderDir)\n    LIMIT \(limitP)"
+        default:  // lastUpdated sort
             let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
             pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
                 "\(whereLine)\n    ORDER BY i.last_updated \(orderDir), i.id ASC\n    LIMIT \(limitP)"

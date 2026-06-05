@@ -101,6 +101,30 @@ final class PatientStoreTests: XCTestCase {
         XCTAssertTrue(ids1.isDisjoint(with: ids2))
     }
 
+    func testSearch_byFamily_text_modifier_isSubstringMatch() async throws {
+        _ = try await store.create(makePatient(family: "Nakamura"))
+        _ = try await store.create(makePatient(family: "Adams"))
+
+        let result = try await store.search(query: PatientSearchQuery(
+            family: PatientSearchQuery.StringParam(value: "mur", modifier: .text)
+        ))
+        XCTAssertEqual(result.total, 1)
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
+        XCTAssertEqual(p.name?.first?.family?.value?.string, "Nakamura")
+    }
+
+    func testSearch_sort_by_id_ascending() async throws {
+        for i in 1...4 { _ = try await store.create(makePatient(family: "IdSort\(i)")) }
+
+        let result = try await store.search(query: PatientSearchQuery(
+            sort: PatientSearchQuery.SortOrder.parse("_id"),
+            count: 10
+        ))
+        XCTAssertGreaterThanOrEqual(result.entries.count, 4)
+        let ids = result.entries.map(\.id)
+        XCTAssertEqual(ids, ids.sorted())
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

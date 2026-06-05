@@ -393,9 +393,9 @@ public struct PatientStore: Sendable {
 
     private func stringBindValue(_ param: PatientSearchQuery.StringParam) -> String {
         switch param.modifier {
-        case .startsWith: return "\(param.value)%"
-        case .contains:   return "%\(param.value)%"
-        case .exact:      return param.value
+        case .startsWith:      return "\(param.value)%"
+        case .contains, .text: return "%\(param.value)%"
+        case .exact:           return param.value
         }
     }
 
@@ -589,7 +589,7 @@ public struct PatientStore: Sendable {
         var sortKeysCTE: (name: String, sql: String)? = nil
         var cursorCondSQL = ""
         var finalSortValSQL = ""
-        var sortKind = 0  // 0=lastUpdated, 1=name(string), 2=date
+        var sortKind = 0  // 0=lastUpdated, 1=name(string), 2=date, 3=_id
 
         switch query.sort {
         case .lastUpdatedDescending, .lastUpdatedAscending, .dateAscending, .dateDescending:
@@ -630,6 +630,15 @@ public struct PatientStore: Sendable {
             }
             finalSortValSQL = "COALESCE(CAST(EXTRACT(EPOCH FROM p.sort_val) AS text), '')"
             sortKind = 2
+
+        case ._idAscending, ._idDescending:
+            if let cursor = query.cursor {
+                let idP = bind(cursor.sortValue)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "i.id \(op) \(idP)"
+            }
+            finalSortValSQL = "p.id"
+            sortKind = 3
         }
 
         let limitP = bind(Int64(query.count + 1))
@@ -648,7 +657,11 @@ public struct PatientStore: Sendable {
             let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
             pagedInner = "SELECT id, version_id, last_updated, sort_val FROM (\n      \(inner)\n    ) sub" +
                 "\(whereLine)\n    ORDER BY sort_val \(orderDir) NULLS LAST, id ASC\n    LIMIT \(limitP)"
-        default:  // lastUpdated sort (current behaviour)
+        case 3:  // _id sort
+            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
+            pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
+                "\(whereLine)\n    ORDER BY i.id \(orderDir)\n    LIMIT \(limitP)"
+        default:  // lastUpdated sort
             let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
             pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
                 "\(whereLine)\n    ORDER BY i.last_updated \(orderDir), i.id ASC\n    LIMIT \(limitP)"

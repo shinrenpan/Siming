@@ -69,7 +69,9 @@ private func patientResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Patient?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search supports _sort=±_lastUpdated/±name/±family/±birthdate, _count (0–100; 0=count-only), _total (accurate|none), and cursor-based pagination via _cursor. " +
+            "Search supports _sort=±_lastUpdated/±name/±family/±birthdate/±_id, _count (0–100; 0=count-only), _total (accurate|none), and cursor-based pagination via _cursor. " +
+            "String params support modifiers: :contains, :exact, :text (case-insensitive substring). " +
+            "Prefer: return=minimal on write returns 201/200 with no body. " +
             "Compartment: GET /Patient/:id/Observation returns Observations scoped to that patient."
         )),
         interaction: baselineInteractions,
@@ -77,13 +79,13 @@ private func patientResource() -> CapabilityStatementRestResource {
         searchParam: [
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-name")),
-                documentation: FHIRPrimitive(FHIRString("Starts-with match across all name fields (family, given, text). Modifiers: :contains, :exact.")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with match across all name fields (family, given, text). Modifiers: :contains, :exact, :text.")),
                 name: FHIRPrimitive(FHIRString("name")),
                 type: FHIRPrimitive(.string)
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-family")),
-                documentation: FHIRPrimitive(FHIRString("Starts-with on family name. Modifiers: :contains, :exact.")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on family name. Modifiers: :contains, :exact, :text.")),
                 name: FHIRPrimitive(FHIRString("family")),
                 type: FHIRPrimitive(.string)
             ),
@@ -193,7 +195,8 @@ private func observationResource() -> CapabilityStatementRestResource {
             "Observation resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Observation?<search>), delete, history-instance, and search (GET and POST /_search). " +
             "Search supports subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity. " +
-            "_sort supports ±_lastUpdated and ±date. _total: accurate (default) or none."
+            "_sort supports ±_lastUpdated, ±date, and ±_id. _total: accurate (default) or none. " +
+            "Prefer: return=minimal on write returns 201/200 with no body."
         )),
         interaction: baselineInteractions,
         readHistory: FHIRPrimitive(FHIRBool(true)),

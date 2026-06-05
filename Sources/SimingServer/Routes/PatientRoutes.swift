@@ -10,6 +10,7 @@ private let maxCount = 100
 private let fhirJSON = "application/fhir+json"
 private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
 private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
+private let preferHeader = HTTPField.Name("Prefer")!
 
 func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStore, logger: Logger) {
     let group = router.group("Patient")
@@ -17,6 +18,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     // POST /Patient — create (with optional If-None-Exist conditional create)
     group.post { request, _ in
         try requireFHIRContentType(request)
+        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
@@ -38,7 +40,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Patient/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
             }
             // 0 matches — fall through to normal create
         }
@@ -50,12 +52,13 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
     // PUT /Patient?<search> — conditional update (no id in URL)
     group.put { request, _ in
         try requireFHIRContentType(request)
+        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Patient requires search parameters for conditional update")
@@ -80,7 +83,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, patient: patient, ifMatch: ifMatch)
@@ -90,7 +93,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Patient")
         }
@@ -196,6 +199,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
     // PUT /Patient/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
+        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -208,7 +212,7 @@ func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStor
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
     // DELETE /Patient?<search> — conditional delete (no id in URL)
