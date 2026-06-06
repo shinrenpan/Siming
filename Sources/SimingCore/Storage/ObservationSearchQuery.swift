@@ -21,6 +21,7 @@ public struct ObservationSearchQuery: Sendable {
     public var lastUpdated: [DateParam]   // _lastUpdated range filter
     public var missing: [String: Bool]    // param:missing=true/false
     public var chains: [ChainedParam]    // chained search: subject.name=Wang, etc.
+    public var has: [HasParam]           // _has modifier: reverse chaining
 
     // ── Pagination / sort ─────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ public struct ObservationSearchQuery: Sendable {
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
+        has: [HasParam] = [],
         totalMode: TotalMode = .accurate,
         count: Int = 20,
         sort: SortOrder = .lastUpdatedDescending,
@@ -69,6 +71,7 @@ public struct ObservationSearchQuery: Sendable {
         self.lastUpdated    = lastUpdated
         self.missing        = missing
         self.chains         = chains
+        self.has            = has
         self.totalMode      = totalMode
         self.count          = count
         self.sort           = sort

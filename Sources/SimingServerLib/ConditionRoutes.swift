@@ -376,6 +376,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
         }
     }
     let chains = parseChainParams(from: pairs)
+    let has    = parseHasParams(from: pairs)
     return ConditionSearchQuery(
         subject: subject,
         encounter: encounter,
@@ -385,7 +386,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
         code: code, codeNot: codeNot,
         identifier: identifier,
         onsetDate: onsetDate, abatementDate: abatementDate, recordedDate: recordedDate,
-        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

@@ -377,6 +377,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let has = parseHasParams(from: pairs)
     return PatientSearchQuery(
         name: name, family: family, given: given,
         gender: gender, active: active,
@@ -386,7 +387,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         identifierNot: identifierNot, genderNot: genderNot,
         identifier: identifier, id: id,
         birthdate: birthdates, lastUpdated: lastUpdated,
-        missing: missing, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
+        missing: missing, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -20,6 +20,7 @@ public struct PatientSearchQuery: Sendable {
     public var birthdate: [BirthdateParam]
     public var lastUpdated: [BirthdateParam]  // _lastUpdated: filter on last write time
     public var missing: [String: Bool]    // param:missing=true/false
+    public var has: [HasParam]            // _has modifier: reverse chaining
     public var totalMode: TotalMode
     public var sort: SortOrder
     public var count: Int
@@ -45,6 +46,7 @@ public struct PatientSearchQuery: Sendable {
         birthdate: [BirthdateParam] = [],
         lastUpdated: [BirthdateParam] = [],
         missing: [String: Bool] = [:],
+        has: [HasParam] = [],
         totalMode: TotalMode = .accurate,
         sort: SortOrder = .lastUpdatedDescending,
         count: Int = 20,
@@ -69,6 +71,7 @@ public struct PatientSearchQuery: Sendable {
         self.birthdate         = birthdate
         self.lastUpdated       = lastUpdated
         self.missing           = missing
+        self.has               = has
         self.totalMode         = totalMode
         self.sort              = sort
         self.count             = count

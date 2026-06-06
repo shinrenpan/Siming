@@ -31,6 +31,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var lastUpdated: [DateParam]                 // _lastUpdated range filter
     public var missing: [String: Bool]                  // param:missing=true/false
     public var chains: [ChainedParam]                   // chained search: patient.name=Wang, etc.
+    public var has: [HasParam]                          // _has modifier: reverse chaining
 
     // ── Pagination / sort ─────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
+        has: [HasParam] = [],
         totalMode: TotalMode = .accurate,
         count: Int = 20,
         sort: SortOrder = .lastUpdatedDescending,
@@ -99,6 +101,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         self.lastUpdated          = lastUpdated
         self.missing              = missing
         self.chains               = chains
+        self.has                  = has
         self.totalMode            = totalMode
         self.count                = count
         self.sort                 = sort

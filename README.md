@@ -66,6 +66,7 @@ Server listens on `http://localhost:8080`.
 | POST `/_search` (form-encoded) | ✓ |
 | `_include` / `_revinclude` (1-level, all 6 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
+| `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
 **Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `_id`, `_lastUpdated`
 

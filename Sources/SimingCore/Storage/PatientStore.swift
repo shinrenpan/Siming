@@ -571,6 +571,18 @@ public struct PatientStore: Sendable {
             }
         }
 
+        // _has modifier (reverse chaining)
+        let hBindStr: (String) -> String = { bind($0) }
+        let hBindDate: (Date) -> String = { bind($0) }
+        for (i, hp) in query.has.enumerated() {
+            if let (name, sql) = hasFilterCTE(
+                index: i, mainType: "Patient",
+                param: hp, bindStr: hBindStr, bindDate: hBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -833,6 +845,18 @@ public struct PatientStore: Sendable {
                 } else {
                     whereConditions.append("r.id IN (\(sub))")
                 }
+            }
+        }
+
+        // _has modifier (reverse chaining)
+        let hBindStr: (String) -> String = { bind($0) }
+        let hBindDate: (Date) -> String = { bind($0) }
+        for (i, hp) in query.has.enumerated() {
+            if let (name, sql) = hasFilterCTE(
+                index: i, mainType: "Patient",
+                param: hp, bindStr: hBindStr, bindDate: hBindDate
+            ) {
+                filterCTEs.append((name, sql))
             }
         }
 

@@ -369,6 +369,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         }
     }
     let chains = parseChainParams(from: pairs)
+    let has    = parseHasParams(from: pairs)
     return MedicationRequestSearchQuery(
         subject: subject,
         status: status, statusNot: statusNot,
@@ -379,7 +380,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         identifier: identifier,
         authoredOn: authoredOn,
         encounter: encounter, requester: requester,
-        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

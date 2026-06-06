@@ -517,6 +517,18 @@ public struct AllergyIntoleranceStore: Sendable {
             }
         }
 
+        // _has modifier (reverse chaining)
+        let hBindStr: (String) -> String = { bind($0) }
+        let hBindDate: (Date) -> String = { bind($0) }
+        for (i, hp) in query.has.enumerated() {
+            if let (name, sql) = hasFilterCTE(
+                index: i, mainType: "AllergyIntolerance",
+                param: hp, bindStr: hBindStr, bindDate: hBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
         fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
@@ -687,6 +699,18 @@ public struct AllergyIntoleranceStore: Sendable {
             if let (name, sql) = chainFilterCTE(
                 index: filterCTEs.count + i, sourceType: "AllergyIntolerance",
                 chain: chain, bindStr: cBindStr, bindDate: cBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
+        }
+
+        // _has modifier (reverse chaining)
+        let hBindStr: (String) -> String = { bind($0) }
+        let hBindDate: (Date) -> String = { bind($0) }
+        for (i, hp) in query.has.enumerated() {
+            if let (name, sql) = hasFilterCTE(
+                index: i, mainType: "AllergyIntolerance",
+                param: hp, bindStr: hBindStr, bindDate: hBindDate
             ) {
                 filterCTEs.append((name, sql))
             }
