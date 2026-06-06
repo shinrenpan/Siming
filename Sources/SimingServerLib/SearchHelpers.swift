@@ -67,6 +67,7 @@ func parseElements(from pairs: some Collection<(key: Substring, value: Substring
 }
 
 /// Returns parameter keys not present in `known` (base name before `:` stripped).
+/// Chained params (containing `.`) are always treated as known.
 /// Used for `Prefer: handling=strict` validation.
 func unknownParams(
     in pairs: some Collection<(key: Substring, value: Substring)>,
@@ -74,7 +75,18 @@ func unknownParams(
 ) -> [String] {
     pairs.compactMap { pair in
         let base = String(pair.key.split(separator: ":").first ?? pair.key)
+        if base.contains(".") { return nil }
         return known.contains(base) ? nil : String(pair.key)
+    }
+}
+
+/// Parses all chained search params (keys containing `.`) from query/form pairs.
+/// Format: `refParam.childParam=value` or `refParam:Type.childParam:modifier=value`
+func parseChainParams(from pairs: some Collection<(key: Substring, value: Substring)>) -> [ChainedParam] {
+    pairs.compactMap { pair in
+        let key = String(pair.key)
+        guard key.contains(".") else { return nil }
+        return parseChainKey(key, value: String(pair.value))
     }
 }
 

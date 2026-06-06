@@ -370,11 +370,12 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let chains = parseChainParams(from: pairs)
     return EncounterSearchQuery(
         subject: subject, status: status, statusNot: statusNot,
         encounterClass: encounterClass, classNot: classNot,
         type: type, typeNot: typeNot, date: dates, identifier: identifier,
-        id: id, lastUpdated: lastUpdated, missing: missing,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

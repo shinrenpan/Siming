@@ -16,6 +16,7 @@ public struct EncounterSearchQuery: Sendable {
     public var id: [String]                 // _id filter (OR)
     public var lastUpdated: [DateParam]     // _lastUpdated range filter
     public var missing: [String: Bool]      // param:missing=true/false
+    public var chains: [ChainedParam]       // chained search: subject.name=Wang, etc.
 
     // ── Pagination / sort ─────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ public struct EncounterSearchQuery: Sendable {
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
+        chains: [ChainedParam] = [],
         totalMode: TotalMode = .accurate,
         count: Int = 20,
         sort: SortOrder = .lastUpdatedDescending,
@@ -54,6 +56,7 @@ public struct EncounterSearchQuery: Sendable {
         self.id             = id
         self.lastUpdated    = lastUpdated
         self.missing        = missing
+        self.chains         = chains
         self.totalMode      = totalMode
         self.count          = count
         self.sort           = sort

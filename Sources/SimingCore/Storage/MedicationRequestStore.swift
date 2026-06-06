@@ -539,6 +539,18 @@ public struct MedicationRequestStore: Sendable {
             }
         }
 
+        // Chained search params
+        let cBindStr: (String) -> String = { bind($0) }
+        let cBindDate: (Date) -> String = { bind($0) }
+        for (i, chain) in query.chains.enumerated() {
+            if let (name, sql) = chainFilterCTE(
+                index: filterCTEs.count + i, sourceType: "MedicationRequest",
+                chain: chain, bindStr: cBindStr, bindDate: cBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
         fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
@@ -692,6 +704,18 @@ public struct MedicationRequestStore: Sendable {
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
+        }
+
+        // Chained search params
+        let cBindStr: (String) -> String = { bind($0) }
+        let cBindDate: (Date) -> String = { bind($0) }
+        for (i, chain) in query.chains.enumerated() {
+            if let (name, sql) = chainFilterCTE(
+                index: filterCTEs.count + i, sourceType: "MedicationRequest",
+                chain: chain, bindStr: cBindStr, bindDate: cBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
         }
 
         var fromLines = ["FROM resources r"]

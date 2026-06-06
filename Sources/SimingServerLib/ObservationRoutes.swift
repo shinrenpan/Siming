@@ -379,13 +379,14 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let chains = parseChainParams(from: pairs)
     return ObservationSearchQuery(
         subject: subject, code: code, codeNot: codeNot, date: dates,
         status: status, statusNot: statusNot,
         category: category, categoryNot: categoryNot,
         identifier: identifier, encounter: encounter, performer: performer,
         componentCode: componentCode, valueQuantity: valueQuantity,
-        id: id, lastUpdated: lastUpdated, missing: missing,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

@@ -238,7 +238,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors unwelded in every change — apply the weld test above.
-- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports `_lastUpdated`/`name`/`family`/`birthdate`/`_id` (Patient), `date`/`_id` (Observation), `date`/`_id` (Encounter), `date`(onset)/`_id` (Condition), `authoredon`/`_id` (MedicationRequest), `date`(recordedDate)/`_id` (AllergyIntolerance), and `_lastUpdated`/`_id` all resources.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** Known open gaps vs spec: `_sort` supports `_lastUpdated`/`name`/`family`/`birthdate`/`_id` (Patient), `date`/`_id` (Observation), `date`/`_id` (Encounter), `date`(onset)/`_id` (Condition), `authoredon`/`_id` (MedicationRequest), `date`(recordedDate)/`_id` (AllergyIntolerance), and `_lastUpdated`/`_id` all resources. Chained search (`refParam.childParam=value`) supported on Observation/Encounter/Condition/MedicationRequest/AllergyIntolerance; child params mapped in `chainChildParamType` in `ChainedParam.swift`; Patient chained search not yet implemented.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.

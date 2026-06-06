@@ -368,6 +368,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let chains = parseChainParams(from: pairs)
     return MedicationRequestSearchQuery(
         subject: subject,
         status: status, statusNot: statusNot,
@@ -378,7 +379,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         identifier: identifier,
         authoredOn: authoredOn,
         encounter: encounter, requester: requester,
-        id: id, lastUpdated: lastUpdated, missing: missing,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

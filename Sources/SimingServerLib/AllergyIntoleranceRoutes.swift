@@ -379,6 +379,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let chains = parseChainParams(from: pairs)
     return AllergyIntoleranceSearchQuery(
         subject: subject,
         clinicalStatus: clinicalStatus, clinicalStatusNot: clinicalStatusNot,
@@ -392,7 +393,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
         route: route, routeNot: routeNot,
         identifier: identifier,
         date: date, lastDate: lastDate, onset: onset,
-        id: id, lastUpdated: lastUpdated, missing: missing,
+        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

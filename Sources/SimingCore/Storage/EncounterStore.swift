@@ -549,6 +549,18 @@ public struct EncounterStore: Sendable {
             }
         }
 
+        // Chained search params
+        let cBindStr: (String) -> String = { bind($0) }
+        let cBindDate: (Date) -> String = { bind($0) }
+        for (i, chain) in query.chains.enumerated() {
+            if let (name, sql) = chainFilterCTE(
+                index: filterCTEs.count + i, sourceType: "Encounter",
+                chain: chain, bindStr: cBindStr, bindDate: cBindDate
+            ) {
+                filterCTEs.append((name, sql))
+            }
+        }
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -802,6 +814,18 @@ public struct EncounterStore: Sendable {
                 } else {
                     whereConditions.append("r.id IN (\(sub))")
                 }
+            }
+        }
+
+        // Chained search params
+        let cBindStr: (String) -> String = { bind($0) }
+        let cBindDate: (Date) -> String = { bind($0) }
+        for (i, chain) in query.chains.enumerated() {
+            if let (name, sql) = chainFilterCTE(
+                index: filterCTEs.count + i, sourceType: "Encounter",
+                chain: chain, bindStr: cBindStr, bindDate: cBindDate
+            ) {
+                filterCTEs.append((name, sql))
             }
         }
 
