@@ -46,7 +46,7 @@ private func serverRest() -> CapabilityStatementRest {
                    medicationResource(), medicationRequestResource(), allergyIntoleranceResource(),
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource(),
-                   relatedPersonResource(), serviceRequestResource()]
+                   relatedPersonResource(), serviceRequestResource(), specimenResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -1656,6 +1656,112 @@ private func serviceRequestResource() -> CapabilityStatementRestResource {
         "ServiceRequest:patient", "ServiceRequest:subject",
         "ServiceRequest:encounter", "ServiceRequest:requester",
         "ServiceRequest:performer",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func specimenResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Specimen resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/Specimen (POST /_search). " +
+            "Search: status, type, accession, identifier, bodysite, container, container-id, " +
+            "collected, subject, patient, collector, parent. " +
+            ":not modifier on status, type, accession, container, container-id. " +
+            "_sort: ±collected (mapped to date), ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: available|unavailable|unsatisfactory|entered-in-error. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Specimen.type codings. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-accession")),
+                documentation: FHIRPrimitive(FHIRString("Token on Specimen.accessionIdentifier. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("accession")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token search on identifier. Formats: code, system|code.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-bodysite")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on collection.bodySite codings.")),
+                name: FHIRPrimitive(FHIRString("bodysite")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-container")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on container.type codings. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("container")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-container-id")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on container.identifier. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("container-id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-collected")),
+                documentation: FHIRPrimitive(FHIRString("Date search on collection.collected[x] (dateTime or Period). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("collected")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to subject (any resource type).")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to patient subject. Formats: Patient/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-collector")),
+                documentation: FHIRPrimitive(FHIRString("Reference to collector (Practitioner/PractitionerRole).")),
+                name: FHIRPrimitive(FHIRString("collector")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Specimen-parent")),
+                documentation: FHIRPrimitive(FHIRString("Reference to parent Specimen.")),
+                name: FHIRPrimitive(FHIRString("parent")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.specimen),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Specimen:subject", "Specimen:patient", "Specimen:collector", "Specimen:parent",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

@@ -19,6 +19,7 @@ public func buildRouter(
     locationStore: LocationStore,
     relatedPersonStore: RelatedPersonStore,
     serviceRequestStore: ServiceRequestStore,
+    specimenStore: SpecimenStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -43,6 +44,7 @@ public func buildRouter(
     addLocationRoutes(to: router, store: locationStore, logger: logger)
     addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
     addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
+    addSpecimenRoutes(to: router, store: specimenStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
@@ -51,7 +53,8 @@ public func buildRouter(
                          diagnosticReportStore: diagnosticReportStore,
                          immunizationStore: immunizationStore,
                          relatedPersonStore: relatedPersonStore,
-                         serviceRequestStore: serviceRequestStore, logger: logger)
+                         serviceRequestStore: serviceRequestStore,
+                         specimenStore: specimenStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationStore: medicationStore,
@@ -64,6 +67,7 @@ public func buildRouter(
                     organizationStore: organizationStore,
                     locationStore: locationStore,
                     relatedPersonStore: relatedPersonStore,
-                    serviceRequestStore: serviceRequestStore, logger: logger)
+                    serviceRequestStore: serviceRequestStore,
+                    specimenStore: specimenStore, logger: logger)
     return router
 }

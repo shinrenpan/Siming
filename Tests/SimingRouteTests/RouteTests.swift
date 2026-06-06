@@ -51,6 +51,7 @@ struct RouteTests {
         let locationStore           = LocationStore(client: client, logger: logger)
         let relatedPersonStore      = RelatedPersonStore(client: client, logger: logger)
         let serviceRequestStore     = ServiceRequestStore(client: client, logger: logger)
+        let specimenStore           = SpecimenStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -70,6 +71,7 @@ struct RouteTests {
         addLocationRoutes(to: router, store: locationStore, logger: logger)
         addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
         addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
+        addSpecimenRoutes(to: router, store: specimenStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -78,7 +80,8 @@ struct RouteTests {
                              diagnosticReportStore: diagnosticReportStore,
                              immunizationStore: immunizationStore,
                              relatedPersonStore: relatedPersonStore,
-                             serviceRequestStore: serviceRequestStore, logger: logger)
+                             serviceRequestStore: serviceRequestStore,
+                             specimenStore: specimenStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
                         medicationStore: medicationStore,
@@ -91,7 +94,8 @@ struct RouteTests {
                         organizationStore: organizationStore,
                         locationStore: locationStore,
                         relatedPersonStore: relatedPersonStore,
-                        serviceRequestStore: serviceRequestStore, logger: logger)
+                        serviceRequestStore: serviceRequestStore,
+                        specimenStore: specimenStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 

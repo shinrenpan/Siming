@@ -95,6 +95,10 @@ actor TestDatabase {
         ServiceRequestStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeSpecimenStore() throws -> SpecimenStore {
+        SpecimenStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -375,6 +379,33 @@ func makeServiceRequest(
     if let e = encounterRef { json += #","encounter":{"reference":"\#(e)"}"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: Data(json.utf8))
+}
+
+func makeSpecimen(
+    patientId: String,
+    status: String? = nil,
+    specimenType: String? = nil,
+    typeSystem: String = "http://snomed.info/sct",
+    collectedDate: String? = nil,
+    accession: String? = nil,
+    accessionSystem: String? = nil
+) throws -> ModelsR4.Specimen {
+    var json = #"{"resourceType":"Specimen","subject":{"reference":"Patient/\#(patientId)"}"#
+    if let s = status { json += #","status":"\#(s)""# }
+    if let t = specimenType {
+        json += #","type":{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}"#
+    }
+    if let d = collectedDate {
+        json += #","collection":{"collectedDateTime":"\#(d)"}"#
+    }
+    if let acc = accession {
+        var accJSON = #","accessionIdentifier":{"value":"\#(acc)""#
+        if let sys = accessionSystem { accJSON += #","system":"\#(sys)""# }
+        accJSON += "}"
+        json += accJSON
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Specimen.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

@@ -311,6 +311,13 @@ public let serviceRequestSummaryFields: Set<String> = [
     "requester", "performerType", "performer",
 ]
 
+/// Specimen Σ-marked elements per FHIR R4 §12.16 (excluding mandatory id/meta/resourceType).
+public let specimenSummaryFields: Set<String> = [
+    "identifier", "accessionIdentifier", "status", "type", "subject",
+    "receivedTime", "parent", "request", "collection", "processing",
+    "container", "condition", "note",
+]
+
 /// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
 public let relatedPersonSummaryFields: Set<String> = [
     "identifier", "active", "patient", "relationship", "name",

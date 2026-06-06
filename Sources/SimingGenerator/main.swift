@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let specimenParams = try loadParams(resourceType: "Specimen", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let specimenCode = generateSpecimenExtractor(params: specimenParams)
+let specimenOut  = "\(outputDir)/Specimen+SearchExtractor.swift"
+try specimenCode.write(toFile: specimenOut, atomically: true, encoding: .utf8)
+print("Generated \(specimenOut) — \(specimenParams.count) Specimen params")
+
 let serviceRequestParams = try loadParams(resourceType: "ServiceRequest", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

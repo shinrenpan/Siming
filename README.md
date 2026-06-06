@@ -43,6 +43,7 @@ Server listens on `http://localhost:8080`.
 | Location | ✓ | ✓ | — |
 | RelatedPerson | ✓ | ✓ | `GET /Patient/:id/RelatedPerson` |
 | ServiceRequest | ✓ | ✓ | `GET /Patient/:id/ServiceRequest` |
+| Specimen | ✓ | ✓ | `GET /Patient/:id/Specimen` |
 
 ### Interactions
 
@@ -54,7 +55,7 @@ Server listens on `http://localhost:8080`.
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
-| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 14 resource types | ✓ |
+| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 15 resource types | ✓ |
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
@@ -74,7 +75,7 @@ Server listens on `http://localhost:8080`.
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
 | POST `/_search` (form-encoded) | ✓ |
-| `_include` / `_revinclude` (1-level, all 14 resources) | ✓ |
+| `_include` / `_revinclude` (1-level, all 15 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
@@ -107,6 +108,8 @@ Server listens on `http://localhost:8080`.
 **RelatedPerson** — `name`, `phonetic` (alias for `name`), `identifier`, `active`, `gender`, `relationship`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `address-use`, `phone`, `email`, `telecom`, `patient`, `_id`, `_lastUpdated`
 
 **ServiceRequest** — `status`, `intent`, `priority`, `code`, `category`, `body-site`, `performer-type`, `requisition`, `identifier`, `authored`, `occurrence`, `subject`, `patient`, `encounter`, `requester`, `performer`, `based-on`, `replaces`, `specimen`, `_id`, `_lastUpdated`
+
+**Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 
 ### Other
 
