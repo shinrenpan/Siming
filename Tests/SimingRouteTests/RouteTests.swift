@@ -56,7 +56,10 @@ struct RouteTests {
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
                              allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
-        addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore, logger: logger)
+        addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
+                        encounterStore: encounterStore, conditionStore: conditionStore,
+                        medicationRequestStore: medicationRequestStore,
+                        allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 

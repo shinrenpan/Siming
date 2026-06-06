@@ -8,6 +8,10 @@ public func addSystemRoutes(
     to router: Router<BasicRequestContext>,
     patientStore: PatientStore,
     observationStore: ObservationStore,
+    encounterStore: EncounterStore,
+    conditionStore: ConditionStore,
+    medicationRequestStore: MedicationRequestStore,
+    allergyIntoleranceStore: AllergyIntoleranceStore,
     logger: Logger
 ) {
     // GET /_history — system-level history across all resource types
@@ -16,12 +20,18 @@ public func addSystemRoutes(
         let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, 100)
 
-        async let patientEntries = patientStore.typeHistory(since: since, count: count)
-        async let obsEntries     = observationStore.typeHistory(since: since, count: count)
+        async let patientEntries   = patientStore.typeHistory(since: since, count: count)
+        async let obsEntries       = observationStore.typeHistory(since: since, count: count)
+        async let encEntries       = encounterStore.typeHistory(since: since, count: count)
+        async let conEntries       = conditionStore.typeHistory(since: since, count: count)
+        async let medEntries       = medicationRequestStore.typeHistory(since: since, count: count)
+        async let allergyEntries   = allergyIntoleranceStore.typeHistory(since: since, count: count)
 
-        let all = try await (patientEntries + obsEntries)
-            .sorted { $0.lastUpdated > $1.lastUpdated }
-            .prefix(count)
+        let all = try await (
+            patientEntries + obsEntries + encEntries + conEntries + medEntries + allergyEntries
+        )
+        .sorted { $0.lastUpdated > $1.lastUpdated }
+        .prefix(count)
 
         let authority = request.head.authority ?? "localhost"
         let baseURL = "http://\(authority)"

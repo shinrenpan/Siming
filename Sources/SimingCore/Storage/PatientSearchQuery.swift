@@ -185,13 +185,20 @@ public struct PatientSearchQuery: Sendable {
     public struct BirthdateParam: Sendable {
         public enum Prefix: String, Sendable {
             case eq, ne, lt, gt, le, ge
-            case sa  // starts-after: stored period start > given date
-            case eb  // ends-before:  stored period end   < given date
+            case sa  // starts-after: stored period start > search range end
+            case eb  // ends-before:  stored period end   < search range start
         }
         public let prefix: Prefix
-        public let date: Date
+        /// Inclusive start of the search precision range (UTC).
+        public let dateStart: Date
+        /// Inclusive end of the search precision range (UTC).
+        public let dateEnd: Date
 
         // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), "sa2024-01-01", etc.
+        // Partial dates expand to a full precision range per FHIR R4 §2.4.0.1:
+        //   YYYY      → [Jan 1 00:00:00, Dec 31 23:59:59]
+        //   YYYY-MM   → [1st 00:00:00, last-day 23:59:59]
+        //   YYYY-MM-DD → [00:00:00, 23:59:59]
         public static func parse(_ raw: String) -> BirthdateParam? {
             let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb"]
             let (pfxStr, dateStr): (String, String)
@@ -204,32 +211,51 @@ public struct PatientSearchQuery: Sendable {
                 dateStr = raw
             }
             guard let pfx = Prefix(rawValue: pfxStr),
-                  let date = parseFHIRDate(dateStr) else { return nil }
-            return BirthdateParam(prefix: pfx, date: date)
+                  let range = parseFHIRDateRange(dateStr) else { return nil }
+            return BirthdateParam(prefix: pfx, dateStart: range.start, dateEnd: range.end)
         }
 
-        // FHIR partial dates: YYYY → 00:00 Jan 1; YYYY-MM → 00:00 1st; YYYY-MM-DD → 12:00 UTC
-        private static func parseFHIRDate(_ s: String) -> Date? {
+        private static func parseFHIRDateRange(_ s: String) -> (start: Date, end: Date)? {
+            let cal = Calendar(identifier: .gregorian)
+            let tz  = TimeZone(secondsFromGMT: 0)!
             let parts = s.split(separator: "-")
-            var dc = DateComponents()
-            dc.calendar = Calendar(identifier: .gregorian)
-            dc.timeZone = TimeZone(secondsFromGMT: 0)
+
+            func dc(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int) -> Date? {
+                var c = DateComponents()
+                c.calendar = cal; c.timeZone = tz
+                c.year = year; c.month = month; c.day = day
+                c.hour = hour; c.minute = minute; c.second = second
+                return c.date
+            }
+
             switch parts.count {
             case 1:
                 guard let y = Int(parts[0]) else { return nil }
-                dc.year = y; dc.month = 1; dc.day = 1; dc.hour = 0; dc.minute = 0; dc.second = 0
+                guard let start = dc(year: y, month: 1,  day: 1,  hour: 0,  minute: 0, second: 0),
+                      let end   = dc(year: y, month: 12, day: 31, hour: 23, minute: 59, second: 59)
+                else { return nil }
+                return (start, end)
             case 2:
                 guard let y = Int(parts[0]), let m = Int(parts[1]),
                       (1...12).contains(m) else { return nil }
-                dc.year = y; dc.month = m; dc.day = 1; dc.hour = 0; dc.minute = 0; dc.second = 0
+                guard let start = dc(year: y, month: m, day: 1, hour: 0, minute: 0, second: 0)
+                else { return nil }
+                // First of next month minus one second = last moment of this month
+                let (ny, nm) = m == 12 ? (y + 1, 1) : (y, m + 1)
+                guard let firstOfNext = dc(year: ny, month: nm, day: 1, hour: 0, minute: 0, second: 0)
+                else { return nil }
+                let end = firstOfNext.addingTimeInterval(-1)
+                return (start, end)
             case 3:
                 guard let y = Int(parts[0]), let m = Int(parts[1]), let d = Int(parts[2]),
                       (1...12).contains(m), (1...31).contains(d) else { return nil }
-                dc.year = y; dc.month = m; dc.day = d; dc.hour = 12; dc.minute = 0; dc.second = 0
+                guard let start = dc(year: y, month: m, day: d, hour: 0, minute: 0, second: 0)
+                else { return nil }
+                let end = start.addingTimeInterval(86399)  // +23:59:59
+                return (start, end)
             default:
                 return nil
             }
-            return dc.date
         }
     }
 

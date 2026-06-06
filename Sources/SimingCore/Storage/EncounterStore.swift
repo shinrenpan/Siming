@@ -460,17 +460,18 @@ public struct EncounterStore: Sendable {
 
         // date — idx_date range (Encounter.period → param_name='date')
         for (i, dp) in query.date.enumerated() {
-            let dateP = bind(dp.date)
+            let startP = bind(dp.dateStart)
+            let endP   = bind(dp.dateEnd)
             let cond: String
             switch dp.prefix {
-            case .eq: cond = "date_start <= \(dateP) AND date_end >= \(dateP)"
-            case .ne: cond = "NOT (date_start <= \(dateP) AND date_end >= \(dateP))"
-            case .lt: cond = "date_start < \(dateP)"
-            case .le: cond = "date_start <= \(dateP)"
-            case .gt: cond = "date_end > \(dateP)"
-            case .ge: cond = "date_end >= \(dateP)"
-            case .sa: cond = "date_start > \(dateP)"
-            case .eb: cond = "date_end < \(dateP)"
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
             }
             filterCTEs.append(("f_date\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -487,17 +488,18 @@ public struct EncounterStore: Sendable {
             whereConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
-            let tsP = bind(lu.date)
+            let startP = bind(lu.dateStart)
+            let endP   = bind(lu.dateEnd)
             let cond: String
             switch lu.prefix {
-            case .eq: cond = "r.last_updated = \(tsP)"
-            case .ne: cond = "r.last_updated != \(tsP)"
-            case .lt: cond = "r.last_updated < \(tsP)"
-            case .le: cond = "r.last_updated <= \(tsP)"
-            case .gt: cond = "r.last_updated > \(tsP)"
-            case .ge: cond = "r.last_updated >= \(tsP)"
-            case .sa: cond = "r.last_updated > \(tsP)"
-            case .eb: cond = "r.last_updated < \(tsP)"
+            case .eq: cond = "r.last_updated >= \(startP) AND r.last_updated <= \(endP)"
+            case .ne: cond = "r.last_updated < \(startP) OR r.last_updated > \(endP)"
+            case .lt: cond = "r.last_updated < \(startP)"
+            case .le: cond = "r.last_updated <= \(endP)"
+            case .gt: cond = "r.last_updated > \(endP)"
+            case .ge: cond = "r.last_updated >= \(startP)"
+            case .sa: cond = "r.last_updated > \(endP)"
+            case .eb: cond = "r.last_updated < \(startP)"
             }
             whereConditions.append(cond)
         }
@@ -723,17 +725,18 @@ public struct EncounterStore: Sendable {
             }
         }
         for (i, dp) in query.date.enumerated() {
-            let dateP = bind(dp.date)
+            let startP = bind(dp.dateStart)
+            let endP   = bind(dp.dateEnd)
             let cond: String
             switch dp.prefix {
-            case .eq: cond = "date_start <= \(dateP) AND date_end >= \(dateP)"
-            case .ne: cond = "NOT (date_start <= \(dateP) AND date_end >= \(dateP))"
-            case .lt: cond = "date_start < \(dateP)"
-            case .le: cond = "date_start <= \(dateP)"
-            case .gt: cond = "date_end > \(dateP)"
-            case .ge: cond = "date_end >= \(dateP)"
-            case .sa: cond = "date_start > \(dateP)"
-            case .eb: cond = "date_end < \(dateP)"
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
             }
             filterCTEs.append(("f_date\(i)",
                 "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Encounter' AND param_name = 'date' AND \(cond)"))
@@ -745,17 +748,18 @@ public struct EncounterStore: Sendable {
             whereConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
-            let tsP = bind(lu.date)
+            let startP = bind(lu.dateStart)
+            let endP   = bind(lu.dateEnd)
             let cond: String
             switch lu.prefix {
-            case .eq: cond = "r.last_updated = \(tsP)"
-            case .ne: cond = "r.last_updated != \(tsP)"
-            case .lt: cond = "r.last_updated < \(tsP)"
-            case .le: cond = "r.last_updated <= \(tsP)"
-            case .gt: cond = "r.last_updated > \(tsP)"
-            case .ge: cond = "r.last_updated >= \(tsP)"
-            case .sa: cond = "r.last_updated > \(tsP)"
-            case .eb: cond = "r.last_updated < \(tsP)"
+            case .eq: cond = "r.last_updated >= \(startP) AND r.last_updated <= \(endP)"
+            case .ne: cond = "r.last_updated < \(startP) OR r.last_updated > \(endP)"
+            case .lt: cond = "r.last_updated < \(startP)"
+            case .le: cond = "r.last_updated <= \(endP)"
+            case .gt: cond = "r.last_updated > \(endP)"
+            case .ge: cond = "r.last_updated >= \(startP)"
+            case .sa: cond = "r.last_updated > \(endP)"
+            case .eb: cond = "r.last_updated < \(startP)"
             }
             whereConditions.append(cond)
         }

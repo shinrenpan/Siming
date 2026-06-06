@@ -31,11 +31,11 @@ private func buildCapabilityStatement() -> CapabilityStatement {
         rest: [serverRest()],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.8.0"))
+            version: FHIRPrimitive(FHIRString("0.9.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.8.0"))
+        version: FHIRPrimitive(FHIRString("0.9.0"))
     )
 }
 
@@ -53,7 +53,7 @@ private func serverRest() -> CapabilityStatementRest {
     ]
     rest.documentation = FHIRPrimitive(FHIRString(
         "Compartments: GET /Patient/:id/{Observation,Encounter,Condition,MedicationRequest,AllergyIntolerance} " +
-        "and POST /Patient/:id/{Observation,Encounter,Condition}/_search."
+        "and POST /Patient/:id/{Observation,Encounter,Condition,MedicationRequest,AllergyIntolerance}/_search."
     ))
     rest.searchParam = [
         CapabilityStatementRestResourceSearchParam(

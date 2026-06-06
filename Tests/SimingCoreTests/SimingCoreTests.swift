@@ -402,37 +402,52 @@ struct PatientSearchQueryTests {
         #expect(eb.prefix == .eb)
     }
 
-    @Test("BirthdateParam full date YYYY-MM-DD defaults to eq")
+    @Test("BirthdateParam full date YYYY-MM-DD defaults to eq, expands to full day")
     func birthdateFullDate() throws {
         let p = try #require(PatientSearchQuery.BirthdateParam.parse("1990-06-15"))
         #expect(p.prefix == .eq)
-        var dc = DateComponents()
-        dc.year = 1990; dc.month = 6; dc.day = 15; dc.hour = 12
-        dc.timeZone = TimeZone(secondsFromGMT: 0)
-        let expected = Calendar(identifier: .gregorian).date(from: dc)!
-        #expect(p.date == expected)
+        let cal = Calendar(identifier: .gregorian)
+        let tz  = TimeZone(secondsFromGMT: 0)!
+        func date(h: Int, m: Int, s: Int) -> Date {
+            var dc = DateComponents()
+            dc.year = 1990; dc.month = 6; dc.day = 15
+            dc.hour = h; dc.minute = m; dc.second = s; dc.timeZone = tz
+            return cal.date(from: dc)!
+        }
+        #expect(p.dateStart == date(h: 0,  m: 0,  s: 0))
+        #expect(p.dateEnd   == date(h: 23, m: 59, s: 59))
     }
 
-    @Test("BirthdateParam YYYY-MM uses midnight of 1st")
+    @Test("BirthdateParam YYYY-MM expands to full month range")
     func birthdateYearMonth() throws {
         let p = try #require(PatientSearchQuery.BirthdateParam.parse("2000-03"))
         #expect(p.prefix == .eq)
-        var dc = DateComponents()
-        dc.year = 2000; dc.month = 3; dc.day = 1; dc.hour = 0
-        dc.timeZone = TimeZone(secondsFromGMT: 0)
-        let expected = Calendar(identifier: .gregorian).date(from: dc)!
-        #expect(p.date == expected)
+        let cal = Calendar(identifier: .gregorian)
+        let tz  = TimeZone(secondsFromGMT: 0)!
+        func date(d: Int, h: Int, m: Int, s: Int) -> Date {
+            var dc = DateComponents()
+            dc.year = 2000; dc.month = 3; dc.day = d
+            dc.hour = h; dc.minute = m; dc.second = s; dc.timeZone = tz
+            return cal.date(from: dc)!
+        }
+        #expect(p.dateStart == date(d: 1,  h: 0,  m: 0,  s: 0))
+        #expect(p.dateEnd   == date(d: 31, h: 23, m: 59, s: 59))
     }
 
-    @Test("BirthdateParam YYYY uses midnight Jan 1")
+    @Test("BirthdateParam YYYY expands to full year range")
     func birthdateYearOnly() throws {
         let p = try #require(PatientSearchQuery.BirthdateParam.parse("1985"))
         #expect(p.prefix == .eq)
-        var dc = DateComponents()
-        dc.year = 1985; dc.month = 1; dc.day = 1; dc.hour = 0
-        dc.timeZone = TimeZone(secondsFromGMT: 0)
-        let expected = Calendar(identifier: .gregorian).date(from: dc)!
-        #expect(p.date == expected)
+        let cal = Calendar(identifier: .gregorian)
+        let tz  = TimeZone(secondsFromGMT: 0)!
+        func date(mo: Int, d: Int, h: Int, m: Int, s: Int) -> Date {
+            var dc = DateComponents()
+            dc.year = 1985; dc.month = mo; dc.day = d
+            dc.hour = h; dc.minute = m; dc.second = s; dc.timeZone = tz
+            return cal.date(from: dc)!
+        }
+        #expect(p.dateStart == date(mo: 1,  d: 1,  h: 0,  m: 0,  s: 0))
+        #expect(p.dateEnd   == date(mo: 12, d: 31, h: 23, m: 59, s: 59))
     }
 
     @Test("BirthdateParam ge prefix")
