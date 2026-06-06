@@ -421,6 +421,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let chains = parseChainParams(from: pairs)
     let has = parseHasParams(from: pairs)
     return PatientSearchQuery(
         name: name, family: family, given: given,
@@ -431,7 +432,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         identifierNot: identifierNot, genderNot: genderNot,
         identifier: identifier, id: id,
         birthdate: birthdates, lastUpdated: lastUpdated,
-        missing: missing, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
+        missing: missing, chains: chains, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
