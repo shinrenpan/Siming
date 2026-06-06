@@ -18,6 +18,7 @@ let knownConditionParams: Set<String> = [
     "onset-date", "abatement-date", "recorded-date",
     "clinical-status:not", "verification-status:not", "category:not", "code:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
+    "_include", "_revinclude",
 ]
 
 public func addConditionRoutes(
@@ -247,6 +248,8 @@ public func addConditionRoutes(
         let query = parseConditionQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        let includes = parseIncludes(from: pairs)
+        let revIncludes = parseRevIncludes(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -267,7 +270,13 @@ public func addConditionRoutes(
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Condition/\(e.id)", json)
         }
-        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        let mainIds = result.entries.map(\.id)
+        let resolver = IncludeResolver(client: store.client, logger: logger)
+        async let included = resolver.resolve(includes: includes, sourceIds: mainIds)
+        async let revIncluded = resolver.resolveRev(revIncludes: revIncludes, mainIds: mainIds)
+        let includeEntries = includeEntryTuples(from: try await included + revIncluded, baseURL: baseURL)
+        let bundleData = buildBundleJSON(entries: entries, includeEntries: includeEntries,
+                                         total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -291,6 +300,8 @@ public func addConditionRoutes(
         let query = parseConditionQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        let includes = parseIncludes(from: pairs)
+        let revIncludes = parseRevIncludes(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -311,7 +322,13 @@ public func addConditionRoutes(
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Condition/\(e.id)", json)
         }
-        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        let mainIds = result.entries.map(\.id)
+        let resolver = IncludeResolver(client: store.client, logger: logger)
+        async let included = resolver.resolve(includes: includes, sourceIds: mainIds)
+        async let revIncluded = resolver.resolveRev(revIncludes: revIncludes, mainIds: mainIds)
+        let includeEntries = includeEntryTuples(from: try await included + revIncluded, baseURL: baseURL)
+        let bundleData = buildBundleJSON(entries: entries, includeEntries: includeEntries,
+                                         total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,

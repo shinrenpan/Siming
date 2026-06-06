@@ -204,6 +204,13 @@ private func patientResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchRevInclude = [
+        "Observation:subject", "Observation:patient",
+        "Encounter:subject", "Encounter:patient",
+        "Condition:subject", "Condition:patient",
+        "MedicationRequest:subject", "MedicationRequest:patient",
+        "AllergyIntolerance:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
 
@@ -311,6 +318,9 @@ private func observationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Observation:subject", "Observation:patient", "Observation:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
 
@@ -387,6 +397,12 @@ private func encounterResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Encounter:subject", "Encounter:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    r.searchRevInclude = [
+        "Observation:encounter", "Condition:encounter", "MedicationRequest:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
 
@@ -487,6 +503,9 @@ private func conditionResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Condition:subject", "Condition:patient", "Condition:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
 
@@ -587,6 +606,9 @@ private func medicationRequestResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "MedicationRequest:subject", "MedicationRequest:patient", "MedicationRequest:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
 
@@ -705,5 +727,8 @@ private func allergyIntoleranceResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "AllergyIntolerance:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

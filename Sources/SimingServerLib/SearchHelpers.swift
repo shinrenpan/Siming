@@ -88,3 +88,31 @@ func parseSummary(from pairs: some Collection<(key: Substring, value: Substring)
 func isStrictHandling(_ request: Request) -> Bool {
     (request.headers[HTTPField.Name("Prefer")!] ?? "").contains("handling=strict")
 }
+
+/// Parses all `_include` values from query/form pairs into IncludeParam list.
+/// Format: `ResourceType:paramName` or `ResourceType:paramName:TargetType`
+func parseIncludes(from pairs: some Collection<(key: Substring, value: Substring)>) -> [IncludeParam] {
+    pairs.compactMap { pair in
+        guard String(pair.key) == "_include" else { return nil }
+        return parseOneIncludeParam(String(pair.value))
+    }
+}
+
+/// Parses all `_revinclude` values from query/form pairs into IncludeParam list.
+func parseRevIncludes(from pairs: some Collection<(key: Substring, value: Substring)>) -> [IncludeParam] {
+    pairs.compactMap { pair in
+        guard String(pair.key) == "_revinclude" else { return nil }
+        return parseOneIncludeParam(String(pair.value))
+    }
+}
+
+private func parseOneIncludeParam(_ raw: String) -> IncludeParam? {
+    let parts = raw.split(separator: ":", maxSplits: 2).map(String.init)
+    guard parts.count >= 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+    return IncludeParam(sourceType: parts[0], paramName: parts[1], targetType: parts.count > 2 ? parts[2] : nil)
+}
+
+/// Builds include entry tuples for bundle building from resolved IncludedResources.
+func includeEntryTuples(from resources: [IncludedResource], baseURL: String) -> [(fullUrl: String, json: Data)] {
+    resources.map { r in ("\(baseURL)/\(r.resourceType)/\(r.id)", r.jsonWithMeta) }
+}

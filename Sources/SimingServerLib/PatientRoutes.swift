@@ -109,6 +109,8 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         let query = parsePatientQuery(from: qpPairs)
         let elements = parseElements(from: qpPairs)
         let summary = parseSummary(from: qpPairs)
+        let includes = parseIncludes(from: qpPairs)
+        let revIncludes = parseRevIncludes(from: qpPairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -130,8 +132,13 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Patient/\(e.id)", json)
         }
-        let bundleData = buildBundleJSON(entries: entries, total: result.total,
-                                         selfURL: base, nextURL: nextURL)
+        let mainIds = result.entries.map(\.id)
+        let resolver = IncludeResolver(client: store.client, logger: logger)
+        async let included = resolver.resolve(includes: includes, sourceIds: mainIds)
+        async let revIncluded = resolver.resolveRev(revIncludes: revIncludes, mainIds: mainIds)
+        let includeEntries = includeEntryTuples(from: try await included + revIncluded, baseURL: baseURL)
+        let bundleData = buildBundleJSON(entries: entries, includeEntries: includeEntries,
+                                         total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -155,6 +162,8 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         let query = parsePatientQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        let includes = parseIncludes(from: pairs)
+        let revIncludes = parseRevIncludes(from: pairs)
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -176,8 +185,13 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Patient/\(e.id)", json)
         }
-        let bundleData = buildBundleJSON(entries: entries, total: result.total,
-                                         selfURL: base, nextURL: nextURL)
+        let mainIds = result.entries.map(\.id)
+        let resolver = IncludeResolver(client: store.client, logger: logger)
+        async let included = resolver.resolve(includes: includes, sourceIds: mainIds)
+        async let revIncluded = resolver.resolveRev(revIncludes: revIncludes, mainIds: mainIds)
+        let includeEntries = includeEntryTuples(from: try await included + revIncluded, baseURL: baseURL)
+        let bundleData = buildBundleJSON(entries: entries, includeEntries: includeEntries,
+                                         total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -451,6 +465,7 @@ private let knownPatientParams: Set<String> = [
     "address", "address-city", "address-state", "address-postalcode", "address-country",
     "phone", "email", "identifier", "birthdate",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
+    "_include", "_revinclude",
 ]
 
 // ── Route-level errors ────────────────────────────────────────────────────────

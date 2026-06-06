@@ -58,11 +58,12 @@ public func injectMeta(into content: String, versionId: Int64, lastUpdated: Date
 /// It is embedded directly without re-parsing.
 public func buildBundleJSON(
     entries: [(fullUrl: String, json: Data)],
+    includeEntries: [(fullUrl: String, json: Data)] = [],
     total: Int?,
     selfURL: String,
     nextURL: String?
 ) -> Data {
-    let entryCapacity = entries.reduce(0) { $0 + $1.json.count + 80 }
+    let entryCapacity = (entries + includeEntries).reduce(0) { $0 + $1.json.count + 80 }
     var out = Data()
     out.reserveCapacity(300 + entryCapacity)
 
@@ -79,13 +80,20 @@ public func buildBundleJSON(
     }
     s("]")
 
-    if !entries.isEmpty {
+    if !entries.isEmpty || !includeEntries.isEmpty {
         s(",\"entry\":[")
-        for (i, entry) in entries.enumerated() {
-            if i > 0 { s(",") }
+        var first = true
+        for entry in entries {
+            if !first { s(",") }; first = false
             s("{\"fullUrl\":\"\(escapeJSON(entry.fullUrl))\",\"resource\":")
             out.append(entry.json)
             s(",\"search\":{\"mode\":\"match\"}}")
+        }
+        for entry in includeEntries {
+            if !first { s(",") }; first = false
+            s("{\"fullUrl\":\"\(escapeJSON(entry.fullUrl))\",\"resource\":")
+            out.append(entry.json)
+            s(",\"search\":{\"mode\":\"include\"}}")
         }
         s("]")
     }
