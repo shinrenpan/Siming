@@ -130,6 +130,8 @@ public struct PatientSearchQuery: Sendable {
         case birthdateDescending     // -birthdate
         case dateAscending           // date (Observation effective date)
         case dateDescending          // -date
+        case statusAscending         // status / lifecycle-status → code from idx_token
+        case statusDescending        // -status
         case _idAscending            // _id
         case _idDescending           // -_id
 
@@ -143,6 +145,8 @@ public struct PatientSearchQuery: Sendable {
             case "-birthdate":            return .birthdateDescending
             case "date":                  return .dateAscending
             case "-date":                 return .dateDescending
+            case "status":                return .statusAscending
+            case "-status":               return .statusDescending
             case "_id":                   return ._idAscending
             case "-_id":                  return ._idDescending
             default:                      return .lastUpdatedDescending
@@ -152,7 +156,7 @@ public struct PatientSearchQuery: Sendable {
         public var isDescending: Bool {
             switch self {
             case .lastUpdatedDescending, .nameDescending, .birthdateDescending, .dateDescending,
-                 ._idDescending:
+                 .statusDescending, ._idDescending:
                 return true
             default:
                 return false

@@ -575,7 +575,22 @@ public struct LocationStore: Sendable {
             finalSortValSQL = "COALESCE(p.sort_val, '')"
             sortKind = 1
 
-        case ._idAscending, ._idDescending:
+        case .statusAscending, .statusDescending:
+            sortKeysCTE = ("sort_keys",
+                "SELECT DISTINCT ON (resource_id) resource_id, code AS sv " +
+                "FROM idx_token WHERE resource_type = 'Location' AND param_name = 'status' " +
+                "ORDER BY resource_id, code ASC")
+            if let cursor = query.cursor {
+                let codeP = bind(cursor.sortValue)
+                let idP = bind(cursor.id)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "(sort_val IS NOT NULL AND sort_val \(op) \(codeP)) OR " +
+                    "(sort_val IS NOT NULL AND sort_val = \(codeP) AND id > \(idP))"
+            }
+            finalSortValSQL = "COALESCE(p.sort_val, '')"
+            sortKind = 1
+
+                case ._idAscending, ._idDescending:
             if let cursor = query.cursor {
                 let idP = bind(cursor.sortValue); let op = sortIsDescending ? "<" : ">"
                 cursorCondSQL = "i.id \(op) \(idP)"

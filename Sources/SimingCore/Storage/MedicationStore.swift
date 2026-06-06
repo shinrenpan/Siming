@@ -550,8 +550,24 @@ public struct MedicationStore: Sendable {
         var cursorCondSQL = ""
         var finalSortValSQL = ""
         var sortKind = 0
+        var sortKeysCTE: (name: String, sql: String)? = nil
 
         switch query.sort {
+        case .statusAscending, .statusDescending:
+            sortKeysCTE = ("sort_keys",
+                "SELECT DISTINCT ON (resource_id) resource_id, code AS sv " +
+                "FROM idx_token WHERE resource_type = 'Medication' AND param_name = 'status' " +
+                "ORDER BY resource_id, code ASC")
+            if let cursor = query.cursor {
+                let codeP = bind(cursor.sortValue)
+                let idP = bind(cursor.id)
+                let op = sortIsDescending ? "<" : ">"
+                cursorCondSQL = "(sort_val IS NOT NULL AND sort_val \(op) \(codeP)) OR " +
+                    "(sort_val IS NOT NULL AND sort_val = \(codeP) AND id > \(idP))"
+            }
+            finalSortValSQL = "COALESCE(p.sort_val, '')"
+            sortKind = 1
+
         case ._idAscending, ._idDescending:
             if let cursor = query.cursor {
                 let idP = bind(cursor.sortValue); let op = sortIsDescending ? "<" : ">"
@@ -573,6 +589,12 @@ public struct MedicationStore: Sendable {
 
         let pagedInner: String
         switch sortKind {
+        case 1:
+            let inner = "SELECT i.id, i.version_id, i.last_updated, sk.sv AS sort_val " +
+                "FROM ids i LEFT JOIN sort_keys sk ON sk.resource_id = i.id"
+            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
+            pagedInner = "SELECT id, version_id, last_updated, sort_val FROM (\n      \(inner)\n    ) sub" +
+                "\(whereLine)\n    ORDER BY sort_val \(orderDir) NULLS LAST, id ASC\n    LIMIT \(limitP)"
         case 2:
             let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
             pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
@@ -587,6 +609,7 @@ public struct MedicationStore: Sendable {
         cteParts.append("ids AS (\n    \(idsInner)\n  )")
         let skipTotal = query.totalMode == .none
         if !skipTotal { cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )") }
+        if let skCTE = sortKeysCTE { cteParts.append("\(skCTE.name) AS (\n    \(skCTE.sql)\n  )") }
         cteParts.append("paged AS (\n    \(pagedInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
 
