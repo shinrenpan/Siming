@@ -46,6 +46,9 @@ public let chainChildParamType: [String: ChainedParam.ChildType] = [
     // Date params (idx_date)
     "birthdate": .date, "date": .date, "onset-date": .date,
     "authoredon": .date, "recorded-date": .date,
+    "issued": .date,
+    // Additional token and string params for new resources
+    "vaccine-code": .token, "lot-number": .string,
 ]
 
 /// Parses a chained search param key+value.

@@ -10,6 +10,9 @@ public func buildRouter(
     conditionStore: ConditionStore,
     medicationRequestStore: MedicationRequestStore,
     allergyIntoleranceStore: AllergyIntoleranceStore,
+    procedureStore: ProcedureStore,
+    diagnosticReportStore: DiagnosticReportStore,
+    immunizationStore: ImmunizationStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -25,13 +28,22 @@ public func buildRouter(
     addConditionRoutes(to: router, store: conditionStore, logger: logger)
     addMedicationRequestRoutes(to: router, store: medicationRequestStore, logger: logger)
     addAllergyIntoleranceRoutes(to: router, store: allergyIntoleranceStore, logger: logger)
+    addProcedureRoutes(to: router, store: procedureStore, logger: logger)
+    addDiagnosticReportRoutes(to: router, store: diagnosticReportStore, logger: logger)
+    addImmunizationRoutes(to: router, store: immunizationStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
-                         allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
+                         allergyIntoleranceStore: allergyIntoleranceStore,
+                         procedureStore: procedureStore,
+                         diagnosticReportStore: diagnosticReportStore,
+                         immunizationStore: immunizationStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationRequestStore: medicationRequestStore,
-                    allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
+                    allergyIntoleranceStore: allergyIntoleranceStore,
+                    procedureStore: procedureStore,
+                    diagnosticReportStore: diagnosticReportStore,
+                    immunizationStore: immunizationStore, logger: logger)
     return router
 }

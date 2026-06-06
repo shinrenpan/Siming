@@ -240,6 +240,34 @@ public let medicationRequestSummaryFields: Set<String> = [
     "dosageInstruction", "dispenseRequest", "substitution",
 ]
 
+/// Procedure Σ-marked elements per FHIR R4 §9.3 (excluding mandatory id/meta/resourceType).
+public let procedureSummaryFields: Set<String> = [
+    "identifier", "instantiatesCanonical", "instantiatesUri", "basedOn", "partOf",
+    "status", "statusReason", "category", "code", "subject", "encounter",
+    "performedDateTime", "performedPeriod", "performedString", "performedAge", "performedRange",
+    "recorder", "asserter", "performer", "location", "reasonCode", "reasonReference",
+    "bodySite", "outcome", "report", "complication", "followUp", "note", "focalDevice", "usedReference", "usedCode",
+]
+
+/// DiagnosticReport Σ-marked elements per FHIR R4 §9.4 (excluding mandatory id/meta/resourceType).
+public let diagnosticReportSummaryFields: Set<String> = [
+    "identifier", "basedOn", "status", "category", "code",
+    "subject", "encounter", "effectiveDateTime", "effectivePeriod",
+    "issued", "performer", "resultsInterpreter", "specimen",
+    "result", "imagingStudy", "media", "conclusion", "conclusionCode", "presentedForm",
+]
+
+/// Immunization Σ-marked elements per FHIR R4 §11.17 (excluding mandatory id/meta/resourceType).
+public let immunizationSummaryFields: Set<String> = [
+    "identifier", "status", "statusReason", "vaccineCode",
+    "patient", "encounter", "occurrenceDateTime", "occurrenceString",
+    "recorded", "primarySource", "reportOrigin", "location", "manufacturer",
+    "lotNumber", "expirationDate", "site", "route", "doseQuantity",
+    "performer", "note", "reasonCode", "reasonReference",
+    "isSubpotent", "subpotentReason", "education", "programEligibility",
+    "fundingSource", "reaction", "protocolApplied",
+]
+
 /// AllergyIntolerance Σ-marked elements per FHIR R4.
 public let allergyIntoleranceSummaryFields: Set<String> = [
     "identifier", "clinicalStatus", "verificationStatus",

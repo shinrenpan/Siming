@@ -34,6 +34,9 @@ Server listens on `http://localhost:8080`.
 | Condition | ✓ | ✓ | `GET /Patient/:id/Condition` |
 | MedicationRequest | ✓ | ✓ | `GET /Patient/:id/MedicationRequest` |
 | AllergyIntolerance | ✓ | ✓ | `GET /Patient/:id/AllergyIntolerance` |
+| Procedure | ✓ | ✓ | `GET /Patient/:id/Procedure` |
+| DiagnosticReport | ✓ | ✓ | `GET /Patient/:id/DiagnosticReport` |
+| Immunization | ✓ | ✓ | `GET /Patient/:id/Immunization` |
 
 ### Interactions
 
@@ -64,7 +67,7 @@ Server listens on `http://localhost:8080`.
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
 | POST `/_search` (form-encoded) | ✓ |
-| `_include` / `_revinclude` (1-level, all 6 resources) | ✓ |
+| `_include` / `_revinclude` (1-level, all 9 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
@@ -79,6 +82,12 @@ Server listens on `http://localhost:8080`.
 **MedicationRequest** — `subject`, `patient`, `status`, `intent`, `medication`, `code`, `priority`, `authored-on`, `identifier`, `_id`, `_lastUpdated`
 
 **AllergyIntolerance** — `patient`, `clinical-status`, `verification-status`, `type`, `category`, `criticality`, `code`, `identifier`, `date`, `manifestation`, `severity`, `route`, `last-date`, `onset`, `_id`, `_lastUpdated`
+
+**Procedure** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `date`, `_id`, `_lastUpdated`
+
+**DiagnosticReport** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `date`, `issued`, `_id`, `_lastUpdated`
+
+**Immunization** — `patient`, `status`, `vaccine-code`, `identifier`, `date`, `performer`, `lot-number`, `_id`, `_lastUpdated`
 
 ### Other
 

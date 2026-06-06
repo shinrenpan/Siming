@@ -13,6 +13,30 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let procedureParams = try loadParams(resourceType: "Procedure", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let procedureCode = generateProcedureExtractor(params: procedureParams)
+let procedureOut  = "\(outputDir)/Procedure+SearchExtractor.swift"
+try procedureCode.write(toFile: procedureOut, atomically: true, encoding: .utf8)
+print("Generated \(procedureOut) — \(procedureParams.count) Procedure params")
+
+let diagnosticReportParams = try loadParams(resourceType: "DiagnosticReport", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let diagnosticReportCode = generateDiagnosticReportExtractor(params: diagnosticReportParams)
+let diagnosticReportOut  = "\(outputDir)/DiagnosticReport+SearchExtractor.swift"
+try diagnosticReportCode.write(toFile: diagnosticReportOut, atomically: true, encoding: .utf8)
+print("Generated \(diagnosticReportOut) — \(diagnosticReportParams.count) DiagnosticReport params")
+
+let immunizationParams = try loadParams(resourceType: "Immunization", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let immunizationCode = generateImmunizationExtractor(params: immunizationParams)
+let immunizationOut  = "\(outputDir)/Immunization+SearchExtractor.swift"
+try immunizationCode.write(toFile: immunizationOut, atomically: true, encoding: .utf8)
+print("Generated \(immunizationOut) — \(immunizationParams.count) Immunization params")
+
 let medicationRequestParams = try loadParams(resourceType: "MedicationRequest", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

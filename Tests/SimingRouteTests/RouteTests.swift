@@ -42,6 +42,9 @@ struct RouteTests {
         let conditionStore          = ConditionStore(client: client, logger: logger)
         let medicationRequestStore  = MedicationRequestStore(client: client, logger: logger)
         let allergyIntoleranceStore = AllergyIntoleranceStore(client: client, logger: logger)
+        let procedureStore          = ProcedureStore(client: client, logger: logger)
+        let diagnosticReportStore   = DiagnosticReportStore(client: client, logger: logger)
+        let immunizationStore       = ImmunizationStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -52,14 +55,23 @@ struct RouteTests {
         addConditionRoutes(to: router, store: conditionStore, logger: logger)
         addMedicationRequestRoutes(to: router, store: medicationRequestStore, logger: logger)
         addAllergyIntoleranceRoutes(to: router, store: allergyIntoleranceStore, logger: logger)
+        addProcedureRoutes(to: router, store: procedureStore, logger: logger)
+        addDiagnosticReportRoutes(to: router, store: diagnosticReportStore, logger: logger)
+        addImmunizationRoutes(to: router, store: immunizationStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
-                             allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
+                             allergyIntoleranceStore: allergyIntoleranceStore,
+                             procedureStore: procedureStore,
+                             diagnosticReportStore: diagnosticReportStore,
+                             immunizationStore: immunizationStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
                         medicationRequestStore: medicationRequestStore,
-                        allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
+                        allergyIntoleranceStore: allergyIntoleranceStore,
+                        procedureStore: procedureStore,
+                        diagnosticReportStore: diagnosticReportStore,
+                        immunizationStore: immunizationStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 

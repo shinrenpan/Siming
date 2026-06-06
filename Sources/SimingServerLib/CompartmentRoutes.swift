@@ -7,7 +7,8 @@ import SimingCore
 private let maxCount = 100
 private let fhirJSON = "application/fhir+json"
 
-/// Patient compartment searches for Observation, Encounter, Condition, MedicationRequest, and AllergyIntolerance.
+/// Patient compartment searches for Observation, Encounter, Condition, MedicationRequest, AllergyIntolerance,
+/// Procedure, DiagnosticReport, and Immunization.
 /// Forces subject=Patient/:patientId server-side; client cannot override.
 public func addCompartmentRoutes(
     to router: Router<BasicRequestContext>,
@@ -16,6 +17,9 @@ public func addCompartmentRoutes(
     conditionStore: ConditionStore,
     medicationRequestStore: MedicationRequestStore,
     allergyIntoleranceStore: AllergyIntoleranceStore,
+    procedureStore: ProcedureStore,
+    diagnosticReportStore: DiagnosticReportStore,
+    immunizationStore: ImmunizationStore,
     logger: Logger
 ) {
     let group = router.group("Patient")
@@ -440,6 +444,261 @@ public func addCompartmentRoutes(
             }
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/AllergyIntolerance/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // GET /Patient/:patientId/Procedure — compartment search
+    group.get(":id/Procedure") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownProcedureParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseProcedureQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await procedureStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: procedureSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Procedure/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/:patientId/Procedure/_search — compartment form-encoded search
+    group.post(":id/Procedure/_search") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: 1 * 1024 * 1024)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownProcedureParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseProcedureQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await procedureStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: procedureSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Procedure/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // GET /Patient/:patientId/DiagnosticReport — compartment search
+    group.get(":id/DiagnosticReport") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseDiagnosticReportQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await diagnosticReportStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: diagnosticReportSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/DiagnosticReport/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/:patientId/DiagnosticReport/_search — compartment form-encoded search
+    group.post(":id/DiagnosticReport/_search") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: 1 * 1024 * 1024)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseDiagnosticReportQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await diagnosticReportStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: diagnosticReportSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/DiagnosticReport/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // GET /Patient/:patientId/Immunization — compartment search
+    group.get(":id/Immunization") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownImmunizationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseImmunizationQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await immunizationStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: immunizationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Immunization/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/:patientId/Immunization/_search — compartment form-encoded search
+    group.post(":id/Immunization/_search") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: 1 * 1024 * 1024)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownImmunizationParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = parseImmunizationQuery(from: pairs)
+        query.subject = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        let result = try await immunizationStore.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        if summary == .count {
+            let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
+            var headers = HTTPFields()
+            headers[.contentType] = fhirJSON
+            return Response(status: .ok, headers: headers,
+                            body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+        }
+        let nextURL = result.nextCursor.map { nextPageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: immunizationSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Immunization/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()
