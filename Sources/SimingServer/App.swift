@@ -46,6 +46,7 @@ struct SimingApp {
         let serviceRequestStore      = ServiceRequestStore(client: postgresClient, logger: logger)
         let specimenStore            = SpecimenStore(client: postgresClient, logger: logger)
         let documentReferenceStore   = DocumentReferenceStore(client: postgresClient, logger: logger)
+        let carePlanStore            = CarePlanStore(client: postgresClient, logger: logger)
 
         let router = buildRouter(
             patientStore: patientStore,
@@ -65,6 +66,7 @@ struct SimingApp {
             serviceRequestStore: serviceRequestStore,
             specimenStore: specimenStore,
             documentReferenceStore: documentReferenceStore,
+            carePlanStore: carePlanStore,
             registry: registry,
             logger: logger
         )

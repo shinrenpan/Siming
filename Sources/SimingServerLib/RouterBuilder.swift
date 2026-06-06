@@ -21,6 +21,7 @@ public func buildRouter(
     serviceRequestStore: ServiceRequestStore,
     specimenStore: SpecimenStore,
     documentReferenceStore: DocumentReferenceStore,
+    carePlanStore: CarePlanStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -47,6 +48,7 @@ public func buildRouter(
     addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
     addSpecimenRoutes(to: router, store: specimenStore, logger: logger)
     addDocumentReferenceRoutes(to: router, store: documentReferenceStore, logger: logger)
+    addCarePlanRoutes(to: router, store: carePlanStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
@@ -57,7 +59,8 @@ public func buildRouter(
                          relatedPersonStore: relatedPersonStore,
                          serviceRequestStore: serviceRequestStore,
                          specimenStore: specimenStore,
-                         documentReferenceStore: documentReferenceStore, logger: logger)
+                         documentReferenceStore: documentReferenceStore,
+                         carePlanStore: carePlanStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationStore: medicationStore,
@@ -72,6 +75,7 @@ public func buildRouter(
                     relatedPersonStore: relatedPersonStore,
                     serviceRequestStore: serviceRequestStore,
                     specimenStore: specimenStore,
-                    documentReferenceStore: documentReferenceStore, logger: logger)
+                    documentReferenceStore: documentReferenceStore,
+                    carePlanStore: carePlanStore, logger: logger)
     return router
 }

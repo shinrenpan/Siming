@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let carePlanParams = try loadParams(resourceType: "CarePlan", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let carePlanCode = generateCarePlanExtractor(params: carePlanParams)
+let carePlanOut  = "\(outputDir)/CarePlan+SearchExtractor.swift"
+try carePlanCode.write(toFile: carePlanOut, atomically: true, encoding: .utf8)
+print("Generated \(carePlanOut) — \(carePlanParams.count) CarePlan params")
+
 let documentReferenceParams = try loadParams(resourceType: "DocumentReference", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

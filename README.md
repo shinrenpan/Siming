@@ -45,6 +45,7 @@ Server listens on `http://localhost:8080`.
 | ServiceRequest | ✓ | ✓ | `GET /Patient/:id/ServiceRequest` |
 | Specimen | ✓ | ✓ | `GET /Patient/:id/Specimen` |
 | DocumentReference | ✓ | ✓ | `GET /Patient/:id/DocumentReference` |
+| CarePlan | ✓ | ✓ | `GET /Patient/:id/CarePlan` |
 
 ### Interactions
 
@@ -56,7 +57,7 @@ Server listens on `http://localhost:8080`.
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
-| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 16 resource types | ✓ |
+| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 18 resource types | ✓ |
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
@@ -76,7 +77,7 @@ Server listens on `http://localhost:8080`.
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
 | POST `/_search` (form-encoded) | ✓ |
-| `_include` / `_revinclude` (1-level, all 16 resources) | ✓ |
+| `_include` / `_revinclude` (1-level, all 18 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
@@ -113,6 +114,8 @@ Server listens on `http://localhost:8080`.
 **Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 
 **DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `subject`, `patient`, `author`, `encounter`, `_id`, `_lastUpdated`
+
+**CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
 
 ### Other
 

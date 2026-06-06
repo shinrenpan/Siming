@@ -53,6 +53,7 @@ struct RouteTests {
         let serviceRequestStore     = ServiceRequestStore(client: client, logger: logger)
         let specimenStore           = SpecimenStore(client: client, logger: logger)
         let documentReferenceStore  = DocumentReferenceStore(client: client, logger: logger)
+        let carePlanStore           = CarePlanStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -74,6 +75,7 @@ struct RouteTests {
         addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
         addSpecimenRoutes(to: router, store: specimenStore, logger: logger)
         addDocumentReferenceRoutes(to: router, store: documentReferenceStore, logger: logger)
+        addCarePlanRoutes(to: router, store: carePlanStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -84,7 +86,8 @@ struct RouteTests {
                              relatedPersonStore: relatedPersonStore,
                              serviceRequestStore: serviceRequestStore,
                              specimenStore: specimenStore,
-                             documentReferenceStore: documentReferenceStore, logger: logger)
+                             documentReferenceStore: documentReferenceStore,
+                             carePlanStore: carePlanStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
                         medicationStore: medicationStore,
@@ -99,7 +102,8 @@ struct RouteTests {
                         relatedPersonStore: relatedPersonStore,
                         serviceRequestStore: serviceRequestStore,
                         specimenStore: specimenStore,
-                        documentReferenceStore: documentReferenceStore, logger: logger)
+                        documentReferenceStore: documentReferenceStore,
+                        carePlanStore: carePlanStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 

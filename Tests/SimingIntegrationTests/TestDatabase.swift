@@ -103,6 +103,10 @@ actor TestDatabase {
         DocumentReferenceStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeCarePlanStore() throws -> CarePlanStore {
+        CarePlanStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -442,6 +446,44 @@ func makeDocumentReference(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: Data(json.utf8))
+}
+
+func makeCarePlan(
+    patientId: String,
+    status: String = "active",
+    intent: String = "plan",
+    category: String? = nil,
+    categorySystem: String = "http://hl7.org/fhir/us/core/CodeSystem/careplan-category",
+    periodStart: String? = nil,
+    periodEnd: String? = nil,
+    encounterId: String? = nil,
+    activityCode: String? = nil,
+    activityCodeSystem: String = "http://snomed.info/sct"
+) throws -> ModelsR4.CarePlan {
+    var json = #"""
+    {"resourceType":"CarePlan",
+     "status":"\#(status)",
+     "intent":"\#(intent)",
+     "subject":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let c = category {
+        json += #","category":[{"coding":[{"system":"\#(categorySystem)","code":"\#(c)"}]}]"#
+    }
+    if periodStart != nil || periodEnd != nil {
+        json += #","period":{"#
+        var parts: [String] = []
+        if let s = periodStart { parts.append(#""start":"\#(s)""#) }
+        if let e = periodEnd   { parts.append(#""end":"\#(e)""#) }
+        json += parts.joined(separator: ",") + "}"
+    }
+    if let encId = encounterId {
+        json += #","encounter":{"reference":"Encounter/\#(encId)"}"#
+    }
+    if let code = activityCode {
+        json += #","activity":[{"detail":{"status":"not-started","code":{"coding":[{"system":"\#(activityCodeSystem)","code":"\#(code)"}]}}}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.CarePlan.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

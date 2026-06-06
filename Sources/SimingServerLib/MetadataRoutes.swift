@@ -47,7 +47,7 @@ private func serverRest() -> CapabilityStatementRest {
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource(),
                    relatedPersonResource(), serviceRequestResource(), specimenResource(),
-                   documentReferenceResource()]
+                   documentReferenceResource(), carePlanResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -1763,6 +1763,143 @@ private func specimenResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "Specimen:subject", "Specimen:patient", "Specimen:collector", "Specimen:parent",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func carePlanResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "CarePlan resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/CarePlan (POST /_search). " +
+            "Search: status, intent, category, identifier, activity-code, date (period), " +
+            "subject, patient, encounter, care-team, condition, goal, based-on, part-of, replaces, performer, activity-reference. " +
+            ":not modifier on status, intent, category. " +
+            "_sort: ±date (mapped to CarePlan.period), ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: draft|active|on-hold|revoked|completed|entered-in-error|unknown. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-intent")),
+                documentation: FHIRPrimitive(FHIRString("Token: proposal|plan|order|option. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("intent")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on CarePlan.category codings. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/clinical-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on CarePlan.identifier.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-activity-code")),
+                documentation: FHIRPrimitive(FHIRString("Token on CarePlan.activity.detail.code codings.")),
+                name: FHIRPrimitive(FHIRString("activity-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/clinical-date")),
+                documentation: FHIRPrimitive(FHIRString("Date range on CarePlan.period. Prefixes: eq/lt/gt/le/ge/sa/eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.subject (any resource type).")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/clinical-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.subject restricted to Patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-encounter")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.encounter (Encounter).")),
+                name: FHIRPrimitive(FHIRString("encounter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-care-team")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.careTeam (CareTeam).")),
+                name: FHIRPrimitive(FHIRString("care-team")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-condition")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.addresses (Condition).")),
+                name: FHIRPrimitive(FHIRString("condition")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-goal")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.goal (Goal).")),
+                name: FHIRPrimitive(FHIRString("goal")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-based-on")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.basedOn.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-part-of")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.partOf.")),
+                name: FHIRPrimitive(FHIRString("part-of")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-replaces")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.replaces.")),
+                name: FHIRPrimitive(FHIRString("replaces")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-performer")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.activity.detail.performer.")),
+                name: FHIRPrimitive(FHIRString("performer")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-activity-reference")),
+                documentation: FHIRPrimitive(FHIRString("Reference to CarePlan.activity.reference.")),
+                name: FHIRPrimitive(FHIRString("activity-reference")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.carePlan),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "CarePlan:subject", "CarePlan:patient", "CarePlan:encounter",
+        "CarePlan:care-team", "CarePlan:condition", "CarePlan:goal",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
