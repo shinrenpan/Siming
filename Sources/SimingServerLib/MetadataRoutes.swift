@@ -45,7 +45,8 @@ private func serverRest() -> CapabilityStatementRest {
         resource: [patientResource(), observationResource(), encounterResource(), conditionResource(),
                    medicationResource(), medicationRequestResource(), allergyIntoleranceResource(),
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
-                   practitionerResource(), organizationResource(), locationResource()]
+                   practitionerResource(), organizationResource(), locationResource(),
+                   relatedPersonResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -1378,6 +1379,138 @@ private func locationResource() -> CapabilityStatementRestResource {
     r.searchInclude = [
         "Location:organization",
         "Location:partof",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func relatedPersonResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "RelatedPerson resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/RelatedPerson (POST /_search). " +
+            "Search: name, identifier, patient, relationship, gender, active, birthdate, " +
+            "address variants, phone, email, telecom, address-use. " +
+            ":not modifier on active, gender, relationship. " +
+            "_sort: ±_lastUpdated/±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-name")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on family, given, and text. Modifiers: :contains, :exact.")),
+                name: FHIRPrimitive(FHIRString("name")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-phonetic")),
+                documentation: FHIRPrimitive(FHIRString("Alias for name (same index). Modifiers: :contains, :exact.")),
+                name: FHIRPrimitive(FHIRString("phonetic")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token search. Formats: code, system|code, |code. Comma-separated for OR.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to patient. Formats: Patient/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-relationship")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on relationship codes. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("relationship")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-gender")),
+                documentation: FHIRPrimitive(FHIRString("Token: male|female|other|unknown. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("gender")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-active")),
+                documentation: FHIRPrimitive(FHIRString("Boolean: active=true or active=false. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("active")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-birthdate")),
+                documentation: FHIRPrimitive(FHIRString("Date search with prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("birthdate")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with across all address sub-fields. Modifiers: :contains, :exact.")),
+                name: FHIRPrimitive(FHIRString("address")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address-city")),
+                name: FHIRPrimitive(FHIRString("address-city")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address-state")),
+                name: FHIRPrimitive(FHIRString("address-state")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address-postalcode")),
+                name: FHIRPrimitive(FHIRString("address-postalcode")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address-country")),
+                name: FHIRPrimitive(FHIRString("address-country")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-address-use")),
+                documentation: FHIRPrimitive(FHIRString("Token: home|work|temp|old|billing.")),
+                name: FHIRPrimitive(FHIRString("address-use")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-phone")),
+                documentation: FHIRPrimitive(FHIRString("Token on telecom where system=phone.")),
+                name: FHIRPrimitive(FHIRString("phone")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-email")),
+                documentation: FHIRPrimitive(FHIRString("Token on telecom where system=email.")),
+                name: FHIRPrimitive(FHIRString("email")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/RelatedPerson-telecom")),
+                documentation: FHIRPrimitive(FHIRString("Token across all telecom entries.")),
+                name: FHIRPrimitive(FHIRString("telecom")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.relatedPerson),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "RelatedPerson:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

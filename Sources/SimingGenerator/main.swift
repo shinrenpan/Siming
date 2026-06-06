@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let relatedPersonParams = try loadParams(resourceType: "RelatedPerson", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let relatedPersonCode = generateRelatedPersonExtractor(params: relatedPersonParams)
+let relatedPersonOut  = "\(outputDir)/RelatedPerson+SearchExtractor.swift"
+try relatedPersonCode.write(toFile: relatedPersonOut, atomically: true, encoding: .utf8)
+print("Generated \(relatedPersonOut) — \(relatedPersonParams.count) RelatedPerson params")
+
 let medicationParams = try loadParams(resourceType: "Medication", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

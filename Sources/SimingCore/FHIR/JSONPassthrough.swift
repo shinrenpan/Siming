@@ -303,6 +303,13 @@ public let locationSummaryFields: Set<String> = [
     "managingOrganization", "partOf",
 ]
 
+/// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
+public let relatedPersonSummaryFields: Set<String> = [
+    "identifier", "active", "patient", "relationship", "name",
+    "telecom", "gender", "birthDate", "address", "photo", "period",
+    "communication",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.

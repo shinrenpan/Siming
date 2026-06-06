@@ -87,6 +87,10 @@ actor TestDatabase {
         LocationStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeRelatedPersonStore() throws -> RelatedPersonStore {
+        RelatedPersonStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -313,6 +317,29 @@ func makeLocation(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Location.self, from: Data(json.utf8))
+}
+
+func makeRelatedPerson(
+    patientId: String,
+    family: String = "Smith",
+    given: String = "Jane",
+    relationship: String = "spouse",
+    relationshipSystem: String = "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+    gender: String? = nil,
+    birthDate: String? = nil,
+    active: Bool? = nil
+) throws -> ModelsR4.RelatedPerson {
+    var json = #"""
+    {"resourceType":"RelatedPerson",
+     "patient":{"reference":"Patient/\#(patientId)"},
+     "relationship":[{"coding":[{"system":"\#(relationshipSystem)","code":"\#(relationship)"}]}],
+     "name":[{"family":"\#(family)","given":["\#(given)"]}]
+    """#
+    if let g = gender { json += #","gender":"\#(g)""# }
+    if let bd = birthDate { json += #","birthDate":"\#(bd)""# }
+    if let a = active { json += #","active":\#(a)"# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.RelatedPerson.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

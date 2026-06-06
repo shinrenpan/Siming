@@ -17,6 +17,7 @@ public func buildRouter(
     practitionerStore: PractitionerStore,
     organizationStore: OrganizationStore,
     locationStore: LocationStore,
+    relatedPersonStore: RelatedPersonStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -39,13 +40,15 @@ public func buildRouter(
     addPractitionerRoutes(to: router, store: practitionerStore, logger: logger)
     addOrganizationRoutes(to: router, store: organizationStore, logger: logger)
     addLocationRoutes(to: router, store: locationStore, logger: logger)
+    addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
                          allergyIntoleranceStore: allergyIntoleranceStore,
                          procedureStore: procedureStore,
                          diagnosticReportStore: diagnosticReportStore,
-                         immunizationStore: immunizationStore, logger: logger)
+                         immunizationStore: immunizationStore,
+                         relatedPersonStore: relatedPersonStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationStore: medicationStore,
@@ -56,6 +59,7 @@ public func buildRouter(
                     immunizationStore: immunizationStore,
                     practitionerStore: practitionerStore,
                     organizationStore: organizationStore,
-                    locationStore: locationStore, logger: logger)
+                    locationStore: locationStore,
+                    relatedPersonStore: relatedPersonStore, logger: logger)
     return router
 }
