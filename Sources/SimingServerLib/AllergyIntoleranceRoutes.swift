@@ -15,6 +15,9 @@ private let preferHeader = HTTPField.Name("Prefer")!
 let knownAllergyIntoleranceParams: Set<String> = [
     "patient", "clinical-status", "verification-status",
     "type", "category", "criticality", "code", "identifier", "date",
+    "manifestation", "severity", "route", "last-date", "onset",
+    "clinical-status:not", "verification-status:not", "type:not", "category:not",
+    "criticality:not", "code:not", "manifestation:not", "severity:not", "route:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
 ]
 
@@ -334,8 +337,16 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
     let criticalityNot      = all("criticality:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
     let code                = all("code").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
     let codeNot             = all("code:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let manifestation       = all("manifestation").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let manifestationNot    = all("manifestation:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let severity            = all("severity").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let severityNot         = all("severity:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let route               = all("route").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let routeNot            = all("route:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
     let identifier          = first("identifier").map { AllergyIntoleranceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date                = all("date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
+    let lastDate            = all("last-date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
+    let onset               = all("onset").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
     let id                  = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
@@ -359,8 +370,11 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
         category: category, categoryNot: categoryNot,
         criticality: criticality, criticalityNot: criticalityNot,
         code: code, codeNot: codeNot,
+        manifestation: manifestation, manifestationNot: manifestationNot,
+        severity: severity, severityNot: severityNot,
+        route: route, routeNot: routeNot,
         identifier: identifier,
-        date: date,
+        date: date, lastDate: lastDate, onset: onset,
         id: id, lastUpdated: lastUpdated, missing: missing,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

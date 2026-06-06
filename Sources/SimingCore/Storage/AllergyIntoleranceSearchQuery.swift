@@ -17,8 +17,16 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var criticalityNot: [TokenParam]             // criticality:not modifier
     public var code: [TokenParam]                       // CodeableConcept token OR
     public var codeNot: [TokenParam]                    // code:not modifier
+    public var manifestation: [TokenParam]              // reaction.manifestation token OR
+    public var manifestationNot: [TokenParam]           // manifestation:not modifier
+    public var severity: [TokenParam]                   // reaction.severity token OR
+    public var severityNot: [TokenParam]                // severity:not modifier
+    public var route: [TokenParam]                      // reaction.exposureRoute token OR
+    public var routeNot: [TokenParam]                   // route:not modifier
     public var identifier: [IdentifierParam]
     public var date: [DateParam]                        // recordedDate range filter
+    public var lastDate: [DateParam]                    // lastOccurrence range filter
+    public var onset: [DateParam]                       // reaction.onset range filter
     public var id: [String]                             // _id filter (OR)
     public var lastUpdated: [DateParam]                 // _lastUpdated range filter
     public var missing: [String: Bool]                  // param:missing=true/false
@@ -44,8 +52,16 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         criticalityNot: [TokenParam] = [],
         code: [TokenParam] = [],
         codeNot: [TokenParam] = [],
+        manifestation: [TokenParam] = [],
+        manifestationNot: [TokenParam] = [],
+        severity: [TokenParam] = [],
+        severityNot: [TokenParam] = [],
+        route: [TokenParam] = [],
+        routeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
         date: [DateParam] = [],
+        lastDate: [DateParam] = [],
+        onset: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -67,8 +83,16 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         self.criticalityNot       = criticalityNot
         self.code                 = code
         self.codeNot              = codeNot
+        self.manifestation        = manifestation
+        self.manifestationNot     = manifestationNot
+        self.severity             = severity
+        self.severityNot          = severityNot
+        self.route                = route
+        self.routeNot             = routeNot
         self.identifier           = identifier
         self.date                 = date
+        self.lastDate             = lastDate
+        self.onset                = onset
         self.id                   = id
         self.lastUpdated          = lastUpdated
         self.missing              = missing

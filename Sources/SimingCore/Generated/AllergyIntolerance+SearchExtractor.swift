@@ -91,14 +91,42 @@ private func extract_AllergyIntolerance_identifier(_ p: inout SearchParams, _ ai
     }
 }
 
-// TODO: unhandled — last-date [date] AllergyIntolerance.lastOccurrence
-private func extract_AllergyIntolerance_last_date(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// last-date [date] — AllergyIntolerance.lastOccurrence
+private func extract_AllergyIntolerance_last_date(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    guard let prim = ai.lastOccurrence, let dt = prim.value else { return }
+    var dc = DateComponents()
+    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+    dc.timeZone = dt.timeZone
+    let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+    p.dates.append(.init(paramName: "last-date", dateStart: d, dateEnd: d))
+}
 
-// TODO: unhandled — manifestation [token] AllergyIntolerance.reaction.manifestation
-private func extract_AllergyIntolerance_manifestation(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// manifestation [token] — AllergyIntolerance.reaction.manifestation
+private func extract_AllergyIntolerance_manifestation(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    for reaction in ai.reaction ?? [] {
+        for cc in reaction.manifestation {
+            for coding in cc.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "manifestation", system: s, code: c))
+            }
+        }
+    }
+}
 
-// TODO: unhandled — onset [date] AllergyIntolerance.reaction.onset
-private func extract_AllergyIntolerance_onset(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// onset [date] — AllergyIntolerance.reaction.onset
+private func extract_AllergyIntolerance_onset(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    for reaction in ai.reaction ?? [] {
+        guard let prim = reaction.onset, let dt = prim.value else { continue }
+        var dc = DateComponents()
+        dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+        dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+        dc.timeZone = dt.timeZone
+        let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+        p.dates.append(.init(paramName: "onset", dateStart: d, dateEnd: d))
+    }
+}
 
 // patient [reference] — AllergyIntolerance.patient
 private func extract_AllergyIntolerance_patient(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
@@ -113,11 +141,27 @@ private func extract_AllergyIntolerance_patient(_ p: inout SearchParams, _ ai: A
 // TODO: unhandled — recorder [reference] AllergyIntolerance.recorder
 private func extract_AllergyIntolerance_recorder(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
 
-// TODO: unhandled — route [token] AllergyIntolerance.reaction.exposureRoute
-private func extract_AllergyIntolerance_route(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// route [token] — AllergyIntolerance.reaction.exposureRoute
+private func extract_AllergyIntolerance_route(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    for reaction in ai.reaction ?? [] {
+        for coding in reaction.exposureRoute?.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "route", system: s, code: c))
+        }
+    }
+}
 
-// TODO: unhandled — severity [token] AllergyIntolerance.reaction.severity
-private func extract_AllergyIntolerance_severity(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// severity [token] — AllergyIntolerance.reaction.severity
+private func extract_AllergyIntolerance_severity(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    for reaction in ai.reaction ?? [] {
+        if let v = reaction.severity?.value?.rawValue {
+            p.tokens.append(.init(paramName: "severity",
+                                  system: "http://hl7.org/fhir/reaction-event-severity",
+                                  code: v))
+        }
+    }
+}
 
 // type [token] — AllergyIntolerance.type
 private func extract_AllergyIntolerance_type(_ p: inout SearchParams, _ ai: AllergyIntolerance) {

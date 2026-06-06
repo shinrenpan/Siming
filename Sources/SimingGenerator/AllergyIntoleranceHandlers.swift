@@ -144,6 +144,85 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── date: last-date → lastOccurrence (DateTime) ───────────────────────────
+    case "last-date":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            guard let prim = ai.lastOccurrence, let dt = prim.value else { return }
+            var dc = DateComponents()
+            dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+            dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+            dc.timeZone = dt.timeZone
+            let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+            p.dates.append(.init(paramName: "last-date", dateStart: d, dateEnd: d))
+        }
+        """
+
+    // ── token: manifestation → reaction[].manifestation[].coding ─────────────
+    case "manifestation":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            for reaction in ai.reaction ?? [] {
+                for cc in reaction.manifestation {
+                    for coding in cc.coding ?? [] {
+                        let c = coding.code?.value?.string ?? ""
+                        let s = coding.system?.value?.url.absoluteString
+                        p.tokens.append(.init(paramName: "manifestation", system: s, code: c))
+                    }
+                }
+            }
+        }
+        """
+
+    // ── date: onset → reaction[].onset (DateTime) ────────────────────────────
+    case "onset":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            for reaction in ai.reaction ?? [] {
+                guard let prim = reaction.onset, let dt = prim.value else { continue }
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+                dc.timeZone = dt.timeZone
+                let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+                p.dates.append(.init(paramName: "onset", dateStart: d, dateEnd: d))
+            }
+        }
+        """
+
+    // ── token: route → reaction[].exposureRoute.coding ───────────────────────
+    case "route":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            for reaction in ai.reaction ?? [] {
+                for coding in reaction.exposureRoute?.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "route", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── token: severity → reaction[].severity (enum) ─────────────────────────
+    case "severity":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            for reaction in ai.reaction ?? [] {
+                if let v = reaction.severity?.value?.rawValue {
+                    p.tokens.append(.init(paramName: "severity",
+                                          system: "http://hl7.org/fhir/reaction-event-severity",
+                                          code: v))
+                }
+            }
+        }
+        """
+
     default:
         return nil
     }

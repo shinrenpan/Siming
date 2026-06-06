@@ -103,6 +103,20 @@ func conditionHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: encounter ─────────────────────────────────────────────────
+    case "encounter":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let refStr = cond.encounter?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "encounter", refType: refType, refId: refId))
+        }
+        """
+
     // ── date: onset-date (dateTime or Period) ─────────────────────────────────
     case "onset-date":
         return """

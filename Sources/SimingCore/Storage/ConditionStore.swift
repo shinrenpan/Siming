@@ -380,6 +380,27 @@ public struct ConditionStore: Sendable {
             }
         }
 
+        // encounter — idx_reference
+        if let enc = query.encounter {
+            let parts = enc.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0]))
+                let refIdP   = bind(String(parts[1]))
+                filterCTEs.append(("f_encounter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'encounter'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(enc)
+                filterCTEs.append(("f_encounter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'encounter'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
         // clinical-status — token OR
         if !query.clinicalStatus.isEmpty {
             var orClauses: [String] = []
@@ -761,6 +782,19 @@ public struct ConditionStore: Sendable {
                 let refIdP = bind(subject)
                 filterCTEs.append(("f_subject",
                     "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name IN ('subject', 'patient') AND ref_id = \(refIdP)"))
+            }
+        }
+
+        if let enc = query.encounter {
+            let parts = enc.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_encounter",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = 'encounter' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(enc)
+                filterCTEs.append(("f_encounter",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = 'encounter' AND ref_id = \(refIdP)"))
             }
         }
 

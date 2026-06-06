@@ -109,8 +109,15 @@ private func extract_Condition_code(_ p: inout SearchParams, _ cond: Condition) 
     }
 }
 
-// TODO: unhandled — encounter [reference] Condition.encounter
-private func extract_Condition_encounter(_ p: inout SearchParams, _ cond: Condition) {}
+// encounter [reference] — Condition.encounter
+private func extract_Condition_encounter(_ p: inout SearchParams, _ cond: Condition) {
+    guard let refStr = cond.encounter?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "encounter", refType: refType, refId: refId))
+}
 
 // TODO: unhandled — evidence [token] Condition.evidence.code
 private func extract_Condition_evidence(_ p: inout SearchParams, _ cond: Condition) {}

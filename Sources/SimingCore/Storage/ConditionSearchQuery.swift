@@ -5,6 +5,7 @@ public struct ConditionSearchQuery: Sendable {
     // ── Filters ───────────────────────────────────────────────────────────────
 
     public var subject: String?                      // patient/subject reference
+    public var encounter: String?                    // encounter reference
     public var clinicalStatus: [TokenParam]          // token OR: "active,recurrence,relapse,..."
     public var clinicalStatusNot: [TokenParam]       // clinical-status:not modifier
     public var verificationStatus: [TokenParam]      // token OR: "unconfirmed,confirmed,refuted,..."
@@ -30,6 +31,7 @@ public struct ConditionSearchQuery: Sendable {
 
     public init(
         subject: String? = nil,
+        encounter: String? = nil,
         clinicalStatus: [TokenParam] = [],
         clinicalStatusNot: [TokenParam] = [],
         verificationStatus: [TokenParam] = [],
@@ -51,6 +53,7 @@ public struct ConditionSearchQuery: Sendable {
         cursor: SearchCursor? = nil
     ) {
         self.subject              = subject
+        self.encounter            = encounter
         self.clinicalStatus       = clinicalStatus
         self.clinicalStatusNot    = clinicalStatusNot
         self.verificationStatus   = verificationStatus

@@ -13,9 +13,10 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownConditionParams: Set<String> = [
-    "subject", "patient", "clinical-status", "verification-status",
+    "subject", "patient", "encounter", "clinical-status", "verification-status",
     "category", "code", "identifier",
     "onset-date", "abatement-date", "recorded-date",
+    "clinical-status:not", "verification-status:not", "category:not", "code:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
 ]
 
@@ -329,6 +330,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     }
 
     let subject            = first("subject").map(String.init) ?? first("patient").map(String.init)
+    let encounter          = first("encounter").map(String.init)
     let clinicalStatus     = first("clinical-status").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let clinicalStatusNot  = first("clinical-status:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let verificationStatus = first("verification-status").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
@@ -358,6 +360,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     }
     return ConditionSearchQuery(
         subject: subject,
+        encounter: encounter,
         clinicalStatus: clinicalStatus, clinicalStatusNot: clinicalStatusNot,
         verificationStatus: verificationStatus, verificationStatusNot: verificationStatusNot,
         category: category, categoryNot: categoryNot,

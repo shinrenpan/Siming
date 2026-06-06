@@ -399,6 +399,9 @@ public struct AllergyIntoleranceStore: Sendable {
         if !query.category.isEmpty         { filterCTEs.append(tokenORCTE(name: "f_category",      paramName: "category",             tokens: query.category)) }
         if !query.criticality.isEmpty      { filterCTEs.append(tokenORCTE(name: "f_criticality",   paramName: "criticality",          tokens: query.criticality)) }
         if !query.code.isEmpty             { filterCTEs.append(tokenORCTE(name: "f_code",          paramName: "code",                 tokens: query.code)) }
+        if !query.manifestation.isEmpty    { filterCTEs.append(tokenORCTE(name: "f_manifestation", paramName: "manifestation",        tokens: query.manifestation)) }
+        if !query.severity.isEmpty         { filterCTEs.append(tokenORCTE(name: "f_severity",      paramName: "severity",             tokens: query.severity)) }
+        if !query.route.isEmpty            { filterCTEs.append(tokenORCTE(name: "f_route",         paramName: "route",                tokens: query.route)) }
 
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
@@ -421,8 +424,7 @@ public struct AllergyIntoleranceStore: Sendable {
             }
         }
 
-        // date (recordedDate) — idx_date
-        for (i, dp) in query.date.enumerated() {
+        func dateCTE(prefix: String, paramName: String, dp: AllergyIntoleranceSearchQuery.DateParam, idx: Int) -> (String, String) {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
             let cond: String
@@ -436,9 +438,13 @@ public struct AllergyIntoleranceStore: Sendable {
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
             }
-            filterCTEs.append(("f_date\(i)",
-                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'AllergyIntolerance' AND param_name = 'date' AND \(cond)"))
+            return ("\(prefix)\(idx)",
+                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND \(cond)")
         }
+
+        for (i, dp) in query.date.enumerated()     { filterCTEs.append(dateCTE(prefix: "f_date",      paramName: "date",      dp: dp, idx: i)) }
+        for (i, dp) in query.lastDate.enumerated() { filterCTEs.append(dateCTE(prefix: "f_lastdate",  paramName: "last-date", dp: dp, idx: i)) }
+        for (i, dp) in query.onset.enumerated()    { filterCTEs.append(dateCTE(prefix: "f_onset",     paramName: "onset",     dp: dp, idx: i)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -485,6 +491,9 @@ public struct AllergyIntoleranceStore: Sendable {
         if !query.categoryNot.isEmpty         { whereConditions.append(notTokenCond(paramName: "category",             tokens: query.categoryNot)) }
         if !query.criticalityNot.isEmpty      { whereConditions.append(notTokenCond(paramName: "criticality",          tokens: query.criticalityNot)) }
         if !query.codeNot.isEmpty             { whereConditions.append(notTokenCond(paramName: "code",                 tokens: query.codeNot)) }
+        if !query.manifestationNot.isEmpty    { whereConditions.append(notTokenCond(paramName: "manifestation",        tokens: query.manifestationNot)) }
+        if !query.severityNot.isEmpty         { whereConditions.append(notTokenCond(paramName: "severity",             tokens: query.severityNot)) }
+        if !query.routeNot.isEmpty            { whereConditions.append(notTokenCond(paramName: "route",                tokens: query.routeNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = allergyIntoleranceMissingSubquery(param: paramName) {
@@ -627,8 +636,11 @@ public struct AllergyIntoleranceStore: Sendable {
         if !query.category.isEmpty         { filterCTEs.append(tokenCTE(name: "f_category",      paramName: "category",             tokens: query.category)) }
         if !query.criticality.isEmpty      { filterCTEs.append(tokenCTE(name: "f_criticality",   paramName: "criticality",          tokens: query.criticality)) }
         if !query.code.isEmpty             { filterCTEs.append(tokenCTE(name: "f_code",          paramName: "code",                 tokens: query.code)) }
+        if !query.manifestation.isEmpty    { filterCTEs.append(tokenCTE(name: "f_manifestation", paramName: "manifestation",        tokens: query.manifestation)) }
+        if !query.severity.isEmpty         { filterCTEs.append(tokenCTE(name: "f_severity",      paramName: "severity",             tokens: query.severity)) }
+        if !query.route.isEmpty            { filterCTEs.append(tokenCTE(name: "f_route",         paramName: "route",                tokens: query.route)) }
 
-        for (i, dp) in query.date.enumerated() {
+        func dateCTECount(prefix: String, paramName: String, dp: AllergyIntoleranceSearchQuery.DateParam, idx: Int) -> (String, String) {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
             let cond: String
@@ -642,9 +654,13 @@ public struct AllergyIntoleranceStore: Sendable {
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
             }
-            filterCTEs.append(("f_date\(i)",
-                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'AllergyIntolerance' AND param_name = 'date' AND \(cond)"))
+            return ("\(prefix)\(idx)",
+                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND \(cond)")
         }
+
+        for (i, dp) in query.date.enumerated()     { filterCTEs.append(dateCTECount(prefix: "f_date",     paramName: "date",      dp: dp, idx: i)) }
+        for (i, dp) in query.lastDate.enumerated() { filterCTEs.append(dateCTECount(prefix: "f_lastdate", paramName: "last-date", dp: dp, idx: i)) }
+        for (i, dp) in query.onset.enumerated()    { filterCTEs.append(dateCTECount(prefix: "f_onset",    paramName: "onset",     dp: dp, idx: i)) }
 
         var whereConditions = ["r.resource_type = 'AllergyIntolerance'", "r.deleted = false"]
         if !query.id.isEmpty {
