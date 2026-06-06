@@ -278,6 +278,18 @@ public let allergyIntoleranceSummaryFields: Set<String> = [
     "lastOccurrence", "note", "reaction",
 ]
 
+/// Practitioner Σ-marked elements per FHIR R4 §12.1 (excluding mandatory id/meta/resourceType).
+public let practitionerSummaryFields: Set<String> = [
+    "identifier", "active", "name", "telecom", "address",
+    "gender", "birthDate", "photo", "qualification", "communication",
+]
+
+/// Organization Σ-marked elements per FHIR R4 §12.8 (excluding mandatory id/meta/resourceType).
+public let organizationSummaryFields: Set<String> = [
+    "identifier", "active", "type", "name", "alias",
+    "telecom", "address", "partOf", "contact", "endpoint",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.

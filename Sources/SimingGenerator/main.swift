@@ -13,6 +13,22 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let practitionerParams = try loadParams(resourceType: "Practitioner", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let practitionerCode = generatePractitionerExtractor(params: practitionerParams)
+let practitionerOut  = "\(outputDir)/Practitioner+SearchExtractor.swift"
+try practitionerCode.write(toFile: practitionerOut, atomically: true, encoding: .utf8)
+print("Generated \(practitionerOut) — \(practitionerParams.count) Practitioner params")
+
+let organizationParams = try loadParams(resourceType: "Organization", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let organizationCode = generateOrganizationExtractor(params: organizationParams)
+let organizationOut  = "\(outputDir)/Organization+SearchExtractor.swift"
+try organizationCode.write(toFile: organizationOut, atomically: true, encoding: .utf8)
+print("Generated \(organizationOut) — \(organizationParams.count) Organization params")
+
 let procedureParams = try loadParams(resourceType: "Procedure", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

@@ -44,7 +44,8 @@ private func serverRest() -> CapabilityStatementRest {
         mode: FHIRPrimitive(.server),
         resource: [patientResource(), observationResource(), encounterResource(), conditionResource(),
                    medicationRequestResource(), allergyIntoleranceResource(),
-                   procedureResource(), diagnosticReportResource(), immunizationResource()]
+                   procedureResource(), diagnosticReportResource(), immunizationResource(),
+                   practitionerResource(), organizationResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -998,6 +999,201 @@ private func immunizationResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "Immunization:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func practitionerResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Practitioner resource. Supports CRUD, history, and search. " +
+            "Search: name, family, given, identifier, active, gender, address variants, phone, email, communication. " +
+            "_sort: ±name/±family/±_lastUpdated/±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-name")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on name (family + given + text). Modifiers: :contains, :exact.")),
+                name: FHIRPrimitive(FHIRString("name")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-family")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on family name.")),
+                name: FHIRPrimitive(FHIRString("family")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-given")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on given name(s).")),
+                name: FHIRPrimitive(FHIRString("given")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token: system|code.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-active")),
+                documentation: FHIRPrimitive(FHIRString("Boolean: active=true or active=false.")),
+                name: FHIRPrimitive(FHIRString("active")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-gender")),
+                documentation: FHIRPrimitive(FHIRString("Token OR: male|female|other|unknown.")),
+                name: FHIRPrimitive(FHIRString("gender")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address")),
+                documentation: FHIRPrimitive(FHIRString("String across all address fields.")),
+                name: FHIRPrimitive(FHIRString("address")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address-city")),
+                name: FHIRPrimitive(FHIRString("address-city")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address-state")),
+                name: FHIRPrimitive(FHIRString("address-state")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address-postalcode")),
+                name: FHIRPrimitive(FHIRString("address-postalcode")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address-country")),
+                name: FHIRPrimitive(FHIRString("address-country")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-phone")),
+                documentation: FHIRPrimitive(FHIRString("Telecom phone value.")),
+                name: FHIRPrimitive(FHIRString("phone")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-email")),
+                documentation: FHIRPrimitive(FHIRString("Telecom email value.")),
+                name: FHIRPrimitive(FHIRString("email")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-communication")),
+                documentation: FHIRPrimitive(FHIRString("Token: language code.")),
+                name: FHIRPrimitive(FHIRString("communication")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.practitioner),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    return r
+}
+
+private func organizationResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Organization resource. Supports CRUD, history, and search. " +
+            "Search: name, identifier, active, type, address variants, partof. " +
+            "_sort: ±name/±_lastUpdated/±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-name")),
+                documentation: FHIRPrimitive(FHIRString("Starts-with on name and alias. Modifiers: :contains, :exact.")),
+                name: FHIRPrimitive(FHIRString("name")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token: system|code.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-active")),
+                documentation: FHIRPrimitive(FHIRString("Boolean: active=true or active=false.")),
+                name: FHIRPrimitive(FHIRString("active")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR: organization type code.")),
+                name: FHIRPrimitive(FHIRString("type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address")),
+                documentation: FHIRPrimitive(FHIRString("String across all address fields.")),
+                name: FHIRPrimitive(FHIRString("address")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address-city")),
+                name: FHIRPrimitive(FHIRString("address-city")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address-state")),
+                name: FHIRPrimitive(FHIRString("address-state")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address-postalcode")),
+                name: FHIRPrimitive(FHIRString("address-postalcode")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address-country")),
+                name: FHIRPrimitive(FHIRString("address-country")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-partof")),
+                documentation: FHIRPrimitive(FHIRString("Reference to parent Organization.")),
+                name: FHIRPrimitive(FHIRString("partof")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.organization),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Organization:partof",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

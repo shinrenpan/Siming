@@ -71,6 +71,14 @@ actor TestDatabase {
         ImmunizationStore(client: try requiredClient(), logger: logger)
     }
 
+    func makePractitionerStore() throws -> PractitionerStore {
+        PractitionerStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeOrganizationStore() throws -> OrganizationStore {
+        OrganizationStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -218,6 +226,41 @@ func makeImmunization(
     if let ln = lotNumber { json += #","lotNumber":"\#(ln)""# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Immunization.self, from: Data(json.utf8))
+}
+
+func makePractitioner(
+    family: String,
+    given: String = "Test",
+    gender: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://hl7.org/fhir/sid/us-npi"
+) throws -> ModelsR4.Practitioner {
+    var json = #"{"resourceType":"Practitioner","name":[{"family":"\#(family)","given":["\#(given)"]}]"#
+    if let g = gender { json += #","gender":"\#(g)""# }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Practitioner.self, from: Data(json.utf8))
+}
+
+func makeOrganization(
+    name: String,
+    active: Bool = true,
+    type: String? = nil,
+    typeSystem: String = "http://terminology.hl7.org/CodeSystem/organization-type",
+    identifier: String? = nil,
+    identifierSystem: String = "http://hl7.org/fhir/sid/us-npi"
+) throws -> ModelsR4.Organization {
+    var json = #"{"resourceType":"Organization","name":"\#(name)","active":\#(active)"#
+    if let t = type {
+        json += #","type":[{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}]"#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Organization.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

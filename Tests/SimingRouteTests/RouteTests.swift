@@ -45,6 +45,8 @@ struct RouteTests {
         let procedureStore          = ProcedureStore(client: client, logger: logger)
         let diagnosticReportStore   = DiagnosticReportStore(client: client, logger: logger)
         let immunizationStore       = ImmunizationStore(client: client, logger: logger)
+        let practitionerStore       = PractitionerStore(client: client, logger: logger)
+        let organizationStore       = OrganizationStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -58,6 +60,8 @@ struct RouteTests {
         addProcedureRoutes(to: router, store: procedureStore, logger: logger)
         addDiagnosticReportRoutes(to: router, store: diagnosticReportStore, logger: logger)
         addImmunizationRoutes(to: router, store: immunizationStore, logger: logger)
+        addPractitionerRoutes(to: router, store: practitionerStore, logger: logger)
+        addOrganizationRoutes(to: router, store: organizationStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -71,7 +75,9 @@ struct RouteTests {
                         allergyIntoleranceStore: allergyIntoleranceStore,
                         procedureStore: procedureStore,
                         diagnosticReportStore: diagnosticReportStore,
-                        immunizationStore: immunizationStore, logger: logger)
+                        immunizationStore: immunizationStore,
+                        practitionerStore: practitionerStore,
+                        organizationStore: organizationStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 
