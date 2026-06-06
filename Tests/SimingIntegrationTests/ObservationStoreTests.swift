@@ -43,6 +43,19 @@ final class ObservationStoreTests: XCTestCase {
         } catch FHIRServerError.gone { }
     }
 
+    // ── Update ────────────────────────────────────────────────────────────────
+
+    func testUpdate_incrementsVersionId() async throws {
+        let patientId = try await patientStore.create(makePatient(family: "UpdObs")).id
+        let created = try await store.create(makeObservation(subjectId: patientId))
+        let updated = try await store.update(
+            id: created.id,
+            observation: makeObservation(subjectId: patientId, code: "8867-4"),
+            ifMatch: nil
+        )
+        XCTAssertEqual(updated.versionId, 2)
+    }
+
     // ── Search ────────────────────────────────────────────────────────────────
 
     func testSearch_bySubject_returnsMatchOnly() async throws {
@@ -60,6 +73,40 @@ final class ObservationStoreTests: XCTestCase {
             (try? JSONDecoder().decode(ModelsR4.Observation.self, from: entry.jsonWithMeta))?
                 .subject?.reference?.value?.string == "Patient/\(pid1)"
         })
+    }
+
+    func testSearch_byCode_loinc_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CodePt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4"))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            code: [ObservationSearchQuery.TokenParam(system: "http://loinc.org", code: "29463-7")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byStatus_final_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "StatusPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, status: "final"))
+        _ = try await store.create(makeObservation(subjectId: pid, status: "preliminary"))
+
+        let result = try await store.search(query: ObservationSearchQuery(status: ["final"]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byStatusNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "StatusNotPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, status: "final"))
+        _ = try await store.create(makeObservation(subjectId: pid, status: "preliminary"))
+
+        let result = try await store.search(query: ObservationSearchQuery(statusNot: ["final"]))
+        XCTAssertEqual(result.total, 1)
+        let obs = try JSONDecoder().decode(
+            ModelsR4.Observation.self,
+            from: result.entries[0].jsonWithMeta
+        )
+        XCTAssertEqual(obs.status.value?.rawValue, "preliminary")
     }
 
     // ── History ───────────────────────────────────────────────────────────────

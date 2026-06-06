@@ -43,6 +43,22 @@ actor TestDatabase {
         ObservationStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeEncounterStore() throws -> EncounterStore {
+        EncounterStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeConditionStore() throws -> ConditionStore {
+        ConditionStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeMedicationRequestStore() throws -> MedicationRequestStore {
+        MedicationRequestStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeAllergyIntoleranceStore() throws -> AllergyIntoleranceStore {
+        AllergyIntoleranceStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -73,18 +89,79 @@ func requireDatabase() async throws {
     try await TestDatabase.shared.truncate()
 }
 
-func makePatient(family: String, given: String = "Test", birthYear: Int? = nil) throws -> ModelsR4.Patient {
+func makePatient(
+    family: String,
+    given: String = "Test",
+    birthYear: Int? = nil,
+    birthMonth: Int? = nil,
+    birthDay: Int? = nil
+) throws -> ModelsR4.Patient {
     var json = #"{"resourceType":"Patient","name":[{"family":"\#(family)","given":["\#(given)"]}]"#
-    if let year = birthYear { json += #","birthDate":"\#(year)-01-01""# }
+    if let y = birthYear {
+        if let m = birthMonth {
+            if let d = birthDay {
+                json += #","birthDate":"\#(y)-\#(String(format:"%02d",m))-\#(String(format:"%02d",d))""#
+            } else {
+                json += #","birthDate":"\#(y)-\#(String(format:"%02d",m))""#
+            }
+        } else {
+            json += #","birthDate":"\#(y)""#
+        }
+    }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Patient.self, from: Data(json.utf8))
 }
 
-func makeObservation(subjectId: String, code: String = "29463-7") throws -> ModelsR4.Observation {
+func makeObservation(subjectId: String, code: String = "29463-7", status: String = "final") throws -> ModelsR4.Observation {
     let json = #"""
-    {"resourceType":"Observation","status":"final",
+    {"resourceType":"Observation","status":"\#(status)",
      "code":{"coding":[{"system":"http://loinc.org","code":"\#(code)"}]},
      "subject":{"reference":"Patient/\#(subjectId)"}}
     """#
     return try JSONDecoder().decode(ModelsR4.Observation.self, from: Data(json.utf8))
+}
+
+func makeEncounter(subjectId: String, status: String = "finished") throws -> ModelsR4.Encounter {
+    let json = #"""
+    {"resourceType":"Encounter","status":"\#(status)",
+     "class":{"system":"http://terminology.hl7.org/CodeSystem/v3-ActCode","code":"AMB"},
+     "subject":{"reference":"Patient/\#(subjectId)"}}
+    """#
+    return try JSONDecoder().decode(ModelsR4.Encounter.self, from: Data(json.utf8))
+}
+
+func makeCondition(subjectId: String, clinicalStatus: String = "active", onsetDate: String? = nil) throws -> ModelsR4.Condition {
+    var json = #"""
+    {"resourceType":"Condition",
+     "clinicalStatus":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"\#(clinicalStatus)"}]},
+     "code":{"coding":[{"system":"http://snomed.info/sct","code":"73211009","display":"Diabetes mellitus"}]},
+     "subject":{"reference":"Patient/\#(subjectId)"}
+    """#
+    if let d = onsetDate { json += #","onsetDateTime":"\#(d)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Condition.self, from: Data(json.utf8))
+}
+
+func makeMedicationRequest(subjectId: String, status: String = "active", intent: String = "order", authoredOn: String? = nil) throws -> ModelsR4.MedicationRequest {
+    var json = #"""
+    {"resourceType":"MedicationRequest","status":"\#(status)","intent":"\#(intent)",
+     "medicationCodeableConcept":{"coding":[{"system":"http://www.nlm.nih.gov/research/umls/rxnorm","code":"1049502"}]},
+     "subject":{"reference":"Patient/\#(subjectId)"}
+    """#
+    if let d = authoredOn { json += #","authoredOn":"\#(d)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.MedicationRequest.self, from: Data(json.utf8))
+}
+
+func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {
+    var json = #"""
+    {"resourceType":"AllergyIntolerance",
+     "clinicalStatus":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical","code":"\#(clinicalStatus)"}]},
+     "verificationStatus":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/allergyintolerance-verification","code":"confirmed"}]},
+     "code":{"coding":[{"system":"http://www.nlm.nih.gov/research/umls/rxnorm","code":"7982","display":"Penicillin"}]},
+     "patient":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let d = recordedDate { json += #","recordedDate":"\#(d)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.AllergyIntolerance.self, from: Data(json.utf8))
 }

@@ -84,6 +84,72 @@ final class PatientStoreTests: XCTestCase {
         XCTAssertEqual(patient.name?.first?.family?.value?.string, "Young")
     }
 
+    // Date precision: eq1990 must match a patient with birthDate "1990-06-15" (R4 §2.4.0.1)
+    func testSearch_byBirthdate_precision_eqYear_matches() async throws {
+        _ = try await store.create(makePatient(family: "PrecisionMatch", birthYear: 1990, birthMonth: 6, birthDay: 15))
+        _ = try await store.create(makePatient(family: "PrecisionOther", birthYear: 1985))
+
+        let param = PatientSearchQuery.BirthdateParam.parse("eq1990")!
+        let result = try await store.search(query: PatientSearchQuery(birthdate: [param]))
+        XCTAssertEqual(result.total, 1)
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
+        XCTAssertEqual(p.name?.first?.family?.value?.string, "PrecisionMatch")
+    }
+
+    // eq1990-06 matches "1990-06-15" but not "1990-07-01"
+    func testSearch_byBirthdate_precision_eqMonth_matchesCorrectMonth() async throws {
+        _ = try await store.create(makePatient(family: "JunePatient",  birthYear: 1990, birthMonth: 6,  birthDay: 15))
+        _ = try await store.create(makePatient(family: "JulyPatient",  birthYear: 1990, birthMonth: 7,  birthDay: 1))
+
+        let param = PatientSearchQuery.BirthdateParam.parse("eq1990-06")!
+        let result = try await store.search(query: PatientSearchQuery(birthdate: [param]))
+        XCTAssertEqual(result.total, 1)
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
+        XCTAssertEqual(p.name?.first?.family?.value?.string, "JunePatient")
+    }
+
+    // eq1991 must NOT match "1990-06-15"
+    func testSearch_byBirthdate_precision_eqWrongYear_noMatch() async throws {
+        _ = try await store.create(makePatient(family: "WrongYear", birthYear: 1990, birthMonth: 6, birthDay: 15))
+
+        let param = PatientSearchQuery.BirthdateParam.parse("eq1991")!
+        let result = try await store.search(query: PatientSearchQuery(birthdate: [param]))
+        XCTAssertEqual(result.total, 0)
+    }
+
+    func testSearch_byIdentifier_returnsMatchOnly() async throws {
+        let json = #"""
+        {"resourceType":"Patient","name":[{"family":"WithId"}],
+         "identifier":[{"system":"http://example.org/mrn","value":"MRN-42"}]}
+        """#
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: Data(json.utf8))
+        _ = try await store.create(p)
+        _ = try await store.create(makePatient(family: "WithoutId"))
+
+        let param = PatientSearchQuery.IdentifierParam.parse("http://example.org/mrn|MRN-42")
+        let result = try await store.search(query: PatientSearchQuery(identifier: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testVread_returnsSpecificVersion() async throws {
+        let created = try await store.create(makePatient(family: "VreadTest"))
+        _ = try await store.update(id: created.id, patient: makePatient(family: "VreadTest-v2"), ifMatch: nil)
+
+        let v1 = try await store.vread(id: created.id, versionId: 1)
+        let patient = try JSONDecoder().decode(ModelsR4.Patient.self, from: v1.jsonData)
+        XCTAssertEqual(patient.name?.first?.family?.value?.string, "VreadTest")
+    }
+
+    func testUpdate_ifMatch_conflict_throwsVersionConflict() async throws {
+        let created = try await store.create(makePatient(family: "IfMatchTest"))
+        _ = try await store.update(id: created.id, patient: makePatient(family: "IfMatchTest-v2"), ifMatch: nil)
+
+        do {
+            _ = try await store.update(id: created.id, patient: makePatient(family: "Conflict"), ifMatch: 1)
+            XCTFail("Expected versionConflict")
+        } catch FHIRServerError.versionConflict { }
+    }
+
     func testSearch_pagination_cursorAdvances() async throws {
         for i in 1...5 { _ = try await store.create(makePatient(family: "Page\(i)")) }
 
