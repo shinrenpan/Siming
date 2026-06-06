@@ -657,7 +657,9 @@ public struct PatientStore: Sendable {
             finalSortValSQL = "COALESCE(CAST(EXTRACT(EPOCH FROM p.sort_val) AS text), '')"
             sortKind = 2
 
-        case .statusAscending, .statusDescending:
+        case .statusAscending, .statusDescending,
+             .clinicalStatusAscending, .clinicalStatusDescending,
+             .codeAscending, .codeDescending:
             if let cursor = query.cursor, let ts = Double(cursor.sortValue) {
                 let tsP = bind(Date(timeIntervalSince1970: ts))
                 let idP = bind(cursor.id)
