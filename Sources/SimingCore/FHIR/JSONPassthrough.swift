@@ -346,6 +346,13 @@ public let medicationStatementSummaryFields: Set<String> = [
     "note", "dosage",
 ]
 
+/// FamilyMemberHistory Σ-marked elements per FHIR R4 §12.10 (excluding mandatory id/meta/resourceType).
+public let familyMemberHistorySummaryFields: Set<String> = [
+    "identifier", "instantiatesCanonical", "instantiatesUri", "status",
+    "dataAbsentReason", "patient", "date", "name", "relationship", "sex",
+    "born", "age", "estimatedAge", "deceased", "reasonCode", "reasonReference", "note",
+]
+
 /// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
 public let relatedPersonSummaryFields: Set<String> = [
     "identifier", "active", "patient", "relationship", "name",

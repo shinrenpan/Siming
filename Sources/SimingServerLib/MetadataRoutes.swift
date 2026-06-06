@@ -48,7 +48,7 @@ private func serverRest() -> CapabilityStatementRest {
                    practitionerResource(), organizationResource(), locationResource(),
                    relatedPersonResource(), serviceRequestResource(), specimenResource(),
                    documentReferenceResource(), carePlanResource(), goalResource(),
-                   medicationStatementResource()]
+                   medicationStatementResource(), familyMemberHistoryResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -2201,6 +2201,81 @@ private func medicationStatementResource() -> CapabilityStatementRestResource {
     r.searchInclude = [
         "MedicationStatement:subject", "MedicationStatement:patient",
         "MedicationStatement:context", "MedicationStatement:medication",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func familyMemberHistoryResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "FamilyMemberHistory resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/FamilyMemberHistory (POST /_search). " +
+            "Search: status, relationship, sex, code, identifier, date, patient. " +
+            ":not modifier on status, relationship, sex, code. " +
+            "_sort: ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: partial|completed|entered-in-error|health-unknown. System: http://hl7.org/fhir/history-status. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-relationship")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on FamilyMemberHistory.relationship CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("relationship")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-sex")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on FamilyMemberHistory.sex CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("sex")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-code")),
+                documentation: FHIRPrimitive(FHIRString("Token on condition[].code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on FamilyMemberHistory.identifier. Formats: code, system|code, system|.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-date")),
+                documentation: FHIRPrimitive(FHIRString("Date when history was recorded. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to FamilyMemberHistory.patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.familyMemberHistory),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "FamilyMemberHistory:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

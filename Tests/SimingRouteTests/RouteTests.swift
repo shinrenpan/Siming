@@ -56,6 +56,7 @@ struct RouteTests {
         let carePlanStore           = CarePlanStore(client: client, logger: logger)
         let goalStore               = GoalStore(client: client, logger: logger)
         let medicationStatementStore = MedicationStatementStore(client: client, logger: logger)
+        let familyMemberHistoryStore = FamilyMemberHistoryStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -80,6 +81,7 @@ struct RouteTests {
         addCarePlanRoutes(to: router, store: carePlanStore, logger: logger)
         addGoalRoutes(to: router, store: goalStore, logger: logger)
         addMedicationStatementRoutes(to: router, store: medicationStatementStore, logger: logger)
+        addFamilyMemberHistoryRoutes(to: router, store: familyMemberHistoryStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -94,6 +96,7 @@ struct RouteTests {
                              carePlanStore: carePlanStore,
                              goalStore: goalStore,
                              medicationStatementStore: medicationStatementStore,
+                             familyMemberHistoryStore: familyMemberHistoryStore,
                              logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
@@ -113,6 +116,7 @@ struct RouteTests {
                         carePlanStore: carePlanStore,
                         goalStore: goalStore,
                         medicationStatementStore: medicationStatementStore,
+                        familyMemberHistoryStore: familyMemberHistoryStore,
                         logger: logger)
         return Application(responder: router.buildResponder())
     }

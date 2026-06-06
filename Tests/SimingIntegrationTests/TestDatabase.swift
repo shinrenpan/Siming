@@ -115,6 +115,10 @@ actor TestDatabase {
         MedicationStatementStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeFamilyMemberHistoryStore() throws -> FamilyMemberHistoryStore {
+        FamilyMemberHistoryStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -554,6 +558,41 @@ func makeMedicationStatement(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.MedicationStatement.self, from: Data(json.utf8))
+}
+
+func makeFamilyMemberHistory(
+    patientId: String,
+    status: String = "partial",
+    relationship: String = "FAMMEMB",
+    relationshipSystem: String = "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+    sex: String? = nil,
+    sexSystem: String = "http://hl7.org/fhir/administrative-gender",
+    conditionCode: String? = nil,
+    conditionCodeSystem: String = "http://snomed.info/sct",
+    date: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://example.org"
+) throws -> ModelsR4.FamilyMemberHistory {
+    var json = #"""
+    {"resourceType":"FamilyMemberHistory",
+     "status":"\#(status)",
+     "patient":{"reference":"Patient/\#(patientId)"},
+     "relationship":{"coding":[{"system":"\#(relationshipSystem)","code":"\#(relationship)"}]}
+    """#
+    if let s = sex {
+        json += #","sex":{"coding":[{"system":"\#(sexSystem)","code":"\#(s)"}]}"#
+    }
+    if let cc = conditionCode {
+        json += #","condition":[{"code":{"coding":[{"system":"\#(conditionCodeSystem)","code":"\#(cc)"}]}}]"#
+    }
+    if let d = date {
+        json += #","date":"\#(d)""#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.FamilyMemberHistory.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

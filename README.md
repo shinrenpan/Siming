@@ -48,6 +48,7 @@ Server listens on `http://localhost:8080`.
 | CarePlan | ✓ | ✓ | `GET /Patient/:id/CarePlan` |
 | Goal | ✓ | ✓ | `GET /Patient/:id/Goal` |
 | MedicationStatement | ✓ | ✓ | `GET /Patient/:id/MedicationStatement` |
+| FamilyMemberHistory | ✓ | ✓ | `GET /Patient/:id/FamilyMemberHistory` |
 
 ### Interactions
 
@@ -59,7 +60,7 @@ Server listens on `http://localhost:8080`.
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
-| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 20 resource types | ✓ |
+| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 21 resource types | ✓ |
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
@@ -79,7 +80,7 @@ Server listens on `http://localhost:8080`.
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
 | POST `/_search` (form-encoded) | ✓ |
-| `_include` / `_revinclude` (1-level, all 20 resources) | ✓ |
+| `_include` / `_revinclude` (1-level, all 21 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
@@ -122,6 +123,8 @@ Server listens on `http://localhost:8080`.
 **Goal** — `lifecycle-status`, `achievement-status`, `category`, `identifier`, `start-date`, `target-date`, `subject`, `patient`, `_id`, `_lastUpdated`
 
 **MedicationStatement** — `status`, `category`, `code`, `identifier`, `effective`, `subject`, `patient`, `context`, `source`, `medication`, `part-of`, `_id`, `_lastUpdated`
+
+**FamilyMemberHistory** — `status`, `relationship`, `sex`, `code`, `identifier`, `date`, `patient`, `_id`, `_lastUpdated`
 
 ### Other
 

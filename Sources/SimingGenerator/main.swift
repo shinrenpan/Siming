@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let familyMemberHistoryParams = try loadParams(resourceType: "FamilyMemberHistory", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let familyMemberHistoryCode = generateFamilyMemberHistoryExtractor(params: familyMemberHistoryParams)
+let familyMemberHistoryOut  = "\(outputDir)/FamilyMemberHistory+SearchExtractor.swift"
+try familyMemberHistoryCode.write(toFile: familyMemberHistoryOut, atomically: true, encoding: .utf8)
+print("Generated \(familyMemberHistoryOut) — \(familyMemberHistoryParams.count) FamilyMemberHistory params")
+
 let medicationStatementParams = try loadParams(resourceType: "MedicationStatement", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 
