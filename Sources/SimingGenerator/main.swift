@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let documentReferenceParams = try loadParams(resourceType: "DocumentReference", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let documentReferenceCode = generateDocumentReferenceExtractor(params: documentReferenceParams)
+let documentReferenceOut  = "\(outputDir)/DocumentReference+SearchExtractor.swift"
+try documentReferenceCode.write(toFile: documentReferenceOut, atomically: true, encoding: .utf8)
+print("Generated \(documentReferenceOut) — \(documentReferenceParams.count) DocumentReference params")
+
 let specimenParams = try loadParams(resourceType: "Specimen", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

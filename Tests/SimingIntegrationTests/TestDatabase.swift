@@ -99,6 +99,10 @@ actor TestDatabase {
         SpecimenStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeDocumentReferenceStore() throws -> DocumentReferenceStore {
+        DocumentReferenceStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -406,6 +410,38 @@ func makeSpecimen(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Specimen.self, from: Data(json.utf8))
+}
+
+func makeDocumentReference(
+    patientId: String,
+    status: String = "current",
+    docType: String? = nil,
+    typeSystem: String = "http://loinc.org",
+    category: String? = nil,
+    categorySystem: String = "http://loinc.org",
+    date: String? = nil,
+    description: String? = nil,
+    encounterId: String? = nil
+) throws -> ModelsR4.DocumentReference {
+    var json = #"""
+    {"resourceType":"DocumentReference",
+     "status":"\#(status)",
+     "subject":{"reference":"Patient/\#(patientId)"},
+     "content":[{"attachment":{"contentType":"text/plain","url":"http://example.com/doc"}}]
+    """#
+    if let t = docType {
+        json += #","type":{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}"#
+    }
+    if let c = category {
+        json += #","category":[{"coding":[{"system":"\#(categorySystem)","code":"\#(c)"}]}]"#
+    }
+    if let d = date { json += #","date":"\#(d)""# }
+    if let desc = description { json += #","description":"\#(desc)""# }
+    if let encId = encounterId {
+        json += #","context":{"encounter":[{"reference":"Encounter/\#(encId)"}]}"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

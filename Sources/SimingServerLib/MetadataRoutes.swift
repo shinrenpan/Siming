@@ -46,7 +46,8 @@ private func serverRest() -> CapabilityStatementRest {
                    medicationResource(), medicationRequestResource(), allergyIntoleranceResource(),
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource(),
-                   relatedPersonResource(), serviceRequestResource(), specimenResource()]
+                   relatedPersonResource(), serviceRequestResource(), specimenResource(),
+                   documentReferenceResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -1762,6 +1763,125 @@ private func specimenResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "Specimen:subject", "Specimen:patient", "Specimen:collector", "Specimen:parent",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func documentReferenceResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "DocumentReference resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/DocumentReference (POST /_search). " +
+            "Search: status, type, category, identifier, security-label, facility, event, description, " +
+            "date, period, subject, patient, author, encounter. " +
+            ":not modifier on status, type, category, security-label. " +
+            "_sort: ±date (mapped to DocumentReference.date), ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: current|superseded|entered-in-error. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on DocumentReference.type codings (LOINC). Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on DocumentReference.category codings. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on masterIdentifier or identifier. Formats: code, system|code.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-security-label")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on securityLabel codings. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("security-label")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-facility")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on context.facilityType codings.")),
+                name: FHIRPrimitive(FHIRString("facility")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-event")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on context.event codings.")),
+                name: FHIRPrimitive(FHIRString("event")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-description")),
+                documentation: FHIRPrimitive(FHIRString("String ILIKE on description_fhir.")),
+                name: FHIRPrimitive(FHIRString("description")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-date")),
+                documentation: FHIRPrimitive(FHIRString("Date on DocumentReference.date (Instant). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-period")),
+                documentation: FHIRPrimitive(FHIRString("Date on context.period (Period). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("period")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to subject (any resource type).")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to Patient subject. Formats: Patient/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-author")),
+                documentation: FHIRPrimitive(FHIRString("Reference to author (Practitioner, Organization, Patient, etc.).")),
+                name: FHIRPrimitive(FHIRString("author")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-encounter")),
+                documentation: FHIRPrimitive(FHIRString("Reference to context.encounter (Encounter).")),
+                name: FHIRPrimitive(FHIRString("encounter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.documentReference),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "DocumentReference:subject", "DocumentReference:patient",
+        "DocumentReference:author", "DocumentReference:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

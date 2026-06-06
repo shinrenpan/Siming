@@ -318,6 +318,13 @@ public let specimenSummaryFields: Set<String> = [
     "container", "condition", "note",
 ]
 
+/// DocumentReference Σ-marked elements per FHIR R4 §11.2 (excluding mandatory id/meta/resourceType).
+public let documentReferenceSummaryFields: Set<String> = [
+    "masterIdentifier", "identifier", "status", "docStatus", "type", "category",
+    "subject", "date", "author", "authenticator", "custodian", "relatesTo",
+    "description", "securityLabel", "content", "context",
+]
+
 /// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
 public let relatedPersonSummaryFields: Set<String> = [
     "identifier", "active", "patient", "relationship", "name",

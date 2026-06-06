@@ -20,6 +20,7 @@ public func buildRouter(
     relatedPersonStore: RelatedPersonStore,
     serviceRequestStore: ServiceRequestStore,
     specimenStore: SpecimenStore,
+    documentReferenceStore: DocumentReferenceStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -45,6 +46,7 @@ public func buildRouter(
     addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
     addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
     addSpecimenRoutes(to: router, store: specimenStore, logger: logger)
+    addDocumentReferenceRoutes(to: router, store: documentReferenceStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
@@ -54,7 +56,8 @@ public func buildRouter(
                          immunizationStore: immunizationStore,
                          relatedPersonStore: relatedPersonStore,
                          serviceRequestStore: serviceRequestStore,
-                         specimenStore: specimenStore, logger: logger)
+                         specimenStore: specimenStore,
+                         documentReferenceStore: documentReferenceStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationStore: medicationStore,
@@ -68,6 +71,7 @@ public func buildRouter(
                     locationStore: locationStore,
                     relatedPersonStore: relatedPersonStore,
                     serviceRequestStore: serviceRequestStore,
-                    specimenStore: specimenStore, logger: logger)
+                    specimenStore: specimenStore,
+                    documentReferenceStore: documentReferenceStore, logger: logger)
     return router
 }
