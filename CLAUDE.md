@@ -8,9 +8,9 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Goal priority: **A > B > C**, in that order.
+Server-side Swift FHIR R4 server. Goal priority: **A first, everything else later**.
 - **A (now):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **C (door open, not built):** Market adoption, compliance depth, OAuth. Do not pull C-stage work into A.
+- **Later:** Production readiness, deeper FHIR features, Core IG, OAuth — when A is solid. Do not pull later-stage work into A.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
