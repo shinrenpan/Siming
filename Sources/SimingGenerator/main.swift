@@ -13,6 +13,22 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let medicationRequestParams = try loadParams(resourceType: "MedicationRequest", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let medicationRequestCode = generateMedicationRequestExtractor(params: medicationRequestParams)
+let medicationRequestOut  = "\(outputDir)/MedicationRequest+SearchExtractor.swift"
+try medicationRequestCode.write(toFile: medicationRequestOut, atomically: true, encoding: .utf8)
+print("Generated \(medicationRequestOut) — \(medicationRequestParams.count) MedicationRequest params")
+
+let allergyIntoleranceParams = try loadParams(resourceType: "AllergyIntolerance", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let allergyIntoleranceCode = generateAllergyIntoleranceExtractor(params: allergyIntoleranceParams)
+let allergyIntoleranceOut  = "\(outputDir)/AllergyIntolerance+SearchExtractor.swift"
+try allergyIntoleranceCode.write(toFile: allergyIntoleranceOut, atomically: true, encoding: .utf8)
+print("Generated \(allergyIntoleranceOut) — \(allergyIntoleranceParams.count) AllergyIntolerance params")
+
 let encounterParams = try loadParams(resourceType: "Encounter", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

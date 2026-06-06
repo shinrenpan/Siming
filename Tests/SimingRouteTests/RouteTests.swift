@@ -36,10 +36,12 @@ struct RouteTests {
             configuration: dbConfig.postgresClientConfiguration,
             backgroundLogger: logger
         )
-        let patientStore     = PatientStore(client: client, logger: logger)
-        let observationStore = ObservationStore(client: client, logger: logger)
-        let encounterStore   = EncounterStore(client: client, logger: logger)
-        let conditionStore   = ConditionStore(client: client, logger: logger)
+        let patientStore            = PatientStore(client: client, logger: logger)
+        let observationStore        = ObservationStore(client: client, logger: logger)
+        let encounterStore          = EncounterStore(client: client, logger: logger)
+        let conditionStore          = ConditionStore(client: client, logger: logger)
+        let medicationRequestStore  = MedicationRequestStore(client: client, logger: logger)
+        let allergyIntoleranceStore = AllergyIntoleranceStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -48,8 +50,12 @@ struct RouteTests {
         addObservationRoutes(to: router, store: observationStore, logger: logger)
         addEncounterRoutes(to: router, store: encounterStore, logger: logger)
         addConditionRoutes(to: router, store: conditionStore, logger: logger)
+        addMedicationRequestRoutes(to: router, store: medicationRequestStore, logger: logger)
+        addAllergyIntoleranceRoutes(to: router, store: allergyIntoleranceStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
-                             encounterStore: encounterStore, conditionStore: conditionStore, logger: logger)
+                             encounterStore: encounterStore, conditionStore: conditionStore,
+                             medicationRequestStore: medicationRequestStore,
+                             allergyIntoleranceStore: allergyIntoleranceStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore, logger: logger)
         return Application(responder: router.buildResponder())
     }

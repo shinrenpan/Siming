@@ -220,6 +220,28 @@ public let observationSummaryFields: Set<String> = [
     "dataAbsentReason", "interpretation", "hasMember", "derivedFrom", "component",
 ]
 
+/// MedicationRequest Σ-marked elements per FHIR R4.
+public let medicationRequestSummaryFields: Set<String> = [
+    "identifier", "status", "intent", "category", "priority",
+    "medicationCodeableConcept", "medicationReference",
+    "subject", "encounter", "supportingInformation",
+    "authoredOn", "requester", "performer", "performerType",
+    "recorder", "reasonCode", "reasonReference",
+    "instantiatesCanonical", "instantiatesUri", "basedOn",
+    "groupIdentifier", "courseOfTherapyType", "insurance",
+    "dosageInstruction", "dispenseRequest", "substitution",
+]
+
+/// AllergyIntolerance Σ-marked elements per FHIR R4.
+public let allergyIntoleranceSummaryFields: Set<String> = [
+    "identifier", "clinicalStatus", "verificationStatus",
+    "type", "category", "criticality",
+    "code", "patient", "encounter", "onsetDateTime", "onsetAge",
+    "onsetPeriod", "onsetRange", "onsetString",
+    "recordedDate", "recorder", "asserter",
+    "lastOccurrence", "note", "reaction",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.

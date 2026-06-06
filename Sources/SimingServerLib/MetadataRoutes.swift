@@ -31,18 +31,19 @@ private func buildCapabilityStatement() -> CapabilityStatement {
         rest: [serverRest()],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.7.0"))
+            version: FHIRPrimitive(FHIRString("0.8.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.7.0"))
+        version: FHIRPrimitive(FHIRString("0.8.0"))
     )
 }
 
 private func serverRest() -> CapabilityStatementRest {
     var rest = CapabilityStatementRest(
         mode: FHIRPrimitive(.server),
-        resource: [patientResource(), observationResource(), encounterResource(), conditionResource()]
+        resource: [patientResource(), observationResource(), encounterResource(), conditionResource(),
+                   medicationRequestResource(), allergyIntoleranceResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -50,6 +51,10 @@ private func serverRest() -> CapabilityStatementRest {
     rest.interaction = [
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
     ]
+    rest.documentation = FHIRPrimitive(FHIRString(
+        "Compartments: GET /Patient/:id/{Observation,Encounter,Condition,MedicationRequest,AllergyIntolerance} " +
+        "and POST /Patient/:id/{Observation,Encounter,Condition}/_search."
+    ))
     rest.searchParam = [
         CapabilityStatementRestResourceSearchParam(
             documentation: FHIRPrimitive(FHIRString("Filter by top-level element names. Mandatory elements (id, meta, resourceType) always returned. SUBSETTED tag added to meta.")),
@@ -85,7 +90,7 @@ private func patientResource() -> CapabilityStatementRestResource {
             "String modifiers: :contains, :exact, :text (case-insensitive substring); :not, :missing on all params. " +
             "Prefer: return=minimal on write → 201/200 with no body. " +
             "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them. " +
-            "Compartments: GET /Patient/:id/Observation, /Patient/:id/Encounter, /Patient/:id/Condition (and POST /_search variants)."
+            "Compartments: GET /Patient/:id/{Observation,Encounter,Condition,MedicationRequest,AllergyIntolerance} (POST /_search for Observation/Encounter/Condition)."
         )),
         interaction: baselineInteractions,
         readHistory: FHIRPrimitive(FHIRBool(true)),
@@ -471,6 +476,194 @@ private func conditionResource() -> CapabilityStatementRestResource {
             ),
         ],
         type: FHIRPrimitive(.condition),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    return r
+}
+
+private func medicationRequestResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "MedicationRequest resource. " +
+            "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /MedicationRequest?<search>), delete, history-instance, and search (GET and POST /_search). " +
+            "Search: subject, patient, status, intent, category, code, priority, identifier, authoredon, encounter, requester; _sort=±_lastUpdated/±authoredon/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            ":not and :missing modifiers supported. " +
+            "Compartment: GET /Patient/:id/MedicationRequest."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to subject. Formats: Patient/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-patient")),
+                documentation: FHIRPrimitive(FHIRString("Alias for subject constrained to Patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.status. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-intent")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.intent. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("intent")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.category CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-code")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.medication when CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-priority")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.priority. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("priority")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationRequest.identifier.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-authoredon")),
+                documentation: FHIRPrimitive(FHIRString("Date search on MedicationRequest.authoredOn. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("authoredon")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-encounter")),
+                documentation: FHIRPrimitive(FHIRString("Reference to Encounter. Formats: Encounter/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("encounter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-requester")),
+                documentation: FHIRPrimitive(FHIRString("Reference to requester. Formats: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("requester")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
+                documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-lastUpdated")),
+                documentation: FHIRPrimitive(FHIRString("Filter by last modification time. Prefixes: eq, lt, gt, le, ge.")),
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.medicationRequest),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    return r
+}
+
+private func allergyIntoleranceResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "AllergyIntolerance resource. " +
+            "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /AllergyIntolerance?<search>), delete, history-instance, and search (GET and POST /_search). " +
+            "Search: patient, clinical-status, verification-status, type, category, criticality, code, identifier, date; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            ":not and :missing modifiers supported. " +
+            "Compartment: GET /Patient/:id/AllergyIntolerance."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to patient. Formats: Patient/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-clinical-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.clinicalStatus CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("clinical-status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-verification-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.verificationStatus CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("verification-status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.type enum. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.category array of enum. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-criticality")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.criticality enum. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("criticality")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-code")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.code CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on AllergyIntolerance.identifier.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-date")),
+                documentation: FHIRPrimitive(FHIRString("Date search on AllergyIntolerance.recordedDate. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
+                documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-lastUpdated")),
+                documentation: FHIRPrimitive(FHIRString("Filter by last modification time. Prefixes: eq, lt, gt, le, ge.")),
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.allergyIntolerance),
         versioning: FHIRPrimitive(.versioned)
     )
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))

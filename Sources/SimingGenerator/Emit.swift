@@ -139,6 +139,94 @@ func generateConditionExtractor(params: [ParamSpec]) -> String {
     """
 }
 
+func generateMedicationRequestExtractor(params: [ParamSpec]) -> String {
+    let fnPrefix = "extract_MedicationRequest_"
+
+    let resolved: [(ParamSpec, String?)] = params.map { spec in
+        (spec, medicationRequestExpr(from: spec.expression))
+    }
+
+    let dispatchLines = resolved.map { spec, _ in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        return "    \(fnPrefix)\(swiftCode)(&p, mr)"
+    }.joined(separator: "\n")
+
+    let functionBodies = resolved.map { spec, expr -> String in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        let fn = "\(fnPrefix)\(swiftCode)"
+        if let e = expr, let body = medicationRequestHandler(spec: spec, expr: e) {
+            return body
+        }
+        return """
+        // TODO: unhandled — \(spec.code) [\(spec.type)] \(spec.expression)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+        """
+    }.joined(separator: "\n\n")
+
+    return """
+    \(generatedHeader)
+
+    import Foundation
+    import ModelsR4
+
+    /// Extracts all supported search parameters from a MedicationRequest for insertion
+    /// into the five idx_* index tables.
+    ///
+    /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
+    public func extractMedicationRequestSearchParams(_ mr: MedicationRequest) -> SearchParams {
+        var p = SearchParams()
+    \(dispatchLines)
+        return p
+    }
+
+    \(functionBodies)
+    """
+}
+
+func generateAllergyIntoleranceExtractor(params: [ParamSpec]) -> String {
+    let fnPrefix = "extract_AllergyIntolerance_"
+
+    let resolved: [(ParamSpec, String?)] = params.map { spec in
+        (spec, allergyIntoleranceExpr(from: spec.expression))
+    }
+
+    let dispatchLines = resolved.map { spec, _ in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        return "    \(fnPrefix)\(swiftCode)(&p, ai)"
+    }.joined(separator: "\n")
+
+    let functionBodies = resolved.map { spec, expr -> String in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        let fn = "\(fnPrefix)\(swiftCode)"
+        if let e = expr, let body = allergyIntoleranceHandler(spec: spec, expr: e) {
+            return body
+        }
+        return """
+        // TODO: unhandled — \(spec.code) [\(spec.type)] \(spec.expression)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+        """
+    }.joined(separator: "\n\n")
+
+    return """
+    \(generatedHeader)
+
+    import Foundation
+    import ModelsR4
+
+    /// Extracts all supported search parameters from an AllergyIntolerance for insertion
+    /// into the five idx_* index tables.
+    ///
+    /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
+    public func extractAllergyIntoleranceSearchParams(_ ai: AllergyIntolerance) -> SearchParams {
+        var p = SearchParams()
+    \(dispatchLines)
+        return p
+    }
+
+    \(functionBodies)
+    """
+}
+
 func generatePatientExtractor(params: [ParamSpec]) -> String {
     let fnPrefix = "extract_Patient_"
 
