@@ -47,7 +47,8 @@ private func serverRest() -> CapabilityStatementRest {
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource(),
                    relatedPersonResource(), serviceRequestResource(), specimenResource(),
-                   documentReferenceResource(), carePlanResource(), goalResource()]
+                   documentReferenceResource(), carePlanResource(), goalResource(),
+                   medicationStatementResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -2100,6 +2101,106 @@ private func goalResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "Goal:subject", "Goal:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func medicationStatementResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "MedicationStatement resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/MedicationStatement (POST /_search). " +
+            "Search: status, category, code, identifier, effective, subject, patient, context, source, medication, part-of. " +
+            ":not modifier on status, category, code. " +
+            "_sort: ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: active|completed|entered-in-error|intended|stopped|on-hold|unknown|not-taken. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on MedicationStatement.category CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/medications-code")),
+                documentation: FHIRPrimitive(FHIRString("Token on medication when CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on MedicationStatement.identifier. Formats: code, system|code, system|.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-effective")),
+                documentation: FHIRPrimitive(FHIRString("Date on effective[x] (dateTime or Period). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("effective")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to MedicationStatement.subject.")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/medications-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to MedicationStatement.subject restricted to Patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-context")),
+                documentation: FHIRPrimitive(FHIRString("Reference to MedicationStatement.context (Encounter).")),
+                name: FHIRPrimitive(FHIRString("context")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-source")),
+                documentation: FHIRPrimitive(FHIRString("Reference to MedicationStatement.informationSource.")),
+                name: FHIRPrimitive(FHIRString("source")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/medications-medication")),
+                documentation: FHIRPrimitive(FHIRString("Reference when medication is a Reference.")),
+                name: FHIRPrimitive(FHIRString("medication")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationStatement-part-of")),
+                documentation: FHIRPrimitive(FHIRString("Reference to MedicationStatement.partOf.")),
+                name: FHIRPrimitive(FHIRString("part-of")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.medicationStatement),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "MedicationStatement:subject", "MedicationStatement:patient",
+        "MedicationStatement:context", "MedicationStatement:medication",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

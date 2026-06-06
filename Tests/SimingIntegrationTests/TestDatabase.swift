@@ -111,6 +111,10 @@ actor TestDatabase {
         GoalStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeMedicationStatementStore() throws -> MedicationStatementStore {
+        MedicationStatementStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -520,6 +524,36 @@ func makeGoal(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Goal.self, from: Data(json.utf8))
+}
+
+func makeMedicationStatement(
+    patientId: String,
+    status: String = "active",
+    medicationCode: String = "1049502",
+    medicationSystem: String = "http://www.nlm.nih.gov/research/umls/rxnorm",
+    category: String? = nil,
+    categorySystem: String = "http://terminology.hl7.org/CodeSystem/medication-statement-category",
+    effectiveDateTime: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://example.org"
+) throws -> ModelsR4.MedicationStatement {
+    var json = #"""
+    {"resourceType":"MedicationStatement",
+     "status":"\#(status)",
+     "medicationCodeableConcept":{"coding":[{"system":"\#(medicationSystem)","code":"\#(medicationCode)"}]},
+     "subject":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let c = category {
+        json += #","category":{"coding":[{"system":"\#(categorySystem)","code":"\#(c)"}]}"#
+    }
+    if let dt = effectiveDateTime {
+        json += #","effectiveDateTime":"\#(dt)""#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.MedicationStatement.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

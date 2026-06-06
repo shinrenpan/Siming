@@ -338,6 +338,14 @@ public let documentReferenceSummaryFields: Set<String> = [
     "description", "securityLabel", "content", "context",
 ]
 
+/// MedicationStatement Σ-marked elements per FHIR R4 §11.4 (excluding mandatory id/meta/resourceType).
+public let medicationStatementSummaryFields: Set<String> = [
+    "identifier", "basedOn", "partOf", "status", "statusReason", "category",
+    "medication", "subject", "context", "effective", "dateAsserted",
+    "informationSource", "derivedFrom", "reasonCode", "reasonReference",
+    "note", "dosage",
+]
+
 /// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
 public let relatedPersonSummaryFields: Set<String> = [
     "identifier", "active", "patient", "relationship", "name",
