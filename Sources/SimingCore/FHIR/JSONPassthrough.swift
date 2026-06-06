@@ -360,6 +360,14 @@ public let relatedPersonSummaryFields: Set<String> = [
     "communication",
 ]
 
+/// Appointment Σ-marked elements per FHIR R4 §11.9 (excluding mandatory id/meta/resourceType).
+public let appointmentSummaryFields: Set<String> = [
+    "identifier", "status", "serviceCategory", "serviceType", "specialty",
+    "appointmentType", "reasonCode", "reasonReference", "priority",
+    "description", "start", "end", "created", "comment", "basedOn",
+    "participant", "requestedPeriod",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.

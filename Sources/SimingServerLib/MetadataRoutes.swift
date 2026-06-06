@@ -22,7 +22,7 @@ public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
 
 private func buildCapabilityStatement() -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-06")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-07")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
@@ -48,7 +48,8 @@ private func serverRest() -> CapabilityStatementRest {
                    practitionerResource(), organizationResource(), locationResource(),
                    relatedPersonResource(), serviceRequestResource(), specimenResource(),
                    documentReferenceResource(), carePlanResource(), goalResource(),
-                   medicationStatementResource(), familyMemberHistoryResource()]
+                   medicationStatementResource(), familyMemberHistoryResource(),
+                   appointmentResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -2276,6 +2277,117 @@ private func familyMemberHistoryResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "FamilyMemberHistory:patient",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func appointmentResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Appointment resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/Appointment (POST /_search). " +
+            "Search: patient, actor, practitioner, location, status, service-type, appointment-type, specialty, reason-code, service-category, part-status, identifier, date. " +
+            ":not modifier on status, service-type, appointment-type, specialty, reason-code, service-category, part-status. " +
+            "_sort: ±_lastUpdated, ±date, ±status, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to participant.actor where actor is a Patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-actor")),
+                documentation: FHIRPrimitive(FHIRString("Any participant.actor reference.")),
+                name: FHIRPrimitive(FHIRString("actor")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-practitioner")),
+                documentation: FHIRPrimitive(FHIRString("Reference to participant.actor where actor is a Practitioner.")),
+                name: FHIRPrimitive(FHIRString("practitioner")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-location")),
+                documentation: FHIRPrimitive(FHIRString("Reference to participant.actor where actor is a Location.")),
+                name: FHIRPrimitive(FHIRString("location")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.status. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-service-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.serviceType CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("service-type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-appointment-type")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.appointmentType CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("appointment-type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-specialty")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.specialty CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("specialty")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-reason-code")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.reasonCode CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("reason-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-service-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Appointment.serviceCategory CodeableConcept. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("service-category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-part-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on participant.status. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("part-status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on Appointment.identifier. Formats: code, system|code, system|.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-date")),
+                documentation: FHIRPrimitive(FHIRString("Date search on Appointment.start. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.appointment),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Appointment:patient", "Appointment:practitioner", "Appointment:location", "Appointment:actor",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

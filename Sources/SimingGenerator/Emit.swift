@@ -6,6 +6,48 @@ private let generatedHeader = """
 // Regenerate: swift run SimingGenerator
 """
 
+func generateAppointmentExtractor(params: [ParamSpec]) -> String {
+    let fnPrefix = "extract_Appointment_"
+
+    let resolved: [(ParamSpec, String?)] = params.map { spec in
+        (spec, appointmentExpr(from: spec.expression))
+    }
+
+    let dispatchLines = resolved.map { spec, _ in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        return "    \(fnPrefix)\(swiftCode)(&p, appt)"
+    }.joined(separator: "\n")
+
+    let functionBodies = resolved.map { spec, expr -> String in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        let fn = "\(fnPrefix)\(swiftCode)"
+        if let e = expr, let body = appointmentHandler(spec: spec, expr: e) {
+            return body
+        }
+        return """
+        // TODO: unhandled — \(spec.code) [\(spec.type)] \(spec.expression)
+        private func \(fn)(_ p: inout SearchParams, _ appt: Appointment) {}
+        """
+    }.joined(separator: "\n\n")
+
+    return """
+    \(generatedHeader)
+
+    import Foundation
+    import ModelsR4
+
+    /// Extracts all supported search parameters from an Appointment for insertion
+    /// into the five idx_* index tables.
+    public func extractAppointmentSearchParams(_ appt: Appointment) -> SearchParams {
+        var p = SearchParams()
+    \(dispatchLines)
+        return p
+    }
+
+    \(functionBodies)
+    """
+}
+
 func generateFamilyMemberHistoryExtractor(params: [ParamSpec]) -> String {
     let fnPrefix = "extract_FamilyMemberHistory_"
 

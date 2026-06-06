@@ -57,6 +57,7 @@ struct RouteTests {
         let goalStore               = GoalStore(client: client, logger: logger)
         let medicationStatementStore = MedicationStatementStore(client: client, logger: logger)
         let familyMemberHistoryStore = FamilyMemberHistoryStore(client: client, logger: logger)
+        let appointmentStore         = AppointmentStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -82,6 +83,7 @@ struct RouteTests {
         addGoalRoutes(to: router, store: goalStore, logger: logger)
         addMedicationStatementRoutes(to: router, store: medicationStatementStore, logger: logger)
         addFamilyMemberHistoryRoutes(to: router, store: familyMemberHistoryStore, logger: logger)
+        addAppointmentRoutes(to: router, store: appointmentStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -97,6 +99,7 @@ struct RouteTests {
                              goalStore: goalStore,
                              medicationStatementStore: medicationStatementStore,
                              familyMemberHistoryStore: familyMemberHistoryStore,
+                             appointmentStore: appointmentStore,
                              logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
@@ -117,6 +120,7 @@ struct RouteTests {
                         goalStore: goalStore,
                         medicationStatementStore: medicationStatementStore,
                         familyMemberHistoryStore: familyMemberHistoryStore,
+                        appointmentStore: appointmentStore,
                         logger: logger)
         return Application(responder: router.buildResponder())
     }

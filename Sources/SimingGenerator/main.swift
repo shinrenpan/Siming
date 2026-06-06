@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let appointmentParams = try loadParams(resourceType: "Appointment", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let appointmentCode = generateAppointmentExtractor(params: appointmentParams)
+let appointmentOut  = "\(outputDir)/Appointment+SearchExtractor.swift"
+try appointmentCode.write(toFile: appointmentOut, atomically: true, encoding: .utf8)
+print("Generated \(appointmentOut) — \(appointmentParams.count) Appointment params")
+
 let familyMemberHistoryParams = try loadParams(resourceType: "FamilyMemberHistory", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 
