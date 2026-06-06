@@ -59,6 +59,18 @@ actor TestDatabase {
         AllergyIntoleranceStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeProcedureStore() throws -> ProcedureStore {
+        ProcedureStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeDiagnosticReportStore() throws -> DiagnosticReportStore {
+        DiagnosticReportStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeImmunizationStore() throws -> ImmunizationStore {
+        ImmunizationStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -151,6 +163,61 @@ func makeMedicationRequest(subjectId: String, status: String = "active", intent:
     if let d = authoredOn { json += #","authoredOn":"\#(d)""# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.MedicationRequest.self, from: Data(json.utf8))
+}
+
+func makeProcedure(
+    subjectId: String,
+    status: String = "completed",
+    code: String = "73761001",
+    codeSystem: String = "http://snomed.info/sct",
+    performedDate: String? = nil
+) throws -> ModelsR4.Procedure {
+    var json = #"""
+    {"resourceType":"Procedure","status":"\#(status)",
+     "code":{"coding":[{"system":"\#(codeSystem)","code":"\#(code)","display":"Colonoscopy"}]},
+     "subject":{"reference":"Patient/\#(subjectId)"}
+    """#
+    if let d = performedDate { json += #","performedDateTime":"\#(d)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Procedure.self, from: Data(json.utf8))
+}
+
+func makeDiagnosticReport(
+    subjectId: String,
+    status: String = "final",
+    code: String = "58410-2",
+    codeSystem: String = "http://loinc.org",
+    effectiveDate: String? = nil,
+    issued: String? = nil
+) throws -> ModelsR4.DiagnosticReport {
+    var json = #"""
+    {"resourceType":"DiagnosticReport","status":"\#(status)",
+     "code":{"coding":[{"system":"\#(codeSystem)","code":"\#(code)","display":"CBC panel"}]},
+     "subject":{"reference":"Patient/\#(subjectId)"}
+    """#
+    if let d = effectiveDate { json += #","effectiveDateTime":"\#(d)""# }
+    if let i = issued { json += #","issued":"\#(i)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.DiagnosticReport.self, from: Data(json.utf8))
+}
+
+func makeImmunization(
+    patientId: String,
+    status: String = "completed",
+    vaccineCode: String = "207",
+    vaccineSystem: String = "http://hl7.org/fhir/sid/cvx",
+    occurrenceDate: String = "2021-01-15",
+    lotNumber: String? = nil
+) throws -> ModelsR4.Immunization {
+    var json = #"""
+    {"resourceType":"Immunization","status":"\#(status)",
+     "vaccineCode":{"coding":[{"system":"\#(vaccineSystem)","code":"\#(vaccineCode)","display":"COVID-19 mRNA"}]},
+     "patient":{"reference":"Patient/\#(patientId)"},
+     "occurrenceDateTime":"\#(occurrenceDate)"
+    """#
+    if let ln = lotNumber { json += #","lotNumber":"\#(ln)""# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Immunization.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {
