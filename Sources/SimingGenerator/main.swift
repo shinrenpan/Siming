@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let serviceRequestParams = try loadParams(resourceType: "ServiceRequest", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let serviceRequestCode = generateServiceRequestExtractor(params: serviceRequestParams)
+let serviceRequestOut  = "\(outputDir)/ServiceRequest+SearchExtractor.swift"
+try serviceRequestCode.write(toFile: serviceRequestOut, atomically: true, encoding: .utf8)
+print("Generated \(serviceRequestOut) — \(serviceRequestParams.count) ServiceRequest params")
+
 let relatedPersonParams = try loadParams(resourceType: "RelatedPerson", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

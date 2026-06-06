@@ -18,6 +18,7 @@ public func buildRouter(
     organizationStore: OrganizationStore,
     locationStore: LocationStore,
     relatedPersonStore: RelatedPersonStore,
+    serviceRequestStore: ServiceRequestStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -41,6 +42,7 @@ public func buildRouter(
     addOrganizationRoutes(to: router, store: organizationStore, logger: logger)
     addLocationRoutes(to: router, store: locationStore, logger: logger)
     addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
+    addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
@@ -48,7 +50,8 @@ public func buildRouter(
                          procedureStore: procedureStore,
                          diagnosticReportStore: diagnosticReportStore,
                          immunizationStore: immunizationStore,
-                         relatedPersonStore: relatedPersonStore, logger: logger)
+                         relatedPersonStore: relatedPersonStore,
+                         serviceRequestStore: serviceRequestStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
                     medicationStore: medicationStore,
@@ -60,6 +63,7 @@ public func buildRouter(
                     practitionerStore: practitionerStore,
                     organizationStore: organizationStore,
                     locationStore: locationStore,
-                    relatedPersonStore: relatedPersonStore, logger: logger)
+                    relatedPersonStore: relatedPersonStore,
+                    serviceRequestStore: serviceRequestStore, logger: logger)
     return router
 }

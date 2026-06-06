@@ -50,6 +50,7 @@ struct RouteTests {
         let organizationStore       = OrganizationStore(client: client, logger: logger)
         let locationStore           = LocationStore(client: client, logger: logger)
         let relatedPersonStore      = RelatedPersonStore(client: client, logger: logger)
+        let serviceRequestStore     = ServiceRequestStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -68,6 +69,7 @@ struct RouteTests {
         addOrganizationRoutes(to: router, store: organizationStore, logger: logger)
         addLocationRoutes(to: router, store: locationStore, logger: logger)
         addRelatedPersonRoutes(to: router, store: relatedPersonStore, logger: logger)
+        addServiceRequestRoutes(to: router, store: serviceRequestStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -75,7 +77,8 @@ struct RouteTests {
                              procedureStore: procedureStore,
                              diagnosticReportStore: diagnosticReportStore,
                              immunizationStore: immunizationStore,
-                             relatedPersonStore: relatedPersonStore, logger: logger)
+                             relatedPersonStore: relatedPersonStore,
+                             serviceRequestStore: serviceRequestStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
                         medicationStore: medicationStore,
@@ -87,7 +90,8 @@ struct RouteTests {
                         practitionerStore: practitionerStore,
                         organizationStore: organizationStore,
                         locationStore: locationStore,
-                        relatedPersonStore: relatedPersonStore, logger: logger)
+                        relatedPersonStore: relatedPersonStore,
+                        serviceRequestStore: serviceRequestStore, logger: logger)
         return Application(responder: router.buildResponder())
     }
 
@@ -327,6 +331,55 @@ struct RouteTests {
             headers[HTTPField.Name("Prefer")!] = "handling=strict"
             try await client.execute(
                 uri: "/RelatedPerson?unknownXYZ=foo",
+                method: .get,
+                headers: headers
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    // ── /ServiceRequest ───────────────────────────────────────────────────────
+
+    @Test("PATCH /ServiceRequest/:id without json-patch+json returns 400 OperationOutcome")
+    func testPatchServiceRequestWrongContentType() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[.contentType] = "application/fhir+json"
+            try await client.execute(
+                uri: "/ServiceRequest/some-id", method: .patch,
+                headers: headers, body: ByteBuffer(string: "[]")
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("POST /ServiceRequest without Content-Type returns 415 OperationOutcome")
+    func testPostServiceRequestNoContentTypeReturns415() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(
+                uri: "/ServiceRequest", method: .post,
+                body: ByteBuffer(string: "{}")
+            ) { response in
+                #expect(response.status == .unsupportedMediaType)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("GET /ServiceRequest with unknown param + handling=strict returns 400 OperationOutcome")
+    func testStrictHandlingServiceRequestUnknownParam() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[HTTPField.Name("Prefer")!] = "handling=strict"
+            try await client.execute(
+                uri: "/ServiceRequest?unknownXYZ=foo",
                 method: .get,
                 headers: headers
             ) { response in

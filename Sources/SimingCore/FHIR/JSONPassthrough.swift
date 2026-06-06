@@ -303,6 +303,14 @@ public let locationSummaryFields: Set<String> = [
     "managingOrganization", "partOf",
 ]
 
+/// ServiceRequest Σ-marked elements per FHIR R4 (excluding mandatory id/meta/resourceType).
+public let serviceRequestSummaryFields: Set<String> = [
+    "identifier", "instantiatesCanonical", "instantiatesUri", "basedOn", "replaces",
+    "requisition", "status", "intent", "category", "priority", "doNotPerform",
+    "code", "subject", "encounter", "occurrence", "authoredOn",
+    "requester", "performerType", "performer",
+]
+
 /// RelatedPerson Σ-marked elements per FHIR R4 §12.30 (excluding mandatory id/meta/resourceType).
 public let relatedPersonSummaryFields: Set<String> = [
     "identifier", "active", "patient", "relationship", "name",

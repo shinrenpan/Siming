@@ -91,6 +91,10 @@ actor TestDatabase {
         RelatedPersonStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeServiceRequestStore() throws -> ServiceRequestStore {
+        ServiceRequestStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -340,6 +344,37 @@ func makeRelatedPerson(
     if let a = active { json += #","active":\#(a)"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.RelatedPerson.self, from: Data(json.utf8))
+}
+
+func makeServiceRequest(
+    patientId: String,
+    status: String = "active",
+    intent: String = "order",
+    priority: String? = nil,
+    code: String? = nil,
+    codeSystem: String = "http://snomed.info/sct",
+    category: String? = nil,
+    categorySystem: String = "http://snomed.info/sct",
+    authoredOn: String? = nil,
+    encounterRef: String? = nil
+) throws -> ModelsR4.ServiceRequest {
+    var json = #"""
+    {"resourceType":"ServiceRequest",
+     "status":"\#(status)",
+     "intent":"\#(intent)",
+     "subject":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let p = priority { json += #","priority":"\#(p)""# }
+    if let c = code {
+        json += #","code":{"coding":[{"system":"\#(codeSystem)","code":"\#(c)"}]}"#
+    }
+    if let c = category {
+        json += #","category":[{"coding":[{"system":"\#(categorySystem)","code":"\#(c)"}]}]"#
+    }
+    if let a = authoredOn { json += #","authoredOn":"\#(a)""# }
+    if let e = encounterRef { json += #","encounter":{"reference":"\#(e)"}"# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {
