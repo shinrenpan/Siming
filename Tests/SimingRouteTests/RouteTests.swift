@@ -40,6 +40,7 @@ struct RouteTests {
         let observationStore        = ObservationStore(client: client, logger: logger)
         let encounterStore          = EncounterStore(client: client, logger: logger)
         let conditionStore          = ConditionStore(client: client, logger: logger)
+        let medicationStore         = MedicationStore(client: client, logger: logger)
         let medicationRequestStore  = MedicationRequestStore(client: client, logger: logger)
         let allergyIntoleranceStore = AllergyIntoleranceStore(client: client, logger: logger)
         let procedureStore          = ProcedureStore(client: client, logger: logger)
@@ -56,6 +57,7 @@ struct RouteTests {
         addObservationRoutes(to: router, store: observationStore, logger: logger)
         addEncounterRoutes(to: router, store: encounterStore, logger: logger)
         addConditionRoutes(to: router, store: conditionStore, logger: logger)
+        addMedicationRoutes(to: router, store: medicationStore, logger: logger)
         addMedicationRequestRoutes(to: router, store: medicationRequestStore, logger: logger)
         addAllergyIntoleranceRoutes(to: router, store: allergyIntoleranceStore, logger: logger)
         addProcedureRoutes(to: router, store: procedureStore, logger: logger)
@@ -73,6 +75,7 @@ struct RouteTests {
                              immunizationStore: immunizationStore, logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
+                        medicationStore: medicationStore,
                         medicationRequestStore: medicationRequestStore,
                         allergyIntoleranceStore: allergyIntoleranceStore,
                         procedureStore: procedureStore,

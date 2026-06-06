@@ -43,6 +43,10 @@ actor TestDatabase {
         ObservationStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeMedicationStore() throws -> MedicationStore {
+        MedicationStore(client: try requiredClient(), logger: logger)
+    }
+
     func makeEncounterStore() throws -> EncounterStore {
         EncounterStore(client: try requiredClient(), logger: logger)
     }
@@ -134,6 +138,28 @@ func makePatient(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Patient.self, from: Data(json.utf8))
+}
+
+func makeMedication(
+    code: String = "1049502",
+    codeSystem: String = "http://www.nlm.nih.gov/research/umls/rxnorm",
+    status: String = "active",
+    lotNumber: String? = nil,
+    expirationDate: String? = nil
+) throws -> ModelsR4.Medication {
+    var json = #"""
+    {"resourceType":"Medication","status":"\#(status)",
+     "code":{"coding":[{"system":"\#(codeSystem)","code":"\#(code)","display":"Hydrocodone"}]}
+    """#
+    if lotNumber != nil || expirationDate != nil {
+        json += #","batch":{"#
+        var batchParts: [String] = []
+        if let ln = lotNumber { batchParts.append(#""lotNumber":"\#(ln)""#) }
+        if let ed = expirationDate { batchParts.append(#""expirationDate":"\#(ed)""#) }
+        json += batchParts.joined(separator: ",") + "}"
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Medication.self, from: Data(json.utf8))
 }
 
 func makeObservation(subjectId: String, code: String = "29463-7", status: String = "final") throws -> ModelsR4.Observation {
@@ -280,7 +306,7 @@ func makeLocation(
         json += #","type":[{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}]"#
     }
     if let c = city {
-        json += #","address":{"city":"\#(c)"}}"#
+        json += #","address":{"city":"\#(c)"}"#
     }
     if let orgId = managingOrganizationId {
         json += #","managingOrganization":{"reference":"Organization/\#(orgId)"}"#

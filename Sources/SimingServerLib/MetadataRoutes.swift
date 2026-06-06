@@ -43,7 +43,7 @@ private func serverRest() -> CapabilityStatementRest {
     var rest = CapabilityStatementRest(
         mode: FHIRPrimitive(.server),
         resource: [patientResource(), observationResource(), encounterResource(), conditionResource(),
-                   medicationRequestResource(), allergyIntoleranceResource(),
+                   medicationResource(), medicationRequestResource(), allergyIntoleranceResource(),
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource()]
     )
@@ -508,6 +508,90 @@ private func conditionResource() -> CapabilityStatementRestResource {
     r.conditionalDelete = FHIRPrimitive(.single)
     r.searchInclude = [
         "Condition:subject", "Condition:patient", "Condition:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func medicationResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Medication resource. Search params: code, status, form, identifier, lot-number, " +
+            "ingredient-code, manufacturer, ingredient, expiration-date, _id, _lastUpdated."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-code")),
+                documentation: FHIRPrimitive(FHIRString("Token: medication code.")),
+                name: FHIRPrimitive(FHIRString("code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: active|inactive|entered-in-error.")),
+                name: FHIRPrimitive(FHIRString("status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-form")),
+                documentation: FHIRPrimitive(FHIRString("Token: powder|tablets|capsules|...")),
+                name: FHIRPrimitive(FHIRString("form")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-identifier")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-lot-number")),
+                documentation: FHIRPrimitive(FHIRString("Token: batch lot number.")),
+                name: FHIRPrimitive(FHIRString("lot-number")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-ingredient-code")),
+                documentation: FHIRPrimitive(FHIRString("Token: ingredient as CodeableConcept.")),
+                name: FHIRPrimitive(FHIRString("ingredient-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-expiration-date")),
+                documentation: FHIRPrimitive(FHIRString("Date: batch expiration date. Prefixes: eq|lt|gt|le|ge|sa|eb.")),
+                name: FHIRPrimitive(FHIRString("expiration-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-manufacturer")),
+                documentation: FHIRPrimitive(FHIRString("Reference to manufacturer Organization.")),
+                name: FHIRPrimitive(FHIRString("manufacturer")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Medication-ingredient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to ingredient substance/medication.")),
+                name: FHIRPrimitive(FHIRString("ingredient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.medication),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Medication:manufacturer",
+        "Medication:ingredient",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }

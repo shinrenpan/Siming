@@ -10,6 +10,7 @@ public func addSystemRoutes(
     observationStore: ObservationStore,
     encounterStore: EncounterStore,
     conditionStore: ConditionStore,
+    medicationStore: MedicationStore,
     medicationRequestStore: MedicationRequestStore,
     allergyIntoleranceStore: AllergyIntoleranceStore,
     procedureStore: ProcedureStore,
@@ -40,6 +41,7 @@ public func addSystemRoutes(
         async let obsEntries       = include("Observation")         ? observationStore.typeHistory(since: since, count: count)         : []
         async let encEntries       = include("Encounter")           ? encounterStore.typeHistory(since: since, count: count)           : []
         async let conEntries       = include("Condition")           ? conditionStore.typeHistory(since: since, count: count)           : []
+        async let medBaseEntries   = include("Medication")          ? medicationStore.typeHistory(since: since, count: count)          : []
         async let medEntries       = include("MedicationRequest")   ? medicationRequestStore.typeHistory(since: since, count: count)   : []
         async let allergyEntries   = include("AllergyIntolerance")  ? allergyIntoleranceStore.typeHistory(since: since, count: count)  : []
         async let procEntries      = include("Procedure")           ? procedureStore.typeHistory(since: since, count: count)           : []
@@ -50,7 +52,7 @@ public func addSystemRoutes(
         async let locEntries       = include("Location")            ? locationStore.typeHistory(since: since, count: count)            : []
 
         let all = try await (
-            patientEntries + obsEntries + encEntries + conEntries + medEntries + allergyEntries
+            patientEntries + obsEntries + encEntries + conEntries + medBaseEntries + medEntries + allergyEntries
             + procEntries + drEntries + immEntries + pracEntries + orgEntries + locEntries
         )
         .sorted { $0.lastUpdated > $1.lastUpdated }

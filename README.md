@@ -32,6 +32,7 @@ Server listens on `http://localhost:8080`.
 | Observation | ✓ | ✓ | `GET /Patient/:id/Observation` |
 | Encounter | ✓ | ✓ | `GET /Patient/:id/Encounter` |
 | Condition | ✓ | ✓ | `GET /Patient/:id/Condition` |
+| Medication | ✓ | ✓ | — |
 | MedicationRequest | ✓ | ✓ | `GET /Patient/:id/MedicationRequest` |
 | AllergyIntolerance | ✓ | ✓ | `GET /Patient/:id/AllergyIntolerance` |
 | Procedure | ✓ | ✓ | `GET /Patient/:id/Procedure` |
@@ -96,6 +97,8 @@ Server listens on `http://localhost:8080`.
 **Practitioner** — `name`, `family`, `given`, `identifier`, `active`, `gender`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `communication`, `_id`, `_lastUpdated`
 
 **Organization** — `name`, `identifier`, `active`, `type`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `partof`, `_id`, `_lastUpdated`
+
+**Medication** — `code`, `status`, `form`, `identifier`, `lot-number`, `ingredient-code`, `manufacturer`, `ingredient`, `expiration-date`, `_id`, `_lastUpdated`
 
 **Location** — `name`, `identifier`, `status`, `type`, `operational-status`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `organization`, `partof`, `_id`, `_lastUpdated` (`near` geospatial not supported)
 

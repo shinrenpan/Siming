@@ -8,6 +8,7 @@ public func buildRouter(
     observationStore: ObservationStore,
     encounterStore: EncounterStore,
     conditionStore: ConditionStore,
+    medicationStore: MedicationStore,
     medicationRequestStore: MedicationRequestStore,
     allergyIntoleranceStore: AllergyIntoleranceStore,
     procedureStore: ProcedureStore,
@@ -29,6 +30,7 @@ public func buildRouter(
     addObservationRoutes(to: router, store: observationStore, logger: logger)
     addEncounterRoutes(to: router, store: encounterStore, logger: logger)
     addConditionRoutes(to: router, store: conditionStore, logger: logger)
+    addMedicationRoutes(to: router, store: medicationStore, logger: logger)
     addMedicationRequestRoutes(to: router, store: medicationRequestStore, logger: logger)
     addAllergyIntoleranceRoutes(to: router, store: allergyIntoleranceStore, logger: logger)
     addProcedureRoutes(to: router, store: procedureStore, logger: logger)
@@ -46,6 +48,7 @@ public func buildRouter(
                          immunizationStore: immunizationStore, logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
+                    medicationStore: medicationStore,
                     medicationRequestStore: medicationRequestStore,
                     allergyIntoleranceStore: allergyIntoleranceStore,
                     procedureStore: procedureStore,
