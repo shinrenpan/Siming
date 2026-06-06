@@ -218,4 +218,57 @@ struct RouteTests {
             }
         }
     }
+
+    // ── PATCH Content-Type validation ─────────────────────────────────────────
+
+    @Test("PATCH /Patient/:id without json-patch+json returns 400 OperationOutcome")
+    func testPatchPatientWrongContentType() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[.contentType] = "application/fhir+json"
+            try await client.execute(
+                uri: "/Patient/some-id", method: .patch,
+                headers: headers,
+                body: ByteBuffer(string: "[]")
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("PATCH /Observation/:id without json-patch+json returns 400 OperationOutcome")
+    func testPatchObservationWrongContentType() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[.contentType] = "application/fhir+json"
+            try await client.execute(
+                uri: "/Observation/some-id", method: .patch,
+                headers: headers,
+                body: ByteBuffer(string: "[]")
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("PATCH /Immunization/:id without json-patch+json returns 400 OperationOutcome")
+    func testPatchImmunizationWrongContentType() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[.contentType] = "text/plain"
+            try await client.execute(
+                uri: "/Immunization/some-id", method: .patch,
+                headers: headers,
+                body: ByteBuffer(string: "[]")
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
 }

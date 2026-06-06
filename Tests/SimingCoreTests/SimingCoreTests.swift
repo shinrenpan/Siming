@@ -932,3 +932,208 @@ struct BuildBundleJSONNilTotalTests {
         #expect(json.contains("\"total\":42"))
     }
 }
+
+// ── JSONPatch ─────────────────────────────────────────────────────────────────
+
+@Suite("JSONPatch")
+struct JSONPatchTests {
+
+    // ── JSON Pointer ──────────────────────────────────────────────────────────
+
+    @Test("parseJSONPointer: empty string → root")
+    func pointerRoot() throws {
+        let tokens = try parseJSONPointer("")
+        #expect(tokens.isEmpty)
+    }
+
+    @Test("parseJSONPointer: single level")
+    func pointerSingleLevel() throws {
+        let tokens = try parseJSONPointer("/status")
+        #expect(tokens == ["status"])
+    }
+
+    @Test("parseJSONPointer: nested path")
+    func pointerNested() throws {
+        let tokens = try parseJSONPointer("/name/0/family")
+        #expect(tokens == ["name", "0", "family"])
+    }
+
+    @Test("parseJSONPointer: tilde escaping")
+    func pointerTildeEscape() throws {
+        let tokens = try parseJSONPointer("/a~1b/c~0d")
+        #expect(tokens == ["a/b", "c~d"])
+    }
+
+    @Test("parseJSONPointer: invalid (no leading slash) throws")
+    func pointerInvalidThrows() throws {
+        #expect(throws: JSONPointerError.self) {
+            try parseJSONPointer("status")
+        }
+    }
+
+    // ── replace ───────────────────────────────────────────────────────────────
+
+    @Test("replace top-level string field")
+    func replaceTopLevel() throws {
+        let doc  = #"{"status":"active"}"#.data(using: .utf8)!
+        let patch = #"[{"op":"replace","path":"/status","value":"inactive"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["status"] as? String == "inactive")
+    }
+
+    @Test("replace nested field")
+    func replaceNested() throws {
+        let doc  = #"{"name":[{"family":"Smith"}]}"#.data(using: .utf8)!
+        let patch = #"[{"op":"replace","path":"/name/0/family","value":"Jones"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        let name = try #require(obj["name"] as? [[String: Any]])
+        #expect(name[0]["family"] as? String == "Jones")
+    }
+
+    // ── add ───────────────────────────────────────────────────────────────────
+
+    @Test("add new key to object")
+    func addNewKey() throws {
+        let doc  = #"{"a":1}"#.data(using: .utf8)!
+        let patch = #"[{"op":"add","path":"/b","value":2}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["b"] as? Int == 2)
+    }
+
+    @Test("add to array by index")
+    func addToArray() throws {
+        let doc  = #"{"arr":[1,3]}"#.data(using: .utf8)!
+        let patch = #"[{"op":"add","path":"/arr/1","value":2}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        let arr = try #require(obj["arr"] as? [Int])
+        #expect(arr == [1, 2, 3])
+    }
+
+    @Test("add to end of array with '-'")
+    func addArrayAppend() throws {
+        let doc  = #"{"arr":[1,2]}"#.data(using: .utf8)!
+        let patch = #"[{"op":"add","path":"/arr/-","value":3}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        let arr = try #require(obj["arr"] as? [Int])
+        #expect(arr == [1, 2, 3])
+    }
+
+    // ── remove ────────────────────────────────────────────────────────────────
+
+    @Test("remove key from object")
+    func removeKey() throws {
+        let doc  = #"{"a":1,"b":2}"#.data(using: .utf8)!
+        let patch = #"[{"op":"remove","path":"/b"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["b"] == nil)
+        #expect(obj["a"] as? Int == 1)
+    }
+
+    @Test("remove array element")
+    func removeArrayElement() throws {
+        let doc  = #"{"arr":[1,2,3]}"#.data(using: .utf8)!
+        let patch = #"[{"op":"remove","path":"/arr/1"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        let arr = try #require(obj["arr"] as? [Int])
+        #expect(arr == [1, 3])
+    }
+
+    // ── move ──────────────────────────────────────────────────────────────────
+
+    @Test("move value between keys")
+    func moveValue() throws {
+        let doc  = #"{"a":42,"b":0}"#.data(using: .utf8)!
+        let patch = #"[{"op":"move","from":"/a","path":"/c"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["a"] == nil)
+        #expect(obj["c"] as? Int == 42)
+    }
+
+    // ── copy ──────────────────────────────────────────────────────────────────
+
+    @Test("copy value to new key")
+    func copyValue() throws {
+        let doc  = #"{"a":99}"#.data(using: .utf8)!
+        let patch = #"[{"op":"copy","from":"/a","path":"/b"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["a"] as? Int == 99)
+        #expect(obj["b"] as? Int == 99)
+    }
+
+    // ── test ──────────────────────────────────────────────────────────────────
+
+    @Test("test passes when value matches")
+    func testPasses() throws {
+        let doc  = #"{"status":"active"}"#.data(using: .utf8)!
+        let patch = #"[{"op":"test","path":"/status","value":"active"}]"#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["status"] as? String == "active")
+    }
+
+    @Test("test throws testFailed when value differs")
+    func testFailsThrows() throws {
+        let doc  = #"{"status":"active"}"#.data(using: .utf8)!
+        let patch = #"[{"op":"test","path":"/status","value":"inactive"}]"#.data(using: .utf8)!
+        #expect(throws: JSONPatchError.self) {
+            try JSONPatch.apply(patch, to: doc)
+        }
+    }
+
+    // ── error cases ───────────────────────────────────────────────────────────
+
+    @Test("replace missing key throws pathNotFound")
+    func replaceMissingKey() throws {
+        let doc  = #"{"a":1}"#.data(using: .utf8)!
+        let patch = #"[{"op":"replace","path":"/b","value":2}]"#.data(using: .utf8)!
+        #expect(throws: JSONPatchError.self) {
+            try JSONPatch.apply(patch, to: doc)
+        }
+    }
+
+    @Test("non-array patch body throws invalidPatch")
+    func nonArrayBody() throws {
+        let doc  = #"{"a":1}"#.data(using: .utf8)!
+        let patch = #"{"op":"replace","path":"/a","value":2}"#.data(using: .utf8)!
+        #expect(throws: JSONPatchError.self) {
+            try JSONPatch.apply(patch, to: doc)
+        }
+    }
+
+    @Test("unknown operation throws invalidPatch")
+    func unknownOp() throws {
+        let doc  = #"{"a":1}"#.data(using: .utf8)!
+        let patch = #"[{"op":"flip","path":"/a","value":2}]"#.data(using: .utf8)!
+        #expect(throws: JSONPatchError.self) {
+            try JSONPatch.apply(patch, to: doc)
+        }
+    }
+
+    // ── multi-operation sequence ──────────────────────────────────────────────
+
+    @Test("multiple operations applied in order")
+    func multipleOps() throws {
+        let doc  = #"{"a":1,"b":2}"#.data(using: .utf8)!
+        let patch = #"""
+            [
+              {"op":"replace","path":"/a","value":10},
+              {"op":"add","path":"/c","value":3},
+              {"op":"remove","path":"/b"}
+            ]
+            """#.data(using: .utf8)!
+        let result = try JSONPatch.apply(patch, to: doc)
+        let obj = try #require(JSONSerialization.jsonObject(with: result) as? [String: Any])
+        #expect(obj["a"] as? Int == 10)
+        #expect(obj["c"] as? Int == 3)
+        #expect(obj["b"] == nil)
+    }
+}

@@ -42,12 +42,13 @@ Server listens on `http://localhost:8080`.
 
 | Feature | Status |
 |---|---|
-| read, vread, create, update, delete | ✓ |
+| read, vread, create, update, patch, delete | ✓ |
 | history — instance, type, system | ✓ |
 | `/_history?_type=Patient,Observation,...` | ✓ |
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
+| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 9 resource types | ✓ |
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |

@@ -288,6 +288,50 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
                         body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }
 
+    // PATCH /Patient/:id — JSON Patch (RFC 6902)
+    group.patch(":id") { request, context in
+        let id = context.parameters.get("id") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/json-patch+json") else {
+            throw FHIRRouteError.invalidBody(
+                "PATCH requires Content-Type: application/json-patch+json"
+            )
+        }
+        let ifMatch = parseETag(request.headers[.ifMatch])
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        let patchData = Data(bodyBuffer.readableBytesView)
+
+        let current = try await store.read(id: id)
+        let patchedJSON: Data
+        do {
+            patchedJSON = try JSONPatch.apply(patchData, to: current.jsonData)
+        } catch let e as JSONPatchError {
+            switch e {
+            case .invalidPatch(let m), .pathNotFound(let m):
+                throw FHIRRouteError.invalidBody(m)
+            case .testFailed(let m):
+                throw FHIRRouteError.unprocessableEntity(m)
+            }
+        }
+        let patient: Patient
+        do {
+            patient = try JSONDecoder().decode(Patient.self, from: patchedJSON)
+        } catch {
+            throw FHIRRouteError.unprocessableEntity(
+                "Patched resource is not valid FHIR: \(error.localizedDescription)"
+            )
+        }
+        let result = try await store.update(id: id, patient: patient, ifMatch: ifMatch)
+        var headers = HTTPFields()
+        headers[.contentType]  = fhirJSON
+        headers[.eTag]         = "W/\"\(result.versionId)\""
+        headers[.lastModified] = httpDate(result.lastUpdated)
+        headers[.location]     = "/Patient/\(result.id)/_history/\(result.versionId)"
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+    }
+
     // DELETE /Patient?<search> — conditional delete (no id in URL)
     group.delete { request, _ in
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
@@ -475,14 +519,16 @@ enum FHIRRouteError: Error {
     case unsupportedMediaType
     case invalidBody(String)
     case unknownParams([String])
+    case unprocessableEntity(String)
 }
 
 extension FHIRRouteError: HTTPResponseError {
     var status: HTTPResponse.Status {
         switch self {
-        case .unsupportedMediaType: .unsupportedMediaType
-        case .invalidBody:          .badRequest
-        case .unknownParams:        .badRequest
+        case .unsupportedMediaType:  .unsupportedMediaType
+        case .invalidBody:           .badRequest
+        case .unknownParams:         .badRequest
+        case .unprocessableEntity:   .unprocessableContent
         }
     }
 
@@ -494,6 +540,8 @@ extension FHIRRouteError: HTTPResponseError {
             (.error, .invalid, "Request body is not valid FHIR JSON: \(msg)")
         case .unknownParams(let names):
             (.error, .notSupported, "Unknown search parameter(s): \(names.joined(separator: ", "))")
+        case .unprocessableEntity(let msg):
+            (.error, .invalid, msg)
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()

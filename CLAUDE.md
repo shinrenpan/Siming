@@ -243,6 +243,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
 - **DELETE** returns 204 No Content; subsequent GET on deleted resource returns **410 Gone** (not 404).
+- **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read current resource → apply patch (`JSONPatch.apply`) → decode FHIR model → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
 - **`If-None-Match` takes precedence** over `If-Modified-Since` when both headers are present (RFC 7232 §6).
 - **Compartment constraint** (`GET /Patient/:id/Observation`, `/Patient/:id/Encounter`, `/Patient/:id/Condition`, `/Patient/:id/MedicationRequest`, `/Patient/:id/AllergyIntolerance`) is injected server-side; client cannot override the subject filter.
 - Benchmarking: compare under the same feature set only — state what's supported alongside any number. See `benchmarks/README.md`.
