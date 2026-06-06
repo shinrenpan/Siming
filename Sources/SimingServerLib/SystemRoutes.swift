@@ -17,6 +17,7 @@ public func addSystemRoutes(
     immunizationStore: ImmunizationStore,
     practitionerStore: PractitionerStore,
     organizationStore: OrganizationStore,
+    locationStore: LocationStore,
     logger: Logger
 ) {
     // GET /_history — system-level history across all resource types
@@ -46,10 +47,11 @@ public func addSystemRoutes(
         async let immEntries       = include("Immunization")        ? immunizationStore.typeHistory(since: since, count: count)        : []
         async let pracEntries      = include("Practitioner")        ? practitionerStore.typeHistory(since: since, count: count)        : []
         async let orgEntries       = include("Organization")        ? organizationStore.typeHistory(since: since, count: count)        : []
+        async let locEntries       = include("Location")            ? locationStore.typeHistory(since: since, count: count)            : []
 
         let all = try await (
             patientEntries + obsEntries + encEntries + conEntries + medEntries + allergyEntries
-            + procEntries + drEntries + immEntries + pracEntries + orgEntries
+            + procEntries + drEntries + immEntries + pracEntries + orgEntries + locEntries
         )
         .sorted { $0.lastUpdated > $1.lastUpdated }
         .prefix(count)

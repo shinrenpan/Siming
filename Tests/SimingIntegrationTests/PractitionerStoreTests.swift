@@ -140,7 +140,7 @@ final class PractitionerStoreTests: XCTestCase {
         _ = try await store.create(makePractitioner(family: "IdPracA", identifier: "NPI-001"))
         _ = try await store.create(makePractitioner(family: "IdPracB", identifier: "NPI-002"))
 
-        let q = PractitionerSearchQuery(identifier: [.init(system: nil, code: "NPI-001")])
+        let q = PractitionerSearchQuery(identifier: [.parse("NPI-001")])
         let result = try await store.search(query: q)
         XCTAssertEqual(result.total, 1)
     }

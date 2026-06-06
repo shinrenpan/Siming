@@ -79,6 +79,10 @@ actor TestDatabase {
         OrganizationStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeLocationStore() throws -> LocationStore {
+        LocationStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -261,6 +265,28 @@ func makeOrganization(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Organization.self, from: Data(json.utf8))
+}
+
+func makeLocation(
+    name: String,
+    status: String = "active",
+    type: String? = nil,
+    typeSystem: String = "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+    city: String? = nil,
+    managingOrganizationId: String? = nil
+) throws -> ModelsR4.Location {
+    var json = #"{"resourceType":"Location","name":"\#(name)","status":"\#(status)""#
+    if let t = type {
+        json += #","type":[{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}]"#
+    }
+    if let c = city {
+        json += #","address":{"city":"\#(c)"}}"#
+    }
+    if let orgId = managingOrganizationId {
+        json += #","managingOrganization":{"reference":"Organization/\#(orgId)"}"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Location.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

@@ -129,7 +129,7 @@ final class OrganizationStoreTests: XCTestCase {
         _ = try await store.create(makeOrganization(name: "OrgIdA", identifier: "ORG-001"))
         _ = try await store.create(makeOrganization(name: "OrgIdB", identifier: "ORG-002"))
 
-        let q = OrganizationSearchQuery(identifier: [.init(system: nil, code: "ORG-001")])
+        let q = OrganizationSearchQuery(identifier: [.parse("ORG-001")])
         let result = try await store.search(query: q)
         XCTAssertEqual(result.total, 1)
     }

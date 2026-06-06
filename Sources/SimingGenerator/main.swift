@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let locationParams = try loadParams(resourceType: "Location", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let locationCode = generateLocationExtractor(params: locationParams)
+let locationOut  = "\(outputDir)/Location+SearchExtractor.swift"
+try locationCode.write(toFile: locationOut, atomically: true, encoding: .utf8)
+print("Generated \(locationOut) — \(locationParams.count) Location params")
+
 let practitionerParams = try loadParams(resourceType: "Practitioner", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

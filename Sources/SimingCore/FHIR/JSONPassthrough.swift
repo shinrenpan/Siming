@@ -290,6 +290,13 @@ public let organizationSummaryFields: Set<String> = [
     "telecom", "address", "partOf", "contact", "endpoint",
 ]
 
+/// Location Σ-marked elements per FHIR R4 §12.10 (excluding mandatory id/meta/resourceType).
+public let locationSummaryFields: Set<String> = [
+    "identifier", "status", "operationalStatus", "name", "alias", "mode",
+    "type", "telecom", "address", "physicalType", "position",
+    "managingOrganization", "partOf",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.
