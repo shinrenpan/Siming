@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let goalParams = try loadParams(resourceType: "Goal", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let goalCode = generateGoalExtractor(params: goalParams)
+let goalOut  = "\(outputDir)/Goal+SearchExtractor.swift"
+try goalCode.write(toFile: goalOut, atomically: true, encoding: .utf8)
+print("Generated \(goalOut) — \(goalParams.count) Goal params")
+
 let carePlanParams = try loadParams(resourceType: "CarePlan", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

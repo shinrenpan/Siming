@@ -319,6 +319,12 @@ public let specimenSummaryFields: Set<String> = [
 ]
 
 /// DocumentReference Σ-marked elements per FHIR R4 §11.2 (excluding mandatory id/meta/resourceType).
+public let goalSummaryFields: Set<String> = [
+    "identifier", "lifecycleStatus", "achievementStatus", "category", "priority",
+    "description", "subject", "start", "target", "statusDate", "statusReason",
+    "expressedBy", "addresses", "note", "outcomeCode", "outcomeReference",
+]
+
 public let carePlanSummaryFields: Set<String> = [
     "identifier", "instantiatesCanonical", "instantiatesUri", "basedOn", "replaces",
     "partOf", "status", "intent", "category", "title", "description", "subject",

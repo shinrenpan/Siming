@@ -107,6 +107,10 @@ actor TestDatabase {
         CarePlanStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeGoalStore() throws -> GoalStore {
+        GoalStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -484,6 +488,38 @@ func makeCarePlan(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.CarePlan.self, from: Data(json.utf8))
+}
+
+func makeGoal(
+    patientId: String,
+    lifecycleStatus: String = "active",
+    category: String? = nil,
+    categorySystem: String = "http://hl7.org/fhir/us/core/CodeSystem/goal-category",
+    startDate: String? = nil,
+    targetDate: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://example.org"
+) throws -> ModelsR4.Goal {
+    var json = #"""
+    {"resourceType":"Goal",
+     "lifecycleStatus":"\#(lifecycleStatus)",
+     "description":{"text":"Goal"},
+     "subject":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let c = category {
+        json += #","category":[{"coding":[{"system":"\#(categorySystem)","code":"\#(c)"}]}]"#
+    }
+    if let sd = startDate {
+        json += #","startDate":"\#(sd)""#
+    }
+    if let td = targetDate {
+        json += #","target":[{"dueDate":"\#(td)"}]"#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Goal.self, from: Data(json.utf8))
 }
 
 func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {

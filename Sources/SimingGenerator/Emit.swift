@@ -6,6 +6,50 @@ private let generatedHeader = """
 // Regenerate: swift run SimingGenerator
 """
 
+func generateGoalExtractor(params: [ParamSpec]) -> String {
+    let fnPrefix = "extract_Goal_"
+
+    let resolved: [(ParamSpec, String?)] = params.map { spec in
+        (spec, goalExpr(from: spec.expression))
+    }
+
+    let dispatchLines = resolved.map { spec, _ in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        return "    \(fnPrefix)\(swiftCode)(&p, g)"
+    }.joined(separator: "\n")
+
+    let functionBodies = resolved.map { spec, expr -> String in
+        let swiftCode = spec.code.replacingOccurrences(of: "-", with: "_")
+        let fn = "\(fnPrefix)\(swiftCode)"
+        if let e = expr, let body = goalHandler(spec: spec, expr: e) {
+            return body
+        }
+        return """
+        // TODO: unhandled — \(spec.code) [\(spec.type)] \(spec.expression)
+        private func \(fn)(_ p: inout SearchParams, _ g: Goal) {}
+        """
+    }.joined(separator: "\n\n")
+
+    return """
+    \(generatedHeader)
+
+    import Foundation
+    import ModelsR4
+
+    /// Extracts all supported search parameters from a Goal for insertion
+    /// into the five idx_* index tables.
+    ///
+    /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
+    public func extractGoalSearchParams(_ g: Goal) -> SearchParams {
+        var p = SearchParams()
+    \(dispatchLines)
+        return p
+    }
+
+    \(functionBodies)
+    """
+}
+
 func generateCarePlanExtractor(params: [ParamSpec]) -> String {
     let fnPrefix = "extract_CarePlan_"
 

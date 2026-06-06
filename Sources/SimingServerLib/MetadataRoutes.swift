@@ -47,7 +47,7 @@ private func serverRest() -> CapabilityStatementRest {
                    procedureResource(), diagnosticReportResource(), immunizationResource(),
                    practitionerResource(), organizationResource(), locationResource(),
                    relatedPersonResource(), serviceRequestResource(), specimenResource(),
-                   documentReferenceResource(), carePlanResource()]
+                   documentReferenceResource(), carePlanResource(), goalResource()]
     )
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
@@ -2019,6 +2019,87 @@ private func documentReferenceResource() -> CapabilityStatementRestResource {
     r.searchInclude = [
         "DocumentReference:subject", "DocumentReference:patient",
         "DocumentReference:author", "DocumentReference:encounter",
+    ].map { FHIRPrimitive(FHIRString($0)) }
+    return r
+}
+
+private func goalResource() -> CapabilityStatementRestResource {
+    var r = CapabilityStatementRestResource(
+        documentation: FHIRPrimitive(FHIRString(
+            "Goal resource. Supports CRUD, history, and search. " +
+            "In Patient compartment: GET /Patient/:id/Goal (POST /_search). " +
+            "Search: lifecycle-status, achievement-status, category, identifier, start-date, target-date, subject, patient. " +
+            ":not modifier on lifecycle-status, category. " +
+            "_sort: ±_lastUpdated, ±_id."
+        )),
+        interaction: baselineInteractions,
+        readHistory: FHIRPrimitive(FHIRBool(true)),
+        searchParam: [
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-lifecycle-status")),
+                documentation: FHIRPrimitive(FHIRString("Token: proposed|planned|accepted|active|on-hold|completed|cancelled|entered-in-error|rejected. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("lifecycle-status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-achievement-status")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Goal.achievementStatus CodeableConcept. Formats: code, system|code.")),
+                name: FHIRPrimitive(FHIRString("achievement-status")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-category")),
+                documentation: FHIRPrimitive(FHIRString("Token OR on Goal.category CodeableConcept array. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("category")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-identifier")),
+                documentation: FHIRPrimitive(FHIRString("Token on Goal.identifier. Formats: code, system|code, system|.")),
+                name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-start-date")),
+                documentation: FHIRPrimitive(FHIRString("Date on Goal.start[x] (when StartDate). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("start-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-target-date")),
+                documentation: FHIRPrimitive(FHIRString("Date on Goal.target.due[x] (when DueDate). Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("target-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-subject")),
+                documentation: FHIRPrimitive(FHIRString("Reference to Goal.subject (any resource type).")),
+                name: FHIRPrimitive(FHIRString("subject")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Goal-patient")),
+                documentation: FHIRPrimitive(FHIRString("Reference to Goal.subject restricted to Patient.")),
+                name: FHIRPrimitive(FHIRString("patient")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_id")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                name: FHIRPrimitive(FHIRString("_lastUpdated")),
+                type: FHIRPrimitive(.date)
+            ),
+        ],
+        type: FHIRPrimitive(.goal),
+        versioning: FHIRPrimitive(.versioned)
+    )
+    r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
+    r.conditionalDelete = FHIRPrimitive(.single)
+    r.searchInclude = [
+        "Goal:subject", "Goal:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
     return r
 }
