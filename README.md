@@ -24,26 +24,68 @@ Server listens on `http://localhost:8080`.
 
 ## FHIR R4 capabilities
 
+### Supported resources
+
+| Resource | CRUD | Search | Compartment |
+|---|---|---|---|
+| Patient | ✓ | ✓ | — |
+| Observation | ✓ | ✓ | `GET /Patient/:id/Observation` |
+| Encounter | ✓ | ✓ | `GET /Patient/:id/Encounter` |
+| Condition | ✓ | ✓ | `GET /Patient/:id/Condition` |
+| MedicationRequest | ✓ | ✓ | `GET /Patient/:id/MedicationRequest` |
+| AllergyIntolerance | ✓ | ✓ | `GET /Patient/:id/AllergyIntolerance` |
+
+### Interactions
+
 | Feature | Status |
 |---|---|
-| Patient + Observation CRUD | ✓ |
-| vread (`/[type]/[id]/_history/[vid]`) | ✓ |
-| History — instance, type, system | ✓ |
-| Search — 15 Patient / 12+ Observation params | ✓ |
-| Search modifiers: `:contains` `:exact` `:text` `:not` `:missing` | ✓ |
-| Date prefixes: `eq` `lt` `gt` `le` `ge` `sa` `eb` | ✓ |
-| `_sort`, `_count`, cursor pagination | ✓ |
-| Compartment search (`GET /Patient/:id/Observation`) | ✓ |
-| Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
+| read, vread, create, update, delete | ✓ |
+| history — instance, type, system | ✓ |
+| `/_history?_type=Patient,Observation,...` | ✓ |
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
+| Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
+| `ETag` / `If-Match` optimistic locking | ✓ |
+| `410 Gone` on deleted resource GET | ✓ |
+
+### Search
+
+| Feature | Status |
+|---|---|
+| Date prefixes: `eq` `lt` `gt` `le` `ge` `sa` `eb` | ✓ |
+| String modifiers: `:contains` `:exact` `:text` | ✓ |
+| Token modifier: `:not` | ✓ |
+| `:missing` modifier | ✓ |
+| Multiple values — OR (comma) / AND (repeated param) | ✓ |
+| `_sort`, `_count`, cursor pagination | ✓ |
+| `_total` (`accurate` \| `none`) | ✓ |
+| `_elements` (field projection) | ✓ |
+| `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
-| `Prefer: return=minimal` on create/update | ✓ |
+| POST `/_search` (form-encoded) | ✓ |
+
+**Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `_id`, `_lastUpdated`
+
+**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `identifier`, `_id`, `_lastUpdated`
+
+**Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `_id`, `_lastUpdated`
+
+**Condition** — `subject`, `patient`, `clinical-status`, `verification-status`, `category`, `severity`, `code`, `body-site`, `encounter`, `onset-date`, `abatement-date`, `recorded-date`, `identifier`, `_id`, `_lastUpdated`
+
+**MedicationRequest** — `subject`, `patient`, `status`, `intent`, `medication`, `code`, `priority`, `authored-on`, `identifier`, `_id`, `_lastUpdated`
+
+**AllergyIntolerance** — `patient`, `clinical-status`, `verification-status`, `type`, `category`, `criticality`, `code`, `identifier`, `date`, `manifestation`, `severity`, `route`, `last-date`, `onset`, `_id`, `_lastUpdated`
+
+### Other
+
+| Feature | Status |
+|---|---|
 | CapabilityStatement (`GET /metadata`) | ✓ |
 | Prometheus metrics (`GET /metrics`) | ✓ |
+| `X-Request-ID` trace header | ✓ |
 
-All error responses are `OperationOutcome`. `ETag` / `If-Match` optimistic locking on updates.
+All error responses are `OperationOutcome`.
 
 ## Configuration
 
