@@ -219,51 +219,11 @@ public struct AppointmentStore: Sendable {
         let searchParams = extractAppointmentSearchParams(appt)
 
         return try await client.withConnection { conn in
-            _ = try await conn.query("BEGIN", logger: logger)
-            do {
-                if let expected = ifMatch {
-                    let vRows = try await conn.query(
-                        """
-                        SELECT version_id FROM resources
-                        WHERE resource_type = 'Appointment' AND id = \(id)
-                        ORDER BY version_id DESC LIMIT 1
-                        """, logger: logger)
-                    var current: Int64? = nil
-                    for try await (v) in vRows.decode(Int64.self, context: .default) { current = v }
-                    guard current == expected else {
-                        throw FHIRServerError.versionConflict(id: id, expected: expected, actual: current)
-                    }
-                }
-
-                let nvRows = try await conn.query(
-                    """
-                    SELECT COALESCE(MAX(version_id), 0) + 1
-                    FROM resources
-                    WHERE resource_type = 'Appointment' AND id = \(id)
-                    """, logger: logger)
-                var nextVersion: Int64 = 1
-                for try await (v) in nvRows.decode(Int64.self, context: .default) { nextVersion = v }
-
-                let insRows = try await conn.query(
-                    """
-                    INSERT INTO resources
-                        (resource_type, id, version_id, last_updated, content, deleted)
-                    VALUES ('Appointment', \(id), \(nextVersion), now(), \(jsonString)::jsonb, false)
-                    RETURNING last_updated
-                    """, logger: logger)
-                var lastUpdated = Date()
-                for try await (d) in insRows.decode(Date.self, context: .default) { lastUpdated = d }
-
-                try await replaceIndexRows(conn: conn, resourceType: "Appointment", id: id, params: searchParams, logger: logger)
-
-                _ = try await conn.query("COMMIT", logger: logger)
-
-                let responseData = injectMeta(into: jsonString, versionId: nextVersion, lastUpdated: lastUpdated)
-                return WriteResult(id: id, versionId: nextVersion, lastUpdated: lastUpdated, jsonData: responseData)
-            } catch {
-                _ = try? await conn.query("ROLLBACK", logger: logger)
-                throw error
-            }
+            let (versionId, lastUpdated) = try await writeResource(
+                conn: conn, resourceType: "Appointment", id: id,
+                jsonString: jsonString, ifMatch: ifMatch, params: searchParams, logger: logger)
+            let responseData = injectMeta(into: jsonString, versionId: versionId, lastUpdated: lastUpdated)
+            return WriteResult(id: id, versionId: versionId, lastUpdated: lastUpdated, jsonData: responseData)
         }
     }
 
