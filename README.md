@@ -120,15 +120,15 @@ Server listens on `http://localhost:8080`.
 
 **DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `_id`, `_lastUpdated`
 
-**CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
+**CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `activity-date`, `instantiates-canonical`, `instantiates-uri`, `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
 
 **Goal** — `lifecycle-status`, `achievement-status`, `category`, `identifier`, `start-date`, `target-date`, `subject`, `patient`, `_id`, `_lastUpdated`
 
 **MedicationStatement** — `status`, `category`, `code`, `identifier`, `effective`, `subject`, `patient`, `context`, `source`, `medication`, `part-of`, `_id`, `_lastUpdated`
 
-**FamilyMemberHistory** — `status`, `relationship`, `sex`, `code`, `identifier`, `date`, `patient`, `_id`, `_lastUpdated`
+**FamilyMemberHistory** — `status`, `relationship`, `sex`, `code`, `identifier`, `date`, `instantiates-canonical`, `instantiates-uri`, `patient`, `_id`, `_lastUpdated`
 
-**Appointment** — `status`, `service-type`, `appointment-type`, `specialty`, `reason-code`, `service-category`, `part-status`, `identifier`, `date`, `patient`, `practitioner`, `location`, `actor`, `_id`, `_lastUpdated`
+**Appointment** — `status`, `service-type`, `appointment-type`, `specialty`, `reason-code`, `service-category`, `part-status`, `identifier`, `date`, `supporting-info`, `patient`, `practitioner`, `location`, `actor`, `_id`, `_lastUpdated`
 
 **MedicationAdministration** — `status`, `code`, `reason-given`, `reason-not-given`, `identifier`, `effective-time`, `subject`, `patient`, `context`, `request`, `performer`, `device`, `medication`, `_id`, `_lastUpdated`
 

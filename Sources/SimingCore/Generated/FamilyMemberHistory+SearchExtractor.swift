@@ -54,11 +54,21 @@ private func extract_FamilyMemberHistory_identifier(_ p: inout SearchParams, _ f
     }
 }
 
-// TODO: unhandled — instantiates-canonical [reference] FamilyMemberHistory.instantiatesCanonical
-private func extract_FamilyMemberHistory_instantiates_canonical(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {}
+// instantiates-canonical [reference] — FamilyMemberHistory.instantiatesCanonical
+private func extract_FamilyMemberHistory_instantiates_canonical(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {
+    for ic in fmh.instantiatesCanonical ?? [] {
+        guard let url = ic.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+    }
+}
 
-// TODO: unhandled — instantiates-uri [uri] FamilyMemberHistory.instantiatesUri
-private func extract_FamilyMemberHistory_instantiates_uri(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {}
+// instantiates-uri [uri] — FamilyMemberHistory.instantiatesUri
+private func extract_FamilyMemberHistory_instantiates_uri(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {
+    for iu in fmh.instantiatesUri ?? [] {
+        guard let url = iu.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-uri", value: url))
+    }
+}
 
 // patient [reference] — FamilyMemberHistory.patient
 private func extract_FamilyMemberHistory_patient(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {

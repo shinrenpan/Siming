@@ -352,6 +352,19 @@ public struct CarePlanStore: Sendable {
         for (i, dp) in query.date.enumerated() {
             filterCTEs.append(dateCTE(name: "f_date\(i)", paramName: "date", dp: dp))
         }
+        for (i, dp) in query.activityDate.enumerated() {
+            filterCTEs.append(dateCTE(name: "f_actdate\(i)", paramName: "activity-date", dp: dp))
+        }
+
+        // string CTEs (instantiates — exact URL match)
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
 
         // reference CTEs
         if let ref = query.subject           { filterCTEs.append(refCTE(name: "f_subject",  paramName: "subject",             ref: ref)) }
@@ -394,6 +407,10 @@ public struct CarePlanStore: Sendable {
         if !query.statusNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "status",  tokens: query.statusNot)) }
         if !query.intentNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "intent",  tokens: query.intentNot)) }
         if !query.categoryNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "category", tokens: query.categoryNot)) }
+        for dn in query.activityDateNot {
+            let s = bind(dn.dateStart); let e = bind(dn.dateEnd)
+            whereConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")
+        }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
@@ -611,6 +628,18 @@ public struct CarePlanStore: Sendable {
         for (i, dp) in query.date.enumerated() {
             filterCTEs.append(cDateCTE(name: "f_date\(i)", paramName: "date", dp: dp))
         }
+        for (i, dp) in query.activityDate.enumerated() {
+            filterCTEs.append(cDateCTE(name: "f_actdate\(i)", paramName: "activity-date", dp: dp))
+        }
+
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
 
         if let ref = query.subject           { filterCTEs.append(cRefCTE(name: "f_subject",  paramName: "subject",             ref: ref)) }
         if let ref = query.patient           { filterCTEs.append(cRefCTE(name: "f_patient",  paramName: "patient",             ref: ref)) }
@@ -628,6 +657,10 @@ public struct CarePlanStore: Sendable {
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
+        }
+        for dn in query.activityDateNot {
+            let s = bind(dn.dateStart); let e = bind(dn.dateEnd)
+            whereConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")
         }
 
         let cBindStr: (String) -> String = { bind($0) }
@@ -673,6 +706,9 @@ public struct CarePlanStore: Sendable {
         case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier'"
         case "activity-code":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'activity-code'"
         case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'date'"
+        case "activity-date":      return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date'"
+        case "instantiates-canonical": return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-canonical'"
+        case "instantiates-uri":   return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'CarePlan' AND param_name = 'instantiates-uri'"
         case "subject":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'CarePlan' AND param_name = 'subject'"
         case "patient":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'CarePlan' AND param_name = 'patient'"
         case "encounter":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'CarePlan' AND param_name = 'encounter'"

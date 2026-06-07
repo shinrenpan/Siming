@@ -353,6 +353,16 @@ public struct FamilyMemberHistoryStore: Sendable {
             filterCTEs.append(dateCTE(name: "f_date\(i)", paramName: "date", dp: dp))
         }
 
+        // string CTEs (instantiates — exact URL match)
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         // reference CTEs
         if let ref = query.patient { filterCTEs.append(refCTE(name: "f_patient", paramName: "patient", ref: ref)) }
 
@@ -619,6 +629,15 @@ public struct FamilyMemberHistoryStore: Sendable {
             filterCTEs.append(cDateCTE(name: "f_date\(i)", paramName: "date", dp: dp))
         }
 
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         if let ref = query.patient { filterCTEs.append(cRefCTE(name: "f_patient", paramName: "patient", ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'FamilyMemberHistory'", "r.deleted = false"]
@@ -670,7 +689,9 @@ public struct FamilyMemberHistoryStore: Sendable {
         case "sex":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'sex'"
         case "code":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'code'"
         case "identifier":    return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'identifier'"
-        case "date":          return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'date'"
+        case "date":                    return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'date'"
+        case "instantiates-canonical":  return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-canonical'"
+        case "instantiates-uri":        return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'FamilyMemberHistory' AND param_name = 'instantiates-uri'"
         default:              return nil
         }
     }

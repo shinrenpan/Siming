@@ -206,5 +206,14 @@ private func extract_Appointment_status(_ p: inout SearchParams, _ appt: Appoint
     }
 }
 
-// TODO: unhandled — supporting-info [reference] Appointment.supportingInformation
-private func extract_Appointment_supporting_info(_ p: inout SearchParams, _ appt: Appointment) {}
+// supporting-info [reference] — Appointment.supportingInformation
+private func extract_Appointment_supporting_info(_ p: inout SearchParams, _ appt: Appointment) {
+    for ref in appt.supportingInformation ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "supporting-info", refType: refType, refId: refId))
+    }
+}

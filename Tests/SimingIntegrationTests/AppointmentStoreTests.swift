@@ -147,6 +147,18 @@ final class AppointmentStoreTests: XCTestCase {
         XCTAssertEqual(result.entries.count, 1)
     }
 
+    // ── Search: supporting-info ───────────────────────────────────────────────
+
+    func testSearch_bySupportingInfo() async throws {
+        let patient = try await patientStore.create(makePatient(family: "ApptSupInfo"))
+        _ = try await store.create(makeAppointment(patientId: patient.id, supportingInfoRef: "Patient/\(patient.id)"))
+        _ = try await store.create(makeAppointment(patientId: patient.id))
+
+        let query = AppointmentSearchQuery(supportingInfo: "Patient/\(patient.id)", count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+    }
+
     // ── Search: date params ───────────────────────────────────────────────────
 
     func testSearch_byDate_ge() async throws {

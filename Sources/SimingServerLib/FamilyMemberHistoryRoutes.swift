@@ -14,6 +14,7 @@ private let fmhPreferHeader = HTTPField.Name("Prefer")!
 
 let knownFamilyMemberHistoryParams: Set<String> = [
     "status", "relationship", "sex", "code", "identifier", "date", "patient",
+    "instantiates-canonical", "instantiates-uri",
     "status:not", "relationship:not", "sex:not", "code:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -370,8 +371,10 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let codeNot         = all("code:not").flatMap { FamilyMemberHistorySearchQuery.TokenParam.parseList(String($0)) }
     let identifier      = first("identifier").map { FamilyMemberHistorySearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
-    let date    = all("date").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
-    let patient = first("patient").map(String.init)
+    let date                  = all("date").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
+    let instantiatesCanonical = all("instantiates-canonical").map(String.init)
+    let instantiatesUri       = all("instantiates-uri").map(String.init)
+    let patient               = first("patient").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -383,7 +386,8 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let totalMode   = FamilyMemberHistorySearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
-    for p in ["status", "relationship", "sex", "code", "identifier", "date", "patient"] {
+    for p in ["status", "relationship", "sex", "code", "identifier", "date", "patient",
+              "instantiates-canonical", "instantiates-uri"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -400,6 +404,8 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
         code: code, codeNot: codeNot,
         identifier: identifier,
         date: date,
+        instantiatesCanonical: instantiatesCanonical,
+        instantiatesUri: instantiatesUri,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

@@ -270,6 +270,44 @@ final class CarePlanStoreTests: XCTestCase {
         XCTAssertTrue(ids1.isDisjoint(with: ids2))
     }
 
+    // ── Search: activity-date ─────────────────────────────────────────────────
+
+    func testSearch_byActivityDate_ge() async throws {
+        let patient = try await patientStore.create(makePatient(family: "CPActDate"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, activityDateStart: "2023-01-01", activityDateEnd: "2023-12-31"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, activityDateStart: "2025-01-01", activityDateEnd: "2025-12-31"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id))
+
+        let dp = CarePlanSearchQuery.DateParam.parse("ge2024-06-01")!
+        let query = CarePlanSearchQuery(activityDate: [dp], count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+    }
+
+    // ── Search: instantiates-canonical / instantiates-uri ────────────────────
+
+    func testSearch_byInstantiatesCanonical() async throws {
+        let patient = try await patientStore.create(makePatient(family: "CPInstCan"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, instantiatesCanonical: "http://example.org/protocols/diabetes"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, instantiatesCanonical: "http://example.org/protocols/other"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id))
+
+        let query = CarePlanSearchQuery(instantiatesCanonical: ["http://example.org/protocols/diabetes"], count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+    }
+
+    func testSearch_byInstantiatesUri() async throws {
+        let patient = try await patientStore.create(makePatient(family: "CPInstUri"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, instantiatesUri: "https://protocols.example.com/hypertension"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id, instantiatesUri: "https://protocols.example.com/other"))
+        _ = try await store.create(makeCarePlan(patientId: patient.id))
+
+        let query = CarePlanSearchQuery(instantiatesUri: ["https://protocols.example.com/hypertension"], count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+    }
+
     // ── Sort ──────────────────────────────────────────────────────────────────
 
     func testSearch_sortByDate() async throws {

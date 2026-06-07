@@ -480,7 +480,11 @@ func makeCarePlan(
     periodEnd: String? = nil,
     encounterId: String? = nil,
     activityCode: String? = nil,
-    activityCodeSystem: String = "http://snomed.info/sct"
+    activityCodeSystem: String = "http://snomed.info/sct",
+    activityDateStart: String? = nil,
+    activityDateEnd: String? = nil,
+    instantiatesCanonical: String? = nil,
+    instantiatesUri: String? = nil
 ) throws -> ModelsR4.CarePlan {
     var json = #"""
     {"resourceType":"CarePlan",
@@ -502,7 +506,21 @@ func makeCarePlan(
         json += #","encounter":{"reference":"Encounter/\#(encId)"}"#
     }
     if let code = activityCode {
-        json += #","activity":[{"detail":{"status":"not-started","code":{"coding":[{"system":"\#(activityCodeSystem)","code":"\#(code)"}]}}}]"#
+        let schedPart: String
+        if let ds = activityDateStart {
+            let de = activityDateEnd ?? ds
+            schedPart = #","scheduledPeriod":{"start":"\#(ds)","end":"\#(de)"}"#
+        } else { schedPart = "" }
+        json += #","activity":[{"detail":{"status":"not-started","code":{"coding":[{"system":"\#(activityCodeSystem)","code":"\#(code)"}]}\#(schedPart)}}]"#
+    } else if let ds = activityDateStart {
+        let de = activityDateEnd ?? ds
+        json += #","activity":[{"detail":{"status":"not-started","scheduledPeriod":{"start":"\#(ds)","end":"\#(de)"}}}]"#
+    }
+    if let ic = instantiatesCanonical {
+        json += #","instantiatesCanonical":["\#(ic)"]"#
+    }
+    if let iu = instantiatesUri {
+        json += #","instantiatesUri":["\#(iu)"]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.CarePlan.self, from: Data(json.utf8))
@@ -581,7 +599,9 @@ func makeFamilyMemberHistory(
     conditionCodeSystem: String = "http://snomed.info/sct",
     date: String? = nil,
     identifier: String? = nil,
-    identifierSystem: String = "http://example.org"
+    identifierSystem: String = "http://example.org",
+    instantiatesCanonical: String? = nil,
+    instantiatesUri: String? = nil
 ) throws -> ModelsR4.FamilyMemberHistory {
     var json = #"""
     {"resourceType":"FamilyMemberHistory",
@@ -600,6 +620,12 @@ func makeFamilyMemberHistory(
     }
     if let id = identifier {
         json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    if let ic = instantiatesCanonical {
+        json += #","instantiatesCanonical":["\#(ic)"]"#
+    }
+    if let iu = instantiatesUri {
+        json += #","instantiatesUri":["\#(iu)"]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.FamilyMemberHistory.self, from: Data(json.utf8))
@@ -626,7 +652,8 @@ func makeAppointment(
     serviceTypeCode: String? = nil,
     specialtyCode: String? = nil,
     identifier: String? = nil,
-    identifierSystem: String = "http://example.org"
+    identifierSystem: String = "http://example.org",
+    supportingInfoRef: String? = nil
 ) throws -> ModelsR4.Appointment {
     var json = #"""
     {"resourceType":"Appointment",
@@ -643,6 +670,9 @@ func makeAppointment(
     }
     if let id = identifier {
         json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    if let ref = supportingInfoRef {
+        json += #","supportingInformation":[{"reference":"\#(ref)"}]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Appointment.self, from: Data(json.utf8))

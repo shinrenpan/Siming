@@ -13,7 +13,7 @@ private let apptIfNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let apptPreferHeader = HTTPField.Name("Prefer")!
 
 let knownAppointmentParams: Set<String> = [
-    "patient", "actor", "practitioner", "location",
+    "patient", "actor", "practitioner", "location", "supporting-info",
     "status", "service-type", "appointment-type", "specialty",
     "reason-code", "service-category", "part-status", "identifier", "date",
     "status:not", "service-type:not", "appointment-type:not", "specialty:not",
@@ -381,10 +381,11 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     let identifier = first("identifier").map { AppointmentSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date       = all("date").compactMap { AppointmentSearchQuery.DateParam.parse(String($0)) }
 
-    let patient      = first("patient").map(String.init)
-    let actor        = first("actor").map(String.init)
-    let practitioner = first("practitioner").map(String.init)
-    let location     = first("location").map(String.init)
+    let patient        = first("patient").map(String.init)
+    let actor          = first("actor").map(String.init)
+    let practitioner   = first("practitioner").map(String.init)
+    let location       = first("location").map(String.init)
+    let supportingInfo = first("supporting-info").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -398,7 +399,7 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     var missing: [String: Bool] = [:]
     for p in ["status", "service-type", "appointment-type", "specialty", "reason-code",
               "service-category", "part-status", "identifier", "date", "patient",
-              "actor", "practitioner", "location"] {
+              "actor", "practitioner", "location", "supporting-info"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -417,6 +418,7 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
         serviceCategory: serviceCategory, serviceCategoryNot: serviceCategoryNot,
         partStatus: partStatus, partStatusNot: partStatusNot,
+        supportingInfo: supportingInfo,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

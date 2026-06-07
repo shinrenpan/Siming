@@ -116,6 +116,30 @@ func familyMemberHistoryHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── string: instantiates-canonical (canonical URL array → idx_string) ───────
+    case "instantiates-canonical":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {
+            for ic in fmh.instantiatesCanonical ?? [] {
+                guard let url = ic.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+            }
+        }
+        """
+
+    // ── string: instantiates-uri (URI array → idx_string) ───────────────────────
+    case "instantiates-uri":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ fmh: FamilyMemberHistory) {
+            for iu in fmh.instantiatesUri ?? [] {
+                guard let url = iu.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-uri", value: url))
+            }
+        }
+        """
+
     default:
         return nil
     }

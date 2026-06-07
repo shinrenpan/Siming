@@ -16,6 +16,12 @@ public struct CarePlanSearchQuery: Sendable {
 
     // date params
     public var date: [DateParam]
+    public var activityDate: [DateParam]
+    public var activityDateNot: [DateParam]
+
+    // string params
+    public var instantiatesCanonical: [String]
+    public var instantiatesUri: [String]
 
     // reference params
     public var subject: String?
@@ -54,6 +60,10 @@ public struct CarePlanSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         activityCode: [TokenParam] = [],
         date: [DateParam] = [],
+        activityDate: [DateParam] = [],
+        activityDateNot: [DateParam] = [],
+        instantiatesCanonical: [String] = [],
+        instantiatesUri: [String] = [],
         subject: String? = nil,
         patient: String? = nil,
         encounter: String? = nil,
@@ -82,9 +92,13 @@ public struct CarePlanSearchQuery: Sendable {
         self.category          = category
         self.categoryNot       = categoryNot
         self.identifier        = identifier
-        self.activityCode      = activityCode
-        self.date              = date
-        self.subject           = subject
+        self.activityCode           = activityCode
+        self.date                   = date
+        self.activityDate           = activityDate
+        self.activityDateNot        = activityDateNot
+        self.instantiatesCanonical  = instantiatesCanonical
+        self.instantiatesUri        = instantiatesUri
+        self.subject                = subject
         self.patient           = patient
         self.encounter         = encounter
         self.careTeam          = careTeam

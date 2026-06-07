@@ -45,8 +45,42 @@ private func extract_CarePlan_activity_code(_ p: inout SearchParams, _ c: CarePl
     }
 }
 
-// TODO: unhandled — activity-date [date] CarePlan.activity.detail.scheduled
-private func extract_CarePlan_activity_date(_ p: inout SearchParams, _ c: CarePlan) {}
+// activity-date [date] — CarePlan.activity.detail.scheduled
+private func extract_CarePlan_activity_date(_ p: inout SearchParams, _ c: CarePlan) {
+    let cal = Calendar(identifier: .gregorian)
+    for act in c.activity ?? [] {
+        guard let sched = act.detail?.scheduled else { continue }
+        switch sched {
+        case .period(let period):
+            let start: Date
+            let end: Date
+            if let prim = period.start, let dt = prim.value {
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                start = cal.date(from: dc) ?? Date.distantPast
+            } else { start = Date.distantPast }
+            if let prim = period.end, let dt = prim.value {
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                end = cal.date(from: dc) ?? Date.distantFuture
+            } else { end = Date.distantFuture }
+            p.dates.append(.init(paramName: "activity-date", dateStart: start, dateEnd: end))
+        case .timing(let timing):
+            for evt in timing.event ?? [] {
+                guard let dt = evt.value else { continue }
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                let d = cal.date(from: dc) ?? Date()
+                p.dates.append(.init(paramName: "activity-date", dateStart: d, dateEnd: d))
+            }
+        case .string:
+            break
+        }
+    }
+}
 
 // activity-reference [reference] — CarePlan.activity.reference
 private func extract_CarePlan_activity_reference(_ p: inout SearchParams, _ c: CarePlan) {
@@ -159,11 +193,21 @@ private func extract_CarePlan_identifier(_ p: inout SearchParams, _ c: CarePlan)
     }
 }
 
-// TODO: unhandled — instantiates-canonical [reference] CarePlan.instantiatesCanonical
-private func extract_CarePlan_instantiates_canonical(_ p: inout SearchParams, _ c: CarePlan) {}
+// instantiates-canonical [reference] — CarePlan.instantiatesCanonical
+private func extract_CarePlan_instantiates_canonical(_ p: inout SearchParams, _ c: CarePlan) {
+    for ic in c.instantiatesCanonical ?? [] {
+        guard let url = ic.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+    }
+}
 
-// TODO: unhandled — instantiates-uri [uri] CarePlan.instantiatesUri
-private func extract_CarePlan_instantiates_uri(_ p: inout SearchParams, _ c: CarePlan) {}
+// instantiates-uri [uri] — CarePlan.instantiatesUri
+private func extract_CarePlan_instantiates_uri(_ p: inout SearchParams, _ c: CarePlan) {
+    for iu in c.instantiatesUri ?? [] {
+        guard let url = iu.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-uri", value: url))
+    }
+}
 
 // intent [token] — CarePlan.intent
 private func extract_CarePlan_intent(_ p: inout SearchParams, _ c: CarePlan) {

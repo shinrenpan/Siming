@@ -15,6 +15,8 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
     public var codeNot: [TokenParam]                 // code:not modifier
     public var identifier: [IdentifierParam]
     public var date: [DateParam]                     // date range filter
+    public var instantiatesCanonical: [String]       // instantiates-canonical (canonical URL)
+    public var instantiatesUri: [String]             // instantiates-uri (URI)
     public var id: [String]                          // _id filter (OR)
     public var lastUpdated: [DateParam]              // _lastUpdated range filter
     public var missing: [String: Bool]               // param:missing=true/false
@@ -40,6 +42,8 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
         codeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
         date: [DateParam] = [],
+        instantiatesCanonical: [String] = [],
+        instantiatesUri: [String] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -59,9 +63,11 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
         self.sexNot          = sexNot
         self.code            = code
         self.codeNot         = codeNot
-        self.identifier      = identifier
-        self.date            = date
-        self.id              = id
+        self.identifier             = identifier
+        self.date                   = date
+        self.instantiatesCanonical  = instantiatesCanonical
+        self.instantiatesUri        = instantiatesUri
+        self.id                     = id
         self.lastUpdated     = lastUpdated
         self.missing         = missing
         self.chains          = chains

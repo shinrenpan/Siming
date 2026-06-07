@@ -357,10 +357,11 @@ public struct AppointmentStore: Sendable {
         }
 
         // reference CTEs
-        if let ref = query.patient     { filterCTEs.append(refCTE(name: "f_patient",     paramName: "patient",      ref: ref)) }
-        if let ref = query.actor       { filterCTEs.append(refCTE(name: "f_actor",       paramName: "actor",        ref: ref)) }
-        if let ref = query.practitioner { filterCTEs.append(refCTE(name: "f_practitioner", paramName: "practitioner", ref: ref)) }
-        if let ref = query.location    { filterCTEs.append(refCTE(name: "f_location",    paramName: "location",     ref: ref)) }
+        if let ref = query.patient        { filterCTEs.append(refCTE(name: "f_patient",       paramName: "patient",         ref: ref)) }
+        if let ref = query.actor          { filterCTEs.append(refCTE(name: "f_actor",         paramName: "actor",           ref: ref)) }
+        if let ref = query.practitioner   { filterCTEs.append(refCTE(name: "f_practitioner",  paramName: "practitioner",    ref: ref)) }
+        if let ref = query.location       { filterCTEs.append(refCTE(name: "f_location",      paramName: "location",        ref: ref)) }
+        if let ref = query.supportingInfo { filterCTEs.append(refCTE(name: "f_support_info",  paramName: "supporting-info", ref: ref)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -613,10 +614,11 @@ public struct AppointmentStore: Sendable {
 
         for (i, dp) in query.date.enumerated() { filterCTEs.append(cDateCTE(name: "f_date\(i)", paramName: "date", dp: dp)) }
 
-        if let ref = query.patient      { filterCTEs.append(cRefCTE(name: "f_patient",      paramName: "patient",      ref: ref)) }
-        if let ref = query.actor        { filterCTEs.append(cRefCTE(name: "f_actor",        paramName: "actor",        ref: ref)) }
-        if let ref = query.practitioner { filterCTEs.append(cRefCTE(name: "f_practitioner", paramName: "practitioner", ref: ref)) }
-        if let ref = query.location     { filterCTEs.append(cRefCTE(name: "f_location",     paramName: "location",     ref: ref)) }
+        if let ref = query.patient        { filterCTEs.append(cRefCTE(name: "f_patient",       paramName: "patient",         ref: ref)) }
+        if let ref = query.actor          { filterCTEs.append(cRefCTE(name: "f_actor",         paramName: "actor",           ref: ref)) }
+        if let ref = query.practitioner   { filterCTEs.append(cRefCTE(name: "f_practitioner",  paramName: "practitioner",    ref: ref)) }
+        if let ref = query.location       { filterCTEs.append(cRefCTE(name: "f_location",      paramName: "location",        ref: ref)) }
+        if let ref = query.supportingInfo { filterCTEs.append(cRefCTE(name: "f_support_info",  paramName: "supporting-info", ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'Appointment'", "r.deleted = false"]
 
@@ -672,6 +674,7 @@ public struct AppointmentStore: Sendable {
         case "actor":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Appointment' AND param_name = 'actor'"
         case "practitioner":     return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Appointment' AND param_name = 'practitioner'"
         case "location":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Appointment' AND param_name = 'location'"
+        case "supporting-info":  return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Appointment' AND param_name = 'supporting-info'"
         case "status":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Appointment' AND param_name = 'status'"
         case "service-type":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Appointment' AND param_name = 'service-type'"
         case "appointment-type": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Appointment' AND param_name = 'appointment-type'"

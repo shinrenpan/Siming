@@ -285,6 +285,71 @@ func carePlanHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── date: activity-date (activity.detail.scheduled[x]) ──────────────────────
+    case "activity-date":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ c: CarePlan) {
+            let cal = Calendar(identifier: .gregorian)
+            for act in c.activity ?? [] {
+                guard let sched = act.detail?.scheduled else { continue }
+                switch sched {
+                case .period(let period):
+                    let start: Date
+                    let end: Date
+                    if let prim = period.start, let dt = prim.value {
+                        var dc = DateComponents()
+                        dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                        dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                        start = cal.date(from: dc) ?? Date.distantPast
+                    } else { start = Date.distantPast }
+                    if let prim = period.end, let dt = prim.value {
+                        var dc = DateComponents()
+                        dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                        dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                        end = cal.date(from: dc) ?? Date.distantFuture
+                    } else { end = Date.distantFuture }
+                    p.dates.append(.init(paramName: "activity-date", dateStart: start, dateEnd: end))
+                case .timing(let timing):
+                    for evt in timing.event ?? [] {
+                        guard let dt = evt.value else { continue }
+                        var dc = DateComponents()
+                        dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                        dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                        let d = cal.date(from: dc) ?? Date()
+                        p.dates.append(.init(paramName: "activity-date", dateStart: d, dateEnd: d))
+                    }
+                case .string:
+                    break
+                }
+            }
+        }
+        """
+
+    // ── string: instantiates-canonical (canonical URL array → idx_string) ───────
+    case "instantiates-canonical":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ c: CarePlan) {
+            for ic in c.instantiatesCanonical ?? [] {
+                guard let url = ic.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+            }
+        }
+        """
+
+    // ── string: instantiates-uri (URI array → idx_string) ───────────────────────
+    case "instantiates-uri":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ c: CarePlan) {
+            for iu in c.instantiatesUri ?? [] {
+                guard let url = iu.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-uri", value: url))
+            }
+        }
+        """
+
     default:
         return nil
     }

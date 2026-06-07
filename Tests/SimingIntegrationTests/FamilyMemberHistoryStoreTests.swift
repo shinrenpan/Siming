@@ -249,6 +249,35 @@ final class FamilyMemberHistoryStoreTests: XCTestCase {
         XCTAssertTrue(ids1.isDisjoint(with: ids2))
     }
 
+    // ── Search: instantiates-canonical / instantiates-uri ────────────────────
+
+    func testSearch_byInstantiatesCanonical() async throws {
+        let created1 = try await store.create(makeFamilyMemberHistory(patientId: "p-inst-can", instantiatesCanonical: "http://example.org/protocols/cardiology"))
+        let created2 = try await store.create(makeFamilyMemberHistory(patientId: "p-inst-can", instantiatesCanonical: "http://example.org/protocols/other"))
+        _ = created1; _ = created2
+
+        let query = FamilyMemberHistorySearchQuery(instantiatesCanonical: ["http://example.org/protocols/cardiology"], count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertGreaterThanOrEqual(result.entries.count, 1)
+        for entry in result.entries {
+            let fmh = try JSONDecoder().decode(ModelsR4.FamilyMemberHistory.self, from: entry.jsonWithMeta)
+            XCTAssertTrue(fmh.instantiatesCanonical?.contains(where: { $0.value?.url.absoluteString == "http://example.org/protocols/cardiology" }) ?? false)
+        }
+    }
+
+    func testSearch_byInstantiatesUri() async throws {
+        _ = try await store.create(makeFamilyMemberHistory(patientId: "p-inst-uri", instantiatesUri: "https://protocols.example.com/cancer-screening"))
+        _ = try await store.create(makeFamilyMemberHistory(patientId: "p-inst-uri", instantiatesUri: "https://protocols.example.com/other"))
+
+        let query = FamilyMemberHistorySearchQuery(instantiatesUri: ["https://protocols.example.com/cancer-screening"], count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertGreaterThanOrEqual(result.entries.count, 1)
+        for entry in result.entries {
+            let fmh = try JSONDecoder().decode(ModelsR4.FamilyMemberHistory.self, from: entry.jsonWithMeta)
+            XCTAssertTrue(fmh.instantiatesUri?.contains(where: { $0.value?.url.absoluteString == "https://protocols.example.com/cancer-screening" }) ?? false)
+        }
+    }
+
     // ── Missing modifier ──────────────────────────────────────────────────────
 
     func testSearch_missing_date() async throws {

@@ -197,6 +197,22 @@ func appointmentHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: supporting-info (supportingInformation — array of references) ─
+    case "supporting-info":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ appt: Appointment) {
+            for ref in appt.supportingInformation ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
     // ── date: date (Appointment.start — Instant type) ─────────────────────────
     case "date":
         return """

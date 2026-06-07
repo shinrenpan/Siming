@@ -14,7 +14,8 @@ private let carePlanPreferHeader = HTTPField.Name("Prefer")!
 
 let knownCarePlanParams: Set<String> = [
     "status", "intent", "category", "identifier", "activity-code",
-    "date",
+    "date", "activity-date", "activity-date:not",
+    "instantiates-canonical", "instantiates-uri",
     "subject", "patient", "encounter", "care-team", "condition", "goal",
     "based-on", "part-of", "replaces", "performer", "activity-reference",
     "status:not", "intent:not", "category:not",
@@ -372,7 +373,11 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
     let identifier   = first("identifier").map { CarePlanSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let activityCode = all("activity-code").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
 
-    let date = all("date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let date              = all("date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let activityDate      = all("activity-date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let activityDateNot   = all("activity-date:not").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let instantiatesCanonical = all("instantiates-canonical").map(String.init)
+    let instantiatesUri       = all("instantiates-uri").map(String.init)
 
     let subject           = first("subject").map(String.init)
     let patient           = first("patient").map(String.init)
@@ -397,7 +402,8 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
 
     var missing: [String: Bool] = [:]
     for p in ["status", "intent", "category", "identifier", "activity-code",
-              "date", "subject", "patient", "encounter", "care-team",
+              "date", "activity-date", "instantiates-canonical", "instantiates-uri",
+              "subject", "patient", "encounter", "care-team",
               "condition", "goal", "based-on", "part-of", "replaces",
               "performer", "activity-reference"] {
         if let v = first("\(p):missing").map(String.init) {
@@ -414,6 +420,8 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         category: category, categoryNot: categoryNot,
         identifier: identifier, activityCode: activityCode,
         date: date,
+        activityDate: activityDate, activityDateNot: activityDateNot,
+        instantiatesCanonical: instantiatesCanonical, instantiatesUri: instantiatesUri,
         subject: subject, patient: patient,
         encounter: encounter, careTeam: careTeam,
         condition: condition, goal: goal,
