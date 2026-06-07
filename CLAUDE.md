@@ -17,7 +17,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 ## Stack
 
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
-- **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task).
+- **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=20 (set in `DatabaseConfiguration.postgresClientConfiguration`).
 - **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.2`.
 - **FHIR version:** R4 only. R5 door stays open via the generator.
 
@@ -81,7 +81,7 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
 - **History-preserving:** update writes a NEW row (incremented `version_id`), never overwrites. Current version = highest `version_id` for `(resource_type, id)`.
 - Five typed index tables (one per search-param TYPE, not per param):
   - `idx_token` (system, code) — identifier, code, status
-  - `idx_string` — name, address (trigram/GIN index)
+  - `idx_string` — name, address (functional btree on `lower(value)` for prefix; trigram GIN for `:contains`)
   - `idx_reference` — subject, patient
   - `idx_date` — date, period (b-tree range)
   - `idx_quantity` — value-quantity
@@ -168,11 +168,18 @@ func bind(_ val: some PostgresDynamicTypeEncodable) -> String {
 
 **Correct pattern:** one pre-filter CTE per active search param, then JOIN into `current`:
 
+String filter in idx_string must be written as:
+- **Prefix (FHIR default):** `lower(value) LIKE lower($n)` where `$n = 'Wang%'` — uses `idx_string_lower_prefix_idx` (functional btree, no false positives)
+- **Contains (`:contains`):** `value ILIKE $n` where `$n = '%Wang%'` — uses `idx_string_trgm_idx` (trigram GIN)
+- **Exact (`:exact`):** `value = $n` — uses `idx_string_exact_idx` (btree)
+
+**Do NOT use `value ILIKE $n` for prefix search** — it silently falls back to trigram GIN with false positives.
+
 ```sql
 WITH
 f_name AS (
   SELECT DISTINCT resource_id FROM idx_string
-  WHERE resource_type = 'Patient' AND param_name = 'name' AND value ILIKE $1
+  WHERE resource_type = 'Patient' AND param_name = 'name' AND lower(value) LIKE lower($1)
 ),
 f_date0 AS (
   SELECT DISTINCT resource_id FROM idx_date
