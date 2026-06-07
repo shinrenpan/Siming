@@ -92,12 +92,24 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
 
 ### Write path
 
-Every create / update runs in a single PostgresNIO transaction:
+Every create / update runs in a single PostgresNIO transaction via **`writeResource`** (`ResourceWriter.swift`):
 1. Assign `id` — UUID on create; client-provided on PUT (validate `[A-Za-z0-9\-\.]{1,64}`).
-2. Compute `version_id`: `COALESCE(MAX(version_id), 0) + 1` in the same transaction.
-3. Insert resource row.
-4. Replace index rows: DELETE existing for `(resource_type, id)`, bulk-insert from extractor.
-5. Call `validate(resource)` — no-op hook for future profile validation. **Never remove this call.**
+2. Single CTE: validate If-Match + compute `version_id` (`COALESCE(MAX, 0) + 1`) + insert resource row.
+3. Call `clear_index_rows($resourceType, $id)` — PostgreSQL function in `0003_functions.sql` that deletes all five index tables in one server-side call.
+4. Bulk-insert new index rows via **`replaceIndexRows`** (`IndexWriter.swift`) — one batch INSERT per non-empty index table.
+5. Call `validate(resource)` in the store before entering the transaction — no-op hook for future profile validation. **Never remove this call.**
+
+Delete follows the same pattern via **`deleteResource`** (`ResourceWriter.swift`): version check → tombstone INSERT → `clear_index_rows`.
+
+**Do NOT write your own BEGIN/COMMIT transaction for resource writes.** Use `writeResource` / `deleteResource`.
+**Do NOT issue 5 individual DELETEs against index tables.** Use `clear_index_rows` or `replaceIndexRows`.
+
+### Adding a new resource
+
+Checklist (in addition to generator + extractor + SQL migration):
+1. Add store property to **`StoreContainer`** (`StoreContainer.swift`) — single init param for all wiring.
+2. The new store's `write()` calls `writeResource`; `delete()` calls `deleteResource` — copy the pattern from any existing store.
+3. Register in **`RouterBuilder`** (`RouterBuilder.swift`) via `addXxxRoutes(to: router, store: stores.xxx, logger: logger)`.
 
 ## Search parameters
 
