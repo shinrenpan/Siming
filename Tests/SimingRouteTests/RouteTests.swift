@@ -55,9 +55,10 @@ struct RouteTests {
         let documentReferenceStore  = DocumentReferenceStore(client: client, logger: logger)
         let carePlanStore           = CarePlanStore(client: client, logger: logger)
         let goalStore               = GoalStore(client: client, logger: logger)
-        let medicationStatementStore = MedicationStatementStore(client: client, logger: logger)
-        let familyMemberHistoryStore = FamilyMemberHistoryStore(client: client, logger: logger)
-        let appointmentStore         = AppointmentStore(client: client, logger: logger)
+        let medicationStatementStore      = MedicationStatementStore(client: client, logger: logger)
+        let familyMemberHistoryStore      = FamilyMemberHistoryStore(client: client, logger: logger)
+        let appointmentStore              = AppointmentStore(client: client, logger: logger)
+        let medicationAdministrationStore = MedicationAdministrationStore(client: client, logger: logger)
         let router = Router<BasicRequestContext>()
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
@@ -84,6 +85,7 @@ struct RouteTests {
         addMedicationStatementRoutes(to: router, store: medicationStatementStore, logger: logger)
         addFamilyMemberHistoryRoutes(to: router, store: familyMemberHistoryStore, logger: logger)
         addAppointmentRoutes(to: router, store: appointmentStore, logger: logger)
+        addMedicationAdministrationRoutes(to: router, store: medicationAdministrationStore, logger: logger)
         addCompartmentRoutes(to: router, observationStore: observationStore,
                              encounterStore: encounterStore, conditionStore: conditionStore,
                              medicationRequestStore: medicationRequestStore,
@@ -100,6 +102,7 @@ struct RouteTests {
                              medicationStatementStore: medicationStatementStore,
                              familyMemberHistoryStore: familyMemberHistoryStore,
                              appointmentStore: appointmentStore,
+                             medicationAdministrationStore: medicationAdministrationStore,
                              logger: logger)
         addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                         encounterStore: encounterStore, conditionStore: conditionStore,
@@ -121,6 +124,7 @@ struct RouteTests {
                         medicationStatementStore: medicationStatementStore,
                         familyMemberHistoryStore: familyMemberHistoryStore,
                         appointmentStore: appointmentStore,
+                        medicationAdministrationStore: medicationAdministrationStore,
                         logger: logger)
         return Application(responder: router.buildResponder())
     }

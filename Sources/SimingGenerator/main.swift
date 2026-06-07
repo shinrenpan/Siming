@@ -13,6 +13,14 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+let medicationAdministrationParams = try loadParams(resourceType: "MedicationAdministration", bundlePath: bundlePath)
+    .sorted { $0.code < $1.code }
+
+let medicationAdministrationCode = generateMedicationAdministrationExtractor(params: medicationAdministrationParams)
+let medicationAdministrationOut  = "\(outputDir)/MedicationAdministration+SearchExtractor.swift"
+try medicationAdministrationCode.write(toFile: medicationAdministrationOut, atomically: true, encoding: .utf8)
+print("Generated \(medicationAdministrationOut) — \(medicationAdministrationParams.count) MedicationAdministration params")
+
 let appointmentParams = try loadParams(resourceType: "Appointment", bundlePath: bundlePath)
     .sorted { $0.code < $1.code }
 

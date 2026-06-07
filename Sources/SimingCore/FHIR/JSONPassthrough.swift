@@ -368,6 +368,12 @@ public let appointmentSummaryFields: Set<String> = [
     "participant", "requestedPeriod",
 ]
 
+public let medicationAdministrationSummaryFields: Set<String> = [
+    "identifier", "status", "statusReason", "medication", "subject",
+    "context", "effective", "performer", "reasonCode", "reasonReference",
+    "request", "device", "note", "dosage",
+]
+
 /// Applies `_summary` filtering to a resource's JSON bytes.
 /// - `.true`:  keeps `summaryFields` + mandatory elements; adds SUBSETTED tag.
 /// - `.text`:  keeps only `text` + mandatory elements; adds SUBSETTED tag.

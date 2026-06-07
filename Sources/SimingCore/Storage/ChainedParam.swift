@@ -49,6 +49,10 @@ public let chainChildParamType: [String: ChainedParam.ChildType] = [
     "issued": .date,
     // Additional token and string params for new resources
     "vaccine-code": .token, "lot-number": .string,
+    // Date params for additional resources
+    "effective-time": .date,
+    // Token params for additional resources
+    "reason-given": .token, "reason-not-given": .token,
 ]
 
 /// Parses a chained search param key+value.

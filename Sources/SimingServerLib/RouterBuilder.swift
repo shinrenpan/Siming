@@ -26,6 +26,7 @@ public func buildRouter(
     medicationStatementStore: MedicationStatementStore,
     familyMemberHistoryStore: FamilyMemberHistoryStore,
     appointmentStore: AppointmentStore,
+    medicationAdministrationStore: MedicationAdministrationStore,
     registry: PrometheusCollectorRegistry,
     logger: Logger
 ) -> Router<BasicRequestContext> {
@@ -57,6 +58,7 @@ public func buildRouter(
     addMedicationStatementRoutes(to: router, store: medicationStatementStore, logger: logger)
     addFamilyMemberHistoryRoutes(to: router, store: familyMemberHistoryStore, logger: logger)
     addAppointmentRoutes(to: router, store: appointmentStore, logger: logger)
+    addMedicationAdministrationRoutes(to: router, store: medicationAdministrationStore, logger: logger)
     addCompartmentRoutes(to: router, observationStore: observationStore,
                          encounterStore: encounterStore, conditionStore: conditionStore,
                          medicationRequestStore: medicationRequestStore,
@@ -73,6 +75,7 @@ public func buildRouter(
                          medicationStatementStore: medicationStatementStore,
                          familyMemberHistoryStore: familyMemberHistoryStore,
                          appointmentStore: appointmentStore,
+                         medicationAdministrationStore: medicationAdministrationStore,
                          logger: logger)
     addSystemRoutes(to: router, patientStore: patientStore, observationStore: observationStore,
                     encounterStore: encounterStore, conditionStore: conditionStore,
@@ -94,6 +97,7 @@ public func buildRouter(
                     medicationStatementStore: medicationStatementStore,
                     familyMemberHistoryStore: familyMemberHistoryStore,
                     appointmentStore: appointmentStore,
+                    medicationAdministrationStore: medicationAdministrationStore,
                     logger: logger)
     return router
 }
