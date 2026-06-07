@@ -17,7 +17,7 @@ public struct DatabaseConfiguration {
     }
 
     public var postgresClientConfiguration: PostgresClient.Configuration {
-        PostgresClient.Configuration(
+        var config = PostgresClient.Configuration(
             host: host,
             port: port,
             username: username,
@@ -25,6 +25,8 @@ public struct DatabaseConfiguration {
             database: database,
             tls: .disable
         )
+        config.options.minimumConnections = 4
+        return config
     }
 
     public static func fromEnvironment() throws -> DatabaseConfiguration {

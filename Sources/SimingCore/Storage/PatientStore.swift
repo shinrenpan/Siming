@@ -318,8 +318,12 @@ public struct PatientStore: Sendable {
         }
     }
 
-    private func stringFilterOp(_ param: PatientSearchQuery.StringParam) -> String {
-        param.modifier == .exact ? "=" : "ILIKE"
+    private func stringFilterCond(_ param: PatientSearchQuery.StringParam, _ bp: String) -> String {
+        switch param.modifier {
+        case .exact:           return "value = \(bp)"
+        case .contains, .text: return "value ILIKE \(bp)"
+        case .startsWith:      return "lower(value) LIKE lower(\(bp))"
+        }
     }
 
     private func buildSearchSQL(query: PatientSearchQuery) throws -> (String, PostgresBindings) {
@@ -334,7 +338,7 @@ public struct PatientStore: Sendable {
         // name — starts-with (default), :contains, or :exact
         if let nameParam = query.name {
             let bp = bind(stringBindValue(nameParam))
-            filterCTEs.append(("f_name", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND value \(stringFilterOp(nameParam)) \(bp)"))
+            filterCTEs.append(("f_name", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND \(stringFilterCond(nameParam, bp))"))
         }
 
         // family, given, address variants — string with modifier
@@ -350,7 +354,7 @@ public struct PatientStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         // gender — token OR
@@ -658,7 +662,7 @@ public struct PatientStore: Sendable {
 
         if let nameParam = query.name {
             let bp = bind(stringBindValue(nameParam))
-            filterCTEs.append(("f_name", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND value \(stringFilterOp(nameParam)) \(bp)"))
+            filterCTEs.append(("f_name", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'name' AND \(stringFilterCond(nameParam, bp))"))
         }
 
         let stringFilters: [(String, String, PatientSearchQuery.StringParam?)] = [
@@ -673,7 +677,7 @@ public struct PatientStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         if !query.gender.isEmpty {

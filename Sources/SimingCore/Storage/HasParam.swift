@@ -89,16 +89,22 @@ public func hasFilterCTE(
     let joinSQL: String
     switch param.childType {
     case .string:
-        let pattern: String
+        let pBind: String
+        let stringCond: String
         switch param.modifier {
-        case "contains": pattern = "%\(param.value)%"
-        case "exact":    pattern = param.value
-        default:         pattern = "\(param.value)%"
+        case "exact":
+            pBind = bindStr(param.value)
+            stringCond = "s.value = \(pBind)"
+        case "contains", "text":
+            pBind = bindStr("%\(param.value)%")
+            stringCond = "s.value ILIKE \(pBind)"
+        default:
+            pBind = bindStr("\(param.value)%")
+            stringCond = "lower(s.value) LIKE lower(\(pBind))"
         }
-        let pBind = bindStr(pattern)
         joinSQL = """
         JOIN idx_string s ON s.resource_type = ref.resource_type AND s.resource_id = ref.resource_id \
-        AND s.param_name = \(cpBind) AND s.value ILIKE \(pBind)
+        AND s.param_name = \(cpBind) AND \(stringCond)
         """
 
     case .token:

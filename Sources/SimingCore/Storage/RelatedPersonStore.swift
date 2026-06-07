@@ -277,8 +277,12 @@ public struct RelatedPersonStore: Sendable {
         }
     }
 
-    private func stringFilterOp(_ param: RelatedPersonSearchQuery.StringParam) -> String {
-        param.modifier == .exact ? "=" : "ILIKE"
+    private func stringFilterCond(_ param: RelatedPersonSearchQuery.StringParam, _ bp: String) -> String {
+        switch param.modifier {
+        case .exact:           return "value = \(bp)"
+        case .contains, .text: return "value ILIKE \(bp)"
+        case .startsWith:      return "lower(value) LIKE lower(\(bp))"
+        }
     }
 
     private func buildSearchSQL(query: RelatedPersonSearchQuery) throws -> (String, PostgresBindings) {
@@ -360,7 +364,7 @@ public struct RelatedPersonStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'RelatedPerson' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'RelatedPerson' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         // birthdate
@@ -606,7 +610,7 @@ public struct RelatedPersonStore: Sendable {
         for (cteName, paramName, param) in countStringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'RelatedPerson' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'RelatedPerson' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         for (i, dp) in query.birthdate.enumerated() {

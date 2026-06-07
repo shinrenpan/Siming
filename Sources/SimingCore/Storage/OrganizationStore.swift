@@ -277,8 +277,12 @@ public struct OrganizationStore: Sendable {
         }
     }
 
-    private func stringFilterOp(_ param: OrganizationSearchQuery.StringParam) -> String {
-        param.modifier == .exact ? "=" : "ILIKE"
+    private func stringFilterCond(_ param: OrganizationSearchQuery.StringParam, _ bp: String) -> String {
+        switch param.modifier {
+        case .exact:           return "value = \(bp)"
+        case .contains, .text: return "value ILIKE \(bp)"
+        case .startsWith:      return "lower(value) LIKE lower(\(bp))"
+        }
     }
 
     private func buildSearchSQL(query: OrganizationSearchQuery) throws -> (String, PostgresBindings) {
@@ -302,7 +306,7 @@ public struct OrganizationStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         // active — boolean token
@@ -541,7 +545,7 @@ public struct OrganizationStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         if let active = query.active {

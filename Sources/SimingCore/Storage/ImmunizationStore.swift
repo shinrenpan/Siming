@@ -340,7 +340,7 @@ public struct ImmunizationStore: Sendable {
         if let ln = query.lotNumber {
             let pBind = bind("\(ln)%")
             filterCTEs.append(("f_lot_number",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND value ILIKE \(pBind)"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND lower(value) LIKE lower(\(pBind))"))
         }
 
         if !query.identifier.isEmpty {
@@ -627,7 +627,7 @@ public struct ImmunizationStore: Sendable {
         if let ln = query.lotNumber {
             let pBind = bind("\(ln)%")
             filterCTEs.append(("f_lot_number",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND value ILIKE \(pBind)"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND lower(value) LIKE lower(\(pBind))"))
         }
 
         func dateCTECount(prefix: String, paramName: String, dp: ImmunizationSearchQuery.DateParam, idx: Int) -> (String, String) {

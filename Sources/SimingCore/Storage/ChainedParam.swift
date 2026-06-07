@@ -115,16 +115,22 @@ public func chainFilterCTE(
     let joinSQL: String
     switch chain.childType {
     case .string:
-        let pattern: String
+        let pBind: String
+        let stringCond: String
         switch chain.modifier {
-        case "contains": pattern = "%\(chain.value)%"
-        case "exact":    pattern = chain.value
-        default:         pattern = "\(chain.value)%"
+        case "exact":
+            pBind = bindStr(chain.value)
+            stringCond = "s.value = \(pBind)"
+        case "contains", "text":
+            pBind = bindStr("%\(chain.value)%")
+            stringCond = "s.value ILIKE \(pBind)"
+        default:
+            pBind = bindStr("\(chain.value)%")
+            stringCond = "lower(s.value) LIKE lower(\(pBind))"
         }
-        let pBind = bindStr(pattern)
         joinSQL = """
         JOIN idx_string s ON s.resource_type = ref.ref_type AND s.resource_id = ref.ref_id \
-        AND s.param_name = \(cpBind) AND s.value ILIKE \(pBind)
+        AND s.param_name = \(cpBind) AND \(stringCond)
         """
 
     case .token:

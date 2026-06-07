@@ -277,8 +277,12 @@ public struct LocationStore: Sendable {
         }
     }
 
-    private func stringFilterOp(_ param: LocationSearchQuery.StringParam) -> String {
-        param.modifier == .exact ? "=" : "ILIKE"
+    private func stringFilterCond(_ param: LocationSearchQuery.StringParam, _ bp: String) -> String {
+        switch param.modifier {
+        case .exact:           return "value = \(bp)"
+        case .contains, .text: return "value ILIKE \(bp)"
+        case .startsWith:      return "lower(value) LIKE lower(\(bp))"
+        }
     }
 
     private func buildSearchSQL(query: LocationSearchQuery) throws -> (String, PostgresBindings) {
@@ -302,7 +306,7 @@ public struct LocationStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Location' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Location' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         // token OR CTE builder (inline closure to work around 'some' parameter restriction)
@@ -585,7 +589,7 @@ public struct LocationStore: Sendable {
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
             let bp = bind(stringBindValue(param))
-            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Location' AND param_name = '\(paramName)' AND value \(stringFilterOp(param)) \(bp)"))
+            filterCTEs.append((cteName, "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Location' AND param_name = '\(paramName)' AND \(stringFilterCond(param, bp))"))
         }
 
         func countTokenORCTE(name: String, paramName: String, tokens: [LocationSearchQuery.TokenParam]) -> (String, String) {
