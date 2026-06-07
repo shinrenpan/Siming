@@ -513,7 +513,7 @@ public struct LocationStore: Sendable {
         }
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
-        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
         let skipTotal = query.totalMode == .none
         if !skipTotal { cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )") }
         if let skCTE = sortKeysCTE { cteParts.append("\(skCTE.name) AS (\n    \(skCTE.sql)\n  )") }
@@ -654,7 +654,7 @@ public struct LocationStore: Sendable {
             + fromLines).joined(separator: "\n      ")
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
-        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
         return ("\(withClause)\nSELECT COUNT(*) FROM ids", binds)
     }

@@ -26,6 +26,7 @@ public struct DatabaseConfiguration {
             tls: .disable
         )
         config.options.minimumConnections = 4
+        config.options.maximumConnections = 40
         return config
     }
 

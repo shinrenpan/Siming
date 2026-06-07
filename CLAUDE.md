@@ -17,7 +17,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 ## Stack
 
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
-- **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=20 (set in `DatabaseConfiguration.postgresClientConfiguration`).
+- **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=40 (set in `DatabaseConfiguration.postgresClientConfiguration`).
 - **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.2`.
 - **FHIR version:** R4 only. R5 door stays open via the generator.
 
@@ -185,21 +185,22 @@ f_date0 AS (
   SELECT DISTINCT resource_id FROM idx_date
   WHERE resource_type = 'Patient' AND param_name = 'birthdate' AND date_end >= $2
 ),
-current AS (
-  SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated, r.content
+ids AS MATERIALIZED (
+  SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated
   FROM resources r
   JOIN f_name  ON f_name.resource_id  = r.id
   JOIN f_date0 ON f_date0.resource_id = r.id
   WHERE r.resource_type = 'Patient' AND r.deleted = false
   ORDER BY r.id, r.version_id DESC
-)
-SELECT c.id, c.version_id, c.last_updated, c.content, COUNT(*) OVER () AS total
-FROM current c
-ORDER BY c.last_updated DESC, c.id ASC
-LIMIT $3
+),
+total_count AS (SELECT COUNT(*) AS n FROM ids),
+paged AS (SELECT id, version_id, last_updated FROM ids ORDER BY last_updated DESC, id ASC LIMIT $3)
+SELECT p.id, p.version_id, p.last_updated, r.content, t.n
+FROM paged p CROSS JOIN total_count t
+JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the matching subset; planner can hash-join the filter CTEs.
+Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` ensures the join + DISTINCT ON is evaluated exactly once even though it is referenced by both `total_count` and `paged`. Content is fetched only for the final page (deferred-content pattern).
 
 ## FHIR wire-format rules
 
@@ -211,7 +212,9 @@ Filter CTEs hit GIN/b-tree indexes directly; `current` materialises only the mat
 
 ## FHIR R4 interaction compliance
 
-**Layer 2 — deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, `_include`/`_revinclude`, transaction bundles.
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search.
+
+**Deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, transaction bundles, subscriptions.
 
 ## Pagination
 
@@ -235,7 +238,7 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 - Inferno / Touchstone compliance → north star only, not on roadmap.
 - SMART on FHIR / OAuth → much later.
 - R5 → generator preserves the path, not built.
-- terminology, `_revinclude`, transaction bundle, subscription → stage 3+.
+- terminology, transaction bundle, subscription → stage 3+.
 
 ## Observability
 

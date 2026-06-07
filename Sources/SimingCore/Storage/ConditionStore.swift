@@ -677,7 +677,7 @@ public struct ConditionStore: Sendable {
         }
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
-        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
         let skipTotal = query.totalMode == .none
         if !skipTotal {
             cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
@@ -881,7 +881,7 @@ public struct ConditionStore: Sendable {
             + fromLines).joined(separator: "\n      ")
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
-        cteParts.append("ids AS (\n    \(idsInner)\n  )")
+        cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
         return ("\(withClause)\nSELECT COUNT(*) FROM ids", binds)
     }
