@@ -49,6 +49,8 @@ Server listens on `http://localhost:8080`.
 | Goal | ✓ | ✓ | `GET /Patient/:id/Goal` |
 | MedicationStatement | ✓ | ✓ | `GET /Patient/:id/MedicationStatement` |
 | FamilyMemberHistory | ✓ | ✓ | `GET /Patient/:id/FamilyMemberHistory` |
+| Appointment | ✓ | ✓ | `GET /Patient/:id/Appointment` |
+| MedicationAdministration | ✓ | ✓ | `GET /Patient/:id/MedicationAdministration` |
 
 ### Interactions
 
@@ -60,7 +62,7 @@ Server listens on `http://localhost:8080`.
 | Conditional create (`If-None-Exist`) | ✓ |
 | Conditional update (`PUT /[type]?<search>`) | ✓ |
 | Conditional delete (`DELETE /[type]?<search>`) | ✓ |
-| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 21 resource types | ✓ |
+| JSON Patch (`PATCH /[type]/:id`, RFC 6902) — all 23 resource types | ✓ |
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
@@ -75,12 +77,12 @@ Server listens on `http://localhost:8080`.
 | `:missing` modifier | ✓ |
 | Multiple values — OR (comma) / AND (repeated param) | ✓ |
 | `_sort`, `_count`, cursor pagination | ✓ |
-| `_total` (`accurate` \| `none`) | ✓ |
+| `_total` (`accurate` \| `estimate` \| `none`) | ✓ |
 | `_elements` (field projection) | ✓ |
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
 | `_format` negotiation; 406 for non-JSON | ✓ |
 | POST `/_search` (form-encoded) | ✓ |
-| `_include` / `_revinclude` (1-level, all 21 resources) | ✓ |
+| `_include` / `_revinclude` (1-level, all 23 resources) | ✓ |
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
@@ -116,7 +118,7 @@ Server listens on `http://localhost:8080`.
 
 **Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 
-**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `subject`, `patient`, `author`, `encounter`, `_id`, `_lastUpdated`
+**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `_id`, `_lastUpdated`
 
 **CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
 
@@ -125,6 +127,10 @@ Server listens on `http://localhost:8080`.
 **MedicationStatement** — `status`, `category`, `code`, `identifier`, `effective`, `subject`, `patient`, `context`, `source`, `medication`, `part-of`, `_id`, `_lastUpdated`
 
 **FamilyMemberHistory** — `status`, `relationship`, `sex`, `code`, `identifier`, `date`, `patient`, `_id`, `_lastUpdated`
+
+**Appointment** — `status`, `service-type`, `appointment-type`, `specialty`, `reason-code`, `service-category`, `part-status`, `identifier`, `date`, `patient`, `practitioner`, `location`, `actor`, `_id`, `_lastUpdated`
+
+**MedicationAdministration** — `status`, `code`, `reason-given`, `reason-not-given`, `identifier`, `effective-time`, `subject`, `patient`, `context`, `request`, `performer`, `device`, `medication`, `_id`, `_lastUpdated`
 
 ### Other
 
