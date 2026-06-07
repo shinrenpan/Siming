@@ -338,7 +338,7 @@ public struct PatientStore: Sendable {
                 }
 
                 // Replace all index rows for this resource.
-                try await replaceIndexRows(conn: conn, id: id, params: searchParams)
+                try await replaceIndexRows(conn: conn, resourceType: "Patient", id: id, params: searchParams, logger: logger)
 
                 _ = try await conn.query("COMMIT", logger: logger)
 
@@ -354,40 +354,6 @@ public struct PatientStore: Sendable {
 
     /// Validation hook. No-op until profile validation is added.
     private func validate(_ patient: Patient) throws {}
-
-    /// Delete all existing index rows for this resource, then bulk-insert the new ones.
-    private func replaceIndexRows(conn: PostgresConnection, id: String, params: SearchParams) async throws {
-        _ = try await conn.query("DELETE FROM idx_token     WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_string    WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_date      WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_reference WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_quantity  WHERE resource_type = 'Patient' AND resource_id = \(id)", logger: logger)
-
-        for row in params.tokens {
-            _ = try await conn.query(
-                "INSERT INTO idx_token (resource_type, resource_id, param_name, system, code) VALUES ('Patient', \(id), \(row.paramName), \(row.system), \(row.code))",
-                logger: logger
-            )
-        }
-        for row in params.strings {
-            _ = try await conn.query(
-                "INSERT INTO idx_string (resource_type, resource_id, param_name, value) VALUES ('Patient', \(id), \(row.paramName), \(row.value))",
-                logger: logger
-            )
-        }
-        for row in params.dates {
-            _ = try await conn.query(
-                "INSERT INTO idx_date (resource_type, resource_id, param_name, date_start, date_end) VALUES ('Patient', \(id), \(row.paramName), \(row.dateStart), \(row.dateEnd))",
-                logger: logger
-            )
-        }
-        for row in params.references {
-            _ = try await conn.query(
-                "INSERT INTO idx_reference (resource_type, resource_id, param_name, ref_type, ref_id) VALUES ('Patient', \(id), \(row.paramName), \(row.refType), \(row.refId))",
-                logger: logger
-            )
-        }
-    }
 
     // ── String filter helpers ────────────────────────────────────────────────
 

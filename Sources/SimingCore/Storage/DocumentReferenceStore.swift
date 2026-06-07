@@ -299,7 +299,7 @@ public struct DocumentReferenceStore: Sendable {
                 var lastUpdated = Date()
                 for try await (d) in insRows.decode(Date.self, context: .default) { lastUpdated = d }
 
-                try await replaceIndexRows(conn: conn, id: id, params: searchParams)
+                try await replaceIndexRows(conn: conn, resourceType: "DocumentReference", id: id, params: searchParams, logger: logger)
 
                 _ = try await conn.query("COMMIT", logger: logger)
 
@@ -313,40 +313,6 @@ public struct DocumentReferenceStore: Sendable {
     }
 
     private func validate(_ docRef: DocumentReference) throws {}
-
-    private func replaceIndexRows(conn: PostgresConnection, id: String, params: SearchParams) async throws {
-        _ = try await conn.query("DELETE FROM idx_token     WHERE resource_type = 'DocumentReference' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_string    WHERE resource_type = 'DocumentReference' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_date      WHERE resource_type = 'DocumentReference' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_reference WHERE resource_type = 'DocumentReference' AND resource_id = \(id)", logger: logger)
-        _ = try await conn.query("DELETE FROM idx_quantity  WHERE resource_type = 'DocumentReference' AND resource_id = \(id)", logger: logger)
-
-        for row in params.tokens {
-            _ = try await conn.query(
-                "INSERT INTO idx_token (resource_type, resource_id, param_name, system, code) VALUES ('DocumentReference', \(id), \(row.paramName), \(row.system), \(row.code))",
-                logger: logger)
-        }
-        for row in params.strings {
-            _ = try await conn.query(
-                "INSERT INTO idx_string (resource_type, resource_id, param_name, value) VALUES ('DocumentReference', \(id), \(row.paramName), \(row.value))",
-                logger: logger)
-        }
-        for row in params.dates {
-            _ = try await conn.query(
-                "INSERT INTO idx_date (resource_type, resource_id, param_name, date_start, date_end) VALUES ('DocumentReference', \(id), \(row.paramName), \(row.dateStart), \(row.dateEnd))",
-                logger: logger)
-        }
-        for row in params.references {
-            _ = try await conn.query(
-                "INSERT INTO idx_reference (resource_type, resource_id, param_name, ref_type, ref_id) VALUES ('DocumentReference', \(id), \(row.paramName), \(row.refType), \(row.refId))",
-                logger: logger)
-        }
-        for row in params.quantities {
-            _ = try await conn.query(
-                "INSERT INTO idx_quantity (resource_type, resource_id, param_name, system, code, value) VALUES ('DocumentReference', \(id), \(row.paramName), \(row.system), \(row.code), \(row.value))",
-                logger: logger)
-        }
-    }
 
     private func buildSearchSQL(query: DocumentReferenceSearchQuery) throws -> (String, PostgresBindings) {
         var binds = PostgresBindings()
