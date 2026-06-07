@@ -900,9 +900,14 @@ struct TotalModeTests {
         #expect(PatientSearchQuery.TotalMode.parse("NONE") == .none)
     }
 
+    @Test("parse 'estimate' returns estimate")
+    func parseEstimate() {
+        #expect(PatientSearchQuery.TotalMode.parse("estimate") == .estimate)
+    }
+
     @Test("parse unknown value defaults to accurate")
     func parseUnknownIsAccurate() {
-        #expect(PatientSearchQuery.TotalMode.parse("estimate") == .accurate)
+        #expect(PatientSearchQuery.TotalMode.parse("bogus") == .accurate)
     }
 
     @Test("TotalMode typealias on ObservationSearchQuery")

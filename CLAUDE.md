@@ -212,7 +212,9 @@ Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` ensures the j
 
 ## FHIR R4 interaction compliance
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search.
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`.
+
+**`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
 **Deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, transaction bundles, subscriptions.
 

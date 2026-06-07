@@ -278,11 +278,12 @@ public func addObservationRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseObservationQuery(from: pairs)
+        var query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -331,11 +332,12 @@ public func addObservationRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseObservationQuery(from: pairs)
+        var query = parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)

@@ -217,7 +217,12 @@ public struct PatientStore: Sendable {
                 nextCursor = nil
             }
 
-            let total: Int? = query.totalMode == .none ? nil : Int(rawTotal)
+            let total: Int?
+            switch query.totalMode {
+            case .accurate: total = Int(rawTotal)
+            case .estimate: total = hasNext ? nil : page.count  // exact when last page, nil otherwise
+            case .none:     total = nil
+            }
             return SearchResult(entries: page, total: total, nextCursor: nextCursor)
         }
     }
@@ -572,7 +577,7 @@ public struct PatientStore: Sendable {
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
         cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
-        let skipTotal = query.totalMode == .none
+        let skipTotal = query.totalMode == .none || query.totalMode == .estimate
         if !skipTotal {
             cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
         }

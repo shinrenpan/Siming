@@ -106,11 +106,12 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             let bad = unknownParams(in: qpPairs, known: knownPatientParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parsePatientQuery(from: qpPairs)
+        var query = parsePatientQuery(from: qpPairs)
         let elements = parseElements(from: qpPairs)
         let summary = parseSummary(from: qpPairs)
         let includes = parseIncludes(from: qpPairs)
         let revIncludes = parseRevIncludes(from: qpPairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -159,11 +160,12 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             let bad = unknownParams(in: pairs, known: knownPatientParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parsePatientQuery(from: pairs)
+        var query = parsePatientQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)

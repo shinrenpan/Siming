@@ -274,11 +274,12 @@ public func addAllergyIntoleranceRoutes(
             let bad = unknownParams(in: pairs, known: knownAllergyIntoleranceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseAllergyIntoleranceQuery(from: pairs)
+        var query = parseAllergyIntoleranceQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)
@@ -326,11 +327,12 @@ public func addAllergyIntoleranceRoutes(
             let bad = unknownParams(in: pairs, known: knownAllergyIntoleranceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseAllergyIntoleranceQuery(from: pairs)
+        var query = parseAllergyIntoleranceQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = selfURL(request)

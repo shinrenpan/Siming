@@ -111,11 +111,16 @@ public struct PatientSearchQuery: Sendable {
     // ── Total mode ───────────────────────────────────────────────────────────
 
     public enum TotalMode: Sendable {
-        case accurate   // COUNT(*) from ids — default
-        case none       // skip count, omit Bundle.total
+        case accurate   // COUNT(*) from ids — exact, default
+        case estimate   // skip COUNT(*); return exact only when page is incomplete
+        case none       // skip count entirely, omit Bundle.total
 
         public static func parse(_ raw: String?) -> TotalMode {
-            raw?.lowercased() == "none" ? .none : .accurate
+            switch raw?.lowercased() {
+            case "none":     return .none
+            case "estimate": return .estimate
+            default:         return .accurate
+            }
         }
     }
 

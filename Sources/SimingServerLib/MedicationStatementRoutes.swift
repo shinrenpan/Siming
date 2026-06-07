@@ -259,11 +259,12 @@ public func addMedicationStatementRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationStatementParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseMedicationStatementQuery(from: pairs)
+        var query = parseMedicationStatementQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = msSelfURL(request)
@@ -309,11 +310,12 @@ public func addMedicationStatementRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationStatementParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseMedicationStatementQuery(from: pairs)
+        var query = parseMedicationStatementQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = msSelfURL(request)

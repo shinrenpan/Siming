@@ -261,11 +261,12 @@ public func addAppointmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAppointmentParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseAppointmentQuery(from: pairs)
+        var query = parseAppointmentQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = apptSelfURL(request)
@@ -311,11 +312,12 @@ public func addAppointmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAppointmentParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        let query = parseAppointmentQuery(from: pairs)
+        var query = parseAppointmentQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
         let revIncludes = parseRevIncludes(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
         let base = apptSelfURL(request)
