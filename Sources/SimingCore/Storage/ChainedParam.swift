@@ -165,11 +165,9 @@ public func chainFilterCTE(
     if let tt = chain.targetType { targetClause = " AND ref.ref_type = \(bindStr(tt))" }
 
     return (cteName, """
-    \(cteName) AS (
-      SELECT DISTINCT ref.resource_id FROM idx_reference ref
-      \(joinSQL)
-      WHERE ref.resource_type = \(srcBind) AND ref.param_name = \(refBind)\(targetClause)
-    )
+    SELECT DISTINCT ref.resource_id FROM idx_reference ref
+    \(joinSQL)
+    WHERE ref.resource_type = \(srcBind) AND ref.param_name = \(refBind)\(targetClause)
     """)
 }
 

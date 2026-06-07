@@ -210,7 +210,7 @@ final class MedicationAdministrationStoreTests: XCTestCase {
     func testHistory_withSince_filtersVersions() async throws {
         let patient = try await patientStore.create(makePatient(family: "MAHistSince"))
         let created = try await store.create(makeMedicationAdministration(patientId: patient.id, status: "in-progress"))
-        let afterCreate = Date()
+        let afterCreate = created.lastUpdated.addingTimeInterval(0.001)
         let updated = try makeMedicationAdministration(patientId: patient.id, status: "completed")
         _ = try await store.update(id: created.id, medicationAdministration: updated, ifMatch: nil)
         let entries = try await store.history(id: created.id, since: afterCreate)

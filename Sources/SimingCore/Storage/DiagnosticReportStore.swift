@@ -572,7 +572,7 @@ public struct DiagnosticReportStore: Sendable {
             ? "FROM paged p JOIN resources r ON r.resource_type = 'DiagnosticReport' AND r.id = p.id AND r.version_id = p.version_id"
             : "FROM paged p CROSS JOIN total_count t JOIN resources r ON r.resource_type = 'DiagnosticReport' AND r.id = p.id AND r.version_id = p.version_id"
 
-        let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), \(finalSortValSQL) AS sort_val_text\n\(fromClause)"
+        let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), \(finalSortValSQL) AS sort_val_text\n\(fromClause)\nORDER BY sort_val_text \(orderDir) NULLS LAST, p.id ASC"
         return (sql, binds)
     }
 

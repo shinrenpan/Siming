@@ -138,11 +138,9 @@ public func hasFilterCTE(
     let mtBind  = bindStr(mainType)
 
     return (cteName, """
-    \(cteName) AS (
-      SELECT DISTINCT ref.ref_id AS resource_id FROM idx_reference ref
-      \(joinSQL)
-      WHERE ref.resource_type = \(rtBind) AND ref.param_name = \(rpBind) AND ref.ref_type = \(mtBind)
-    )
+    SELECT DISTINCT ref.ref_id AS resource_id FROM idx_reference ref
+    \(joinSQL)
+    WHERE ref.resource_type = \(rtBind) AND ref.param_name = \(rpBind) AND ref.ref_type = \(mtBind)
     """)
 }
 

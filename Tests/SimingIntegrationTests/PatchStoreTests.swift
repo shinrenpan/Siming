@@ -162,10 +162,9 @@ final class PatchStoreTests: XCTestCase {
         let created = try await store.create(makePatient(family: "InvalidFHIR"))
         let current = try await store.read(id: created.id)
 
-        // Remove the required 'status' analog — remove name entirely making it invalid
-        // Actually Patient.name is optional in FHIR, let's remove resourceType instead
+        // Replace name (expects [HumanName] array) with a plain string to force a type-mismatch DecodingError
         let patchData = try JSONSerialization.data(withJSONObject: [
-            ["op": "remove", "path": "/resourceType"]
+            ["op": "replace", "path": "/name", "value": "not-an-array"]
         ])
         let patchedJSON = try JSONPatch.apply(patchData, to: current.jsonData)
         XCTAssertThrowsError(try JSONDecoder().decode(Patient.self, from: patchedJSON))

@@ -200,7 +200,7 @@ final class AppointmentStoreTests: XCTestCase {
     func testHistory_withSince_filtersVersions() async throws {
         let patient = try await patientStore.create(makePatient(family: "ApptHistSince"))
         let created = try await store.create(makeAppointment(patientId: patient.id, status: "booked"))
-        let afterCreate = Date()
+        let afterCreate = created.lastUpdated.addingTimeInterval(0.001)
         let updated = try makeAppointment(patientId: patient.id, status: "fulfilled")
         _ = try await store.update(id: created.id, appointment: updated, ifMatch: nil)
         let entries = try await store.history(id: created.id, since: afterCreate)
