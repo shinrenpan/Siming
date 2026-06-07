@@ -22,7 +22,7 @@ public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
 
 private func buildCapabilityStatement() -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-07")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-08")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
@@ -31,11 +31,11 @@ private func buildCapabilityStatement() -> CapabilityStatement {
         rest: [serverRest()],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.9.0"))
+            version: FHIRPrimitive(FHIRString("0.42.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.9.0"))
+        version: FHIRPrimitive(FHIRString("0.42.0"))
     )
 }
 
@@ -93,7 +93,7 @@ private func patientResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "History-preserving Patient resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Patient?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: _sort=±_lastUpdated/±name/±family/±birthdate/±_id; _count (0–100; 0=count-only); _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false); cursor pagination via _cursor. " +
+            "Search: _sort=±_lastUpdated/±name/±family/±birthdate/±_id; _count (0–100; 0=count-only); _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false); cursor pagination via _cursor. " +
             "String modifiers: :contains, :exact, :text (case-insensitive substring); :not, :missing on all params. " +
             "Prefer: return=minimal on write → 201/200 with no body. " +
             "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them. " +
@@ -200,7 +200,7 @@ private func patientResource() -> CapabilityStatementRestResource {
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-query-total")),
-                documentation: FHIRPrimitive(FHIRString("Controls whether Bundle.total is returned. Values: accurate (default), none.")),
+                documentation: FHIRPrimitive(FHIRString("Controls whether Bundle.total is returned. Values: accurate (default), estimate, none.")),
                 name: FHIRPrimitive(FHIRString("_total")),
                 type: FHIRPrimitive(.token)
             ),
@@ -226,7 +226,7 @@ private func observationResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Observation resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Observation?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, code, status, category, date, identifier, encounter, performer, component-code, value-quantity; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Prefer: return=minimal on write → 201/200 with no body. " +
             "Prefer: handling=strict on search → 400 on unknown params; handling=lenient (default) ignores them."
@@ -314,7 +314,7 @@ private func observationResource() -> CapabilityStatementRestResource {
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-query-total")),
-                documentation: FHIRPrimitive(FHIRString("Controls whether Bundle.total is returned. Values: accurate (default), none.")),
+                documentation: FHIRPrimitive(FHIRString("Controls whether Bundle.total is returned. Values: accurate (default), estimate, none.")),
                 name: FHIRPrimitive(FHIRString("_total")),
                 type: FHIRPrimitive(.token)
             ),
@@ -336,7 +336,7 @@ private func encounterResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Encounter resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Encounter?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, patient, status, class, type, date, identifier; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, patient, status, class, type, date, identifier; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/Encounter and POST /Patient/:id/Encounter/_search."
         )),
@@ -418,7 +418,7 @@ private func conditionResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Condition resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Condition?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, patient, encounter, clinical-status, verification-status, category, code, identifier, onset-date, abatement-date, recorded-date; _sort=±_lastUpdated/±date(onset)/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, patient, encounter, clinical-status, verification-status, category, code, identifier, onset-date, abatement-date, recorded-date; _sort=±_lastUpdated/±date(onset)/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/Condition and POST /Patient/:id/Condition/_search."
         )),
@@ -605,7 +605,7 @@ private func medicationRequestResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "MedicationRequest resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /MedicationRequest?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, patient, status, intent, category, code, priority, identifier, authoredon, encounter, requester; _sort=±_lastUpdated/±authoredon/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, patient, status, intent, category, code, priority, identifier, authoredon, encounter, requester; _sort=±_lastUpdated/±authoredon/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/MedicationRequest."
         )),
@@ -708,7 +708,7 @@ private func allergyIntoleranceResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "AllergyIntolerance resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /AllergyIntolerance?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: patient, clinical-status, verification-status, type, category, criticality, code, identifier, date, manifestation, severity, route, last-date, onset; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: patient, clinical-status, verification-status, type, category, criticality, code, identifier, date, manifestation, severity, route, last-date, onset; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/AllergyIntolerance."
         )),
@@ -829,7 +829,7 @@ private func procedureResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Procedure resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Procedure?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, patient, encounter, performer, status, code, category, identifier, date; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, patient, encounter, performer, status, code, category, identifier, date; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/Procedure and POST /Patient/:id/Procedure/_search."
         )),
@@ -920,7 +920,7 @@ private func diagnosticReportResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "DiagnosticReport resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /DiagnosticReport?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: subject, patient, encounter, performer, status, code, category, identifier, date, issued; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: subject, patient, encounter, performer, status, code, category, identifier, date, issued; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/DiagnosticReport and POST /Patient/:id/DiagnosticReport/_search."
         )),
@@ -1017,7 +1017,7 @@ private func immunizationResource() -> CapabilityStatementRestResource {
         documentation: FHIRPrimitive(FHIRString(
             "Immunization resource. " +
             "Supports read, vread, create (conditional via If-None-Exist), update (conditional via PUT /Immunization?<search>), delete, history-instance, and search (GET and POST /_search). " +
-            "Search: patient, status, vaccine-code, identifier, date, performer, lot-number; _sort=±_lastUpdated/±date/±_id; _total (accurate|none); _elements (field filter); _summary (true|text|data|count|false). " +
+            "Search: patient, status, vaccine-code, identifier, date, performer, lot-number; _sort=±_lastUpdated/±date/±_id; _total (accurate|estimate|none); _elements (field filter); _summary (true|text|data|count|false). " +
             ":not and :missing modifiers supported. " +
             "Compartment: GET /Patient/:id/Immunization and POST /Patient/:id/Immunization/_search."
         )),

@@ -144,7 +144,10 @@ public func addMedicationAdministrationRoutes(
     // GET /MedicationAdministration/:id/_history — instance history
     group.get(":id/_history") { request, context in
         let id = context.parameters.get("id") ?? ""
-        let entries = try await store.history(id: id)
+        let qp = request.uri.queryParameters
+        let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
+        let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maMaxCount)
+        let entries = try await store.history(id: id, since: since, count: count)
         let baseURL = serverBaseURL(request)
         let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
         var headers = HTTPFields()

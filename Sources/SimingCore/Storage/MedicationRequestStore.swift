@@ -77,15 +77,28 @@ public struct MedicationRequestStore: Sendable {
         }
     }
 
-    public func history(id: String) async throws -> [HistoryRawEntry] {
+    public func history(id: String, since: Date? = nil, count: Int = 50) async throws -> [HistoryRawEntry] {
         try await client.withConnection { conn in
-            let rows = try await conn.query(
-                """
-                SELECT version_id, last_updated, content, deleted
-                FROM resources
-                WHERE resource_type = 'MedicationRequest' AND id = \(id)
-                ORDER BY version_id DESC
-                """, logger: logger)
+            let rows: PostgresRowSequence
+            if let since {
+                rows = try await conn.query(
+                    """
+                    SELECT version_id, last_updated, content, deleted
+                    FROM resources
+                    WHERE resource_type = 'MedicationRequest' AND id = \(id) AND last_updated >= \(since)
+                    ORDER BY version_id DESC
+                    LIMIT \(Int64(count))
+                    """, logger: logger)
+            } else {
+                rows = try await conn.query(
+                    """
+                    SELECT version_id, last_updated, content, deleted
+                    FROM resources
+                    WHERE resource_type = 'MedicationRequest' AND id = \(id)
+                    ORDER BY version_id DESC
+                    LIMIT \(Int64(count))
+                    """, logger: logger)
+            }
             var entries: [HistoryRawEntry] = []
             for try await (vid, lastUpdated, content, deleted) in
                 rows.decode((Int64, Date, String, Bool).self, context: .default)
@@ -93,8 +106,18 @@ public struct MedicationRequestStore: Sendable {
                 let jsonData: Data? = deleted ? nil : injectMeta(into: content, versionId: vid, lastUpdated: lastUpdated)
                 entries.append(HistoryRawEntry(resourceType: "MedicationRequest", id: id, versionId: vid, lastUpdated: lastUpdated, jsonData: jsonData, deleted: deleted))
             }
-            guard !entries.isEmpty else {
-                throw FHIRServerError.notFound(resourceType: "MedicationRequest", id: id)
+            if entries.isEmpty {
+                if since != nil {
+                    let existRows = try await conn.query(
+                        """
+                        SELECT 1 FROM resources WHERE resource_type = 'MedicationRequest' AND id = \(id) LIMIT 1
+                        """, logger: logger)
+                    var exists = false
+                    for try await _ in existRows { exists = true }
+                    if !exists { throw FHIRServerError.notFound(resourceType: "MedicationRequest", id: id) }
+                } else {
+                    throw FHIRServerError.notFound(resourceType: "MedicationRequest", id: id)
+                }
             }
             return entries
         }
