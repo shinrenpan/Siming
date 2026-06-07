@@ -160,11 +160,13 @@ func requireDatabase() async throws {
 func makePatient(
     family: String,
     given: String = "Test",
+    gender: String? = nil,
     birthYear: Int? = nil,
     birthMonth: Int? = nil,
     birthDay: Int? = nil
 ) throws -> ModelsR4.Patient {
     var json = #"{"resourceType":"Patient","name":[{"family":"\#(family)","given":["\#(given)"]}]"#
+    if let g = gender { json += #","gender":"\#(g)""# }
     if let y = birthYear {
         if let m = birthMonth {
             if let d = birthDay {
