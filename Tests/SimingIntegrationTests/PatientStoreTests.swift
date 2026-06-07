@@ -191,6 +191,61 @@ final class PatientStoreTests: XCTestCase {
         XCTAssertEqual(ids, ids.sorted())
     }
 
+    // ── _lastUpdated search filter ────────────────────────────────────────────
+
+    func testSearch_lastUpdated_ge_pastDate_includesAll() async throws {
+        let p1 = try await store.create(makePatient(family: "LUPast1"))
+        let p2 = try await store.create(makePatient(family: "LUPast2"))
+        let past = PatientSearchQuery.BirthdateParam.parse("ge2000-01-01")!
+        let result = try await store.search(query: PatientSearchQuery(lastUpdated: [past], count: 100))
+        let ids = result.entries.map(\.id)
+        XCTAssertTrue(ids.contains(p1.id))
+        XCTAssertTrue(ids.contains(p2.id))
+    }
+
+    func testSearch_lastUpdated_ge_futureDate_returnsEmpty() async throws {
+        _ = try await store.create(makePatient(family: "LUFuture"))
+        let future = PatientSearchQuery.BirthdateParam.parse("ge2099-01-01")!
+        let result = try await store.search(query: PatientSearchQuery(lastUpdated: [future], count: 100))
+        XCTAssertEqual(result.entries.count, 0)
+    }
+
+    func testSearch_lastUpdated_lt_futureDate_includesAll() async throws {
+        let p = try await store.create(makePatient(family: "LULt"))
+        let future = PatientSearchQuery.BirthdateParam.parse("lt2099-01-01")!
+        let result = try await store.search(query: PatientSearchQuery(lastUpdated: [future], count: 100))
+        XCTAssertTrue(result.entries.map(\.id).contains(p.id))
+    }
+
+    // ── Full cursor traversal ─────────────────────────────────────────────────
+
+    func testSearch_pagination_fullTraversal() async throws {
+        let prefix = "FullTraverse"
+        var createdIds: Set<String> = []
+        for i in 1...7 {
+            let r = try await store.create(makePatient(family: "\(prefix)\(i)"))
+            createdIds.insert(r.id)
+        }
+
+        var allIds: Set<String> = []
+        var cursor: PatientSearchQuery.SearchCursor? = nil
+        var pages = 0
+        repeat {
+            let q = PatientSearchQuery(
+                family: .init(value: prefix, modifier: .startsWith),
+                count: 3, cursor: cursor)
+            let result = try await store.search(query: q)
+            let pageIds = result.entries.map(\.id)
+            XCTAssertTrue(allIds.isDisjoint(with: pageIds), "Duplicate entries on page \(pages + 1)")
+            allIds.formUnion(pageIds)
+            pages += 1
+            cursor = result.nextCursor
+        } while cursor != nil
+
+        XCTAssertEqual(pages, 3, "7 resources with count=3 should need exactly 3 pages")
+        XCTAssertTrue(createdIds.isSubset(of: allIds), "Not all created patients appeared in pagination")
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

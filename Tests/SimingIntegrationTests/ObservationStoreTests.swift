@@ -125,4 +125,22 @@ final class ObservationStoreTests: XCTestCase {
         XCTAssertEqual(entries[0].versionId, 2)
         XCTAssertEqual(entries[1].versionId, 1)
     }
+
+    // ── _lastUpdated search filter ────────────────────────────────────────────
+
+    func testSearch_lastUpdated_ge_pastDate_includesCreated() async throws {
+        let patientId = try await patientStore.create(makePatient(family: "ObsLUPast")).id
+        let obs = try await store.create(makeObservation(subjectId: patientId))
+        let past = ObservationSearchQuery.DateParam.parse("ge2000-01-01")!
+        let result = try await store.search(query: ObservationSearchQuery(lastUpdated: [past], count: 100))
+        XCTAssertTrue(result.entries.map(\.id).contains(obs.id))
+    }
+
+    func testSearch_lastUpdated_ge_futureDate_returnsEmpty() async throws {
+        let patientId = try await patientStore.create(makePatient(family: "ObsLUFuture")).id
+        _ = try await store.create(makeObservation(subjectId: patientId))
+        let future = ObservationSearchQuery.DateParam.parse("ge2099-01-01")!
+        let result = try await store.search(query: ObservationSearchQuery(lastUpdated: [future], count: 100))
+        XCTAssertEqual(result.entries.count, 0)
+    }
 }

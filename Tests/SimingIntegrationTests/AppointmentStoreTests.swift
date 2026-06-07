@@ -206,6 +206,28 @@ final class AppointmentStoreTests: XCTestCase {
         XCTAssertEqual(entries[0].versionId, 3)
     }
 
+    // ── Pagination ────────────────────────────────────────────────────────────
+
+    func testSearch_pagination_noDuplicatesAcrossPages() async throws {
+        let patient = try await patientStore.create(makePatient(family: "ApptPage"))
+        for _ in 0..<5 {
+            _ = try await store.create(makeAppointment(patientId: patient.id))
+        }
+
+        var query = AppointmentSearchQuery(patient: "Patient/\(patient.id)", count: 2)
+        let page1 = try await store.search(query: query)
+        XCTAssertEqual(page1.entries.count, 2)
+        XCTAssertNotNil(page1.nextCursor)
+
+        query.cursor = page1.nextCursor
+        let page2 = try await store.search(query: query)
+        XCTAssertEqual(page2.entries.count, 2)
+
+        let ids1 = Set(page1.entries.map(\.id))
+        let ids2 = Set(page2.entries.map(\.id))
+        XCTAssertTrue(ids1.isDisjoint(with: ids2))
+    }
+
     func testIfMatch_conflict_throwsVersionConflict() async throws {
         let patient = try await patientStore.create(makePatient(family: "ApptIfMatch"))
         let created = try await store.create(makeAppointment(patientId: patient.id))
