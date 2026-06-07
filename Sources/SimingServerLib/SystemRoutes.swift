@@ -6,29 +6,7 @@ import SimingCore
 
 public func addSystemRoutes(
     to router: Router<BasicRequestContext>,
-    patientStore: PatientStore,
-    observationStore: ObservationStore,
-    encounterStore: EncounterStore,
-    conditionStore: ConditionStore,
-    medicationStore: MedicationStore,
-    medicationRequestStore: MedicationRequestStore,
-    allergyIntoleranceStore: AllergyIntoleranceStore,
-    procedureStore: ProcedureStore,
-    diagnosticReportStore: DiagnosticReportStore,
-    immunizationStore: ImmunizationStore,
-    practitionerStore: PractitionerStore,
-    organizationStore: OrganizationStore,
-    locationStore: LocationStore,
-    relatedPersonStore: RelatedPersonStore,
-    serviceRequestStore: ServiceRequestStore,
-    specimenStore: SpecimenStore,
-    documentReferenceStore: DocumentReferenceStore,
-    carePlanStore: CarePlanStore,
-    goalStore: GoalStore,
-    medicationStatementStore: MedicationStatementStore,
-    familyMemberHistoryStore: FamilyMemberHistoryStore,
-    appointmentStore: AppointmentStore,
-    medicationAdministrationStore: MedicationAdministrationStore,
+    stores: StoreContainer,
     logger: Logger
 ) {
     // GET /_history — system-level history across all resource types
@@ -38,7 +16,6 @@ public func addSystemRoutes(
         let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, 100)
 
-        // _type: filter by resource type (e.g. _type=Patient,Observation)
         let typeFilter: Set<String>?
         if let typeParam = qp["_type"].map(String.init), !typeParam.isEmpty {
             typeFilter = Set(typeParam.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) })
@@ -47,33 +24,35 @@ public func addSystemRoutes(
         }
         func include(_ type: String) -> Bool { typeFilter == nil || typeFilter!.contains(type) }
 
-        async let patientEntries   = include("Patient")             ? patientStore.typeHistory(since: since, count: count)             : []
-        async let obsEntries       = include("Observation")         ? observationStore.typeHistory(since: since, count: count)         : []
-        async let encEntries       = include("Encounter")           ? encounterStore.typeHistory(since: since, count: count)           : []
-        async let conEntries       = include("Condition")           ? conditionStore.typeHistory(since: since, count: count)           : []
-        async let medBaseEntries   = include("Medication")          ? medicationStore.typeHistory(since: since, count: count)          : []
-        async let medEntries       = include("MedicationRequest")   ? medicationRequestStore.typeHistory(since: since, count: count)   : []
-        async let allergyEntries   = include("AllergyIntolerance")  ? allergyIntoleranceStore.typeHistory(since: since, count: count)  : []
-        async let procEntries      = include("Procedure")           ? procedureStore.typeHistory(since: since, count: count)           : []
-        async let drEntries        = include("DiagnosticReport")    ? diagnosticReportStore.typeHistory(since: since, count: count)    : []
-        async let immEntries       = include("Immunization")        ? immunizationStore.typeHistory(since: since, count: count)        : []
-        async let pracEntries      = include("Practitioner")        ? practitionerStore.typeHistory(since: since, count: count)        : []
-        async let orgEntries       = include("Organization")        ? organizationStore.typeHistory(since: since, count: count)        : []
-        async let locEntries       = include("Location")            ? locationStore.typeHistory(since: since, count: count)            : []
-        async let rpEntries        = include("RelatedPerson")       ? relatedPersonStore.typeHistory(since: since, count: count)       : []
-        async let srEntries        = include("ServiceRequest")       ? serviceRequestStore.typeHistory(since: since, count: count)       : []
-        async let specEntries      = include("Specimen")             ? specimenStore.typeHistory(since: since, count: count)             : []
-        async let docRefEntries    = include("DocumentReference")    ? documentReferenceStore.typeHistory(since: since, count: count)    : []
-        async let carePlanEntries  = include("CarePlan")             ? carePlanStore.typeHistory(since: since, count: count)             : []
-        async let goalEntries      = include("Goal")                 ? goalStore.typeHistory(since: since, count: count)                 : []
-        async let msEntries        = include("MedicationStatement")  ? medicationStatementStore.typeHistory(since: since, count: count)  : []
-        async let fmhEntries       = include("FamilyMemberHistory")  ? familyMemberHistoryStore.typeHistory(since: since, count: count)  : []
-        async let apptEntries      = include("Appointment")                  ? appointmentStore.typeHistory(since: since, count: count)                  : []
-        async let maEntries        = include("MedicationAdministration")     ? medicationAdministrationStore.typeHistory(since: since, count: count)     : []
+        async let patientEntries   = include("Patient")                  ? stores.patient.typeHistory(since: since, count: count)                  : []
+        async let obsEntries       = include("Observation")              ? stores.observation.typeHistory(since: since, count: count)              : []
+        async let encEntries       = include("Encounter")                ? stores.encounter.typeHistory(since: since, count: count)                : []
+        async let conEntries       = include("Condition")                ? stores.condition.typeHistory(since: since, count: count)                : []
+        async let medBaseEntries   = include("Medication")               ? stores.medication.typeHistory(since: since, count: count)               : []
+        async let medEntries       = include("MedicationRequest")        ? stores.medicationRequest.typeHistory(since: since, count: count)        : []
+        async let allergyEntries   = include("AllergyIntolerance")       ? stores.allergyIntolerance.typeHistory(since: since, count: count)       : []
+        async let procEntries      = include("Procedure")                ? stores.procedure.typeHistory(since: since, count: count)                : []
+        async let drEntries        = include("DiagnosticReport")         ? stores.diagnosticReport.typeHistory(since: since, count: count)         : []
+        async let immEntries       = include("Immunization")             ? stores.immunization.typeHistory(since: since, count: count)             : []
+        async let pracEntries      = include("Practitioner")             ? stores.practitioner.typeHistory(since: since, count: count)             : []
+        async let orgEntries       = include("Organization")             ? stores.organization.typeHistory(since: since, count: count)             : []
+        async let locEntries       = include("Location")                 ? stores.location.typeHistory(since: since, count: count)                 : []
+        async let rpEntries        = include("RelatedPerson")            ? stores.relatedPerson.typeHistory(since: since, count: count)            : []
+        async let srEntries        = include("ServiceRequest")           ? stores.serviceRequest.typeHistory(since: since, count: count)           : []
+        async let specEntries      = include("Specimen")                 ? stores.specimen.typeHistory(since: since, count: count)                 : []
+        async let docRefEntries    = include("DocumentReference")        ? stores.documentReference.typeHistory(since: since, count: count)        : []
+        async let carePlanEntries  = include("CarePlan")                 ? stores.carePlan.typeHistory(since: since, count: count)                 : []
+        async let goalEntries      = include("Goal")                     ? stores.goal.typeHistory(since: since, count: count)                     : []
+        async let msEntries        = include("MedicationStatement")      ? stores.medicationStatement.typeHistory(since: since, count: count)      : []
+        async let fmhEntries       = include("FamilyMemberHistory")      ? stores.familyMemberHistory.typeHistory(since: since, count: count)      : []
+        async let apptEntries      = include("Appointment")              ? stores.appointment.typeHistory(since: since, count: count)              : []
+        async let maEntries        = include("MedicationAdministration") ? stores.medicationAdministration.typeHistory(since: since, count: count) : []
 
         let all = try await (
             patientEntries + obsEntries + encEntries + conEntries + medBaseEntries + medEntries + allergyEntries
-            + procEntries + drEntries + immEntries + pracEntries + orgEntries + locEntries + rpEntries + srEntries + specEntries + docRefEntries + carePlanEntries + goalEntries + msEntries + fmhEntries + apptEntries + maEntries
+            + procEntries + drEntries + immEntries + pracEntries + orgEntries + locEntries + rpEntries
+            + srEntries + specEntries + docRefEntries + carePlanEntries + goalEntries + msEntries
+            + fmhEntries + apptEntries + maEntries
         )
         .sorted { $0.lastUpdated > $1.lastUpdated }
         .prefix(count)

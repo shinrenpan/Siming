@@ -29,54 +29,10 @@ struct SimingApp {
             migrationsPath: migrationsPath
         )
 
-        let patientStore             = PatientStore(client: postgresClient, logger: logger)
-        let observationStore         = ObservationStore(client: postgresClient, logger: logger)
-        let encounterStore           = EncounterStore(client: postgresClient, logger: logger)
-        let conditionStore           = ConditionStore(client: postgresClient, logger: logger)
-        let medicationStore          = MedicationStore(client: postgresClient, logger: logger)
-        let medicationRequestStore   = MedicationRequestStore(client: postgresClient, logger: logger)
-        let allergyIntoleranceStore  = AllergyIntoleranceStore(client: postgresClient, logger: logger)
-        let procedureStore           = ProcedureStore(client: postgresClient, logger: logger)
-        let diagnosticReportStore    = DiagnosticReportStore(client: postgresClient, logger: logger)
-        let immunizationStore        = ImmunizationStore(client: postgresClient, logger: logger)
-        let practitionerStore        = PractitionerStore(client: postgresClient, logger: logger)
-        let organizationStore        = OrganizationStore(client: postgresClient, logger: logger)
-        let locationStore            = LocationStore(client: postgresClient, logger: logger)
-        let relatedPersonStore       = RelatedPersonStore(client: postgresClient, logger: logger)
-        let serviceRequestStore      = ServiceRequestStore(client: postgresClient, logger: logger)
-        let specimenStore            = SpecimenStore(client: postgresClient, logger: logger)
-        let documentReferenceStore   = DocumentReferenceStore(client: postgresClient, logger: logger)
-        let carePlanStore            = CarePlanStore(client: postgresClient, logger: logger)
-        let goalStore                = GoalStore(client: postgresClient, logger: logger)
-        let medicationStatementStore       = MedicationStatementStore(client: postgresClient, logger: logger)
-        let familyMemberHistoryStore       = FamilyMemberHistoryStore(client: postgresClient, logger: logger)
-        let appointmentStore               = AppointmentStore(client: postgresClient, logger: logger)
-        let medicationAdministrationStore  = MedicationAdministrationStore(client: postgresClient, logger: logger)
+        let stores = StoreContainer(client: postgresClient, logger: logger)
 
         let router = buildRouter(
-            patientStore: patientStore,
-            observationStore: observationStore,
-            encounterStore: encounterStore,
-            conditionStore: conditionStore,
-            medicationStore: medicationStore,
-            medicationRequestStore: medicationRequestStore,
-            allergyIntoleranceStore: allergyIntoleranceStore,
-            procedureStore: procedureStore,
-            diagnosticReportStore: diagnosticReportStore,
-            immunizationStore: immunizationStore,
-            practitionerStore: practitionerStore,
-            organizationStore: organizationStore,
-            locationStore: locationStore,
-            relatedPersonStore: relatedPersonStore,
-            serviceRequestStore: serviceRequestStore,
-            specimenStore: specimenStore,
-            documentReferenceStore: documentReferenceStore,
-            carePlanStore: carePlanStore,
-            goalStore: goalStore,
-            medicationStatementStore: medicationStatementStore,
-            familyMemberHistoryStore: familyMemberHistoryStore,
-            appointmentStore: appointmentStore,
-            medicationAdministrationStore: medicationAdministrationStore,
+            stores: stores,
             registry: registry,
             logger: logger
         )
