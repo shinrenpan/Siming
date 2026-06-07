@@ -14,11 +14,7 @@ public func replaceIndexRows(
     params: SearchParams,
     logger: Logger
 ) async throws {
-    _ = try await conn.query("DELETE FROM idx_token     WHERE resource_type = \(resourceType) AND resource_id = \(id)", logger: logger)
-    _ = try await conn.query("DELETE FROM idx_string    WHERE resource_type = \(resourceType) AND resource_id = \(id)", logger: logger)
-    _ = try await conn.query("DELETE FROM idx_date      WHERE resource_type = \(resourceType) AND resource_id = \(id)", logger: logger)
-    _ = try await conn.query("DELETE FROM idx_reference WHERE resource_type = \(resourceType) AND resource_id = \(id)", logger: logger)
-    _ = try await conn.query("DELETE FROM idx_quantity  WHERE resource_type = \(resourceType) AND resource_id = \(id)", logger: logger)
+    _ = try await conn.query("SELECT clear_index_rows(\(resourceType), \(id))", logger: logger)
 
     if !params.tokens.isEmpty {
         var binds = PostgresBindings()

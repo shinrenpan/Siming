@@ -52,54 +52,9 @@ public struct FamilyMemberHistoryStore: Sendable {
     @discardableResult
     public func delete(id: String, ifMatch: Int64?) async throws -> DeleteResult {
         try await client.withConnection { conn in
-            _ = try await conn.query("BEGIN", logger: logger)
-            do {
-                let rows = try await conn.query(
-                    """
-                    SELECT version_id, deleted FROM resources
-                    WHERE resource_type = 'FamilyMemberHistory' AND id = \(id)
-                    ORDER BY version_id DESC LIMIT 1
-                    """, logger: logger)
-                var currentVersion: Int64? = nil
-                var isDeleted = false
-                for try await (v, d) in rows.decode((Int64, Bool).self, context: .default) {
-                    currentVersion = v; isDeleted = d
-                }
-                guard let current = currentVersion else {
-                    _ = try? await conn.query("ROLLBACK", logger: logger)
-                    throw FHIRServerError.notFound(resourceType: "FamilyMemberHistory", id: id)
-                }
-                if isDeleted {
-                    _ = try? await conn.query("ROLLBACK", logger: logger)
-                    return DeleteResult(versionId: current, lastUpdated: Date())
-                }
-                if let expected = ifMatch, current != expected {
-                    _ = try? await conn.query("ROLLBACK", logger: logger)
-                    throw FHIRServerError.versionConflict(id: id, expected: expected, actual: current)
-                }
-
-                let nextVersion = current + 1
-                let insRows = try await conn.query(
-                    """
-                    INSERT INTO resources (resource_type, id, version_id, last_updated, content, deleted)
-                    VALUES ('FamilyMemberHistory', \(id), \(nextVersion), now(), '{}'::jsonb, true)
-                    RETURNING last_updated
-                    """, logger: logger)
-                var lastUpdated = Date()
-                for try await (d) in insRows.decode(Date.self, context: .default) { lastUpdated = d }
-
-                _ = try await conn.query("DELETE FROM idx_token     WHERE resource_type = 'FamilyMemberHistory' AND resource_id = \(id)", logger: logger)
-                _ = try await conn.query("DELETE FROM idx_string    WHERE resource_type = 'FamilyMemberHistory' AND resource_id = \(id)", logger: logger)
-                _ = try await conn.query("DELETE FROM idx_date      WHERE resource_type = 'FamilyMemberHistory' AND resource_id = \(id)", logger: logger)
-                _ = try await conn.query("DELETE FROM idx_reference WHERE resource_type = 'FamilyMemberHistory' AND resource_id = \(id)", logger: logger)
-                _ = try await conn.query("DELETE FROM idx_quantity  WHERE resource_type = 'FamilyMemberHistory' AND resource_id = \(id)", logger: logger)
-
-                _ = try await conn.query("COMMIT", logger: logger)
-                return DeleteResult(versionId: nextVersion, lastUpdated: lastUpdated)
-            } catch {
-                _ = try? await conn.query("ROLLBACK", logger: logger)
-                throw error
-            }
+            let (versionId, lastUpdated, _) = try await deleteResource(
+                conn: conn, resourceType: "FamilyMemberHistory", id: id, ifMatch: ifMatch, logger: logger)
+            return DeleteResult(versionId: versionId, lastUpdated: lastUpdated)
         }
     }
 
