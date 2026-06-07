@@ -71,26 +71,9 @@ public struct MigrationRunner: Sendable {
         let sql = try String(contentsOfFile: filePath, encoding: .utf8)
         logger.info("Applying migration: \(version)")
 
-        // Split on ; and strip comment lines within each chunk.
-        // Each chunk may be preceded by -- header comments; strip those before
-        // checking if the chunk has real SQL. Safe for DDL-only migration files.
-        let statements = sql
-            .components(separatedBy: ";")
-            .compactMap { chunk -> String? in
-                let cleaned = chunk
-                    .split(separator: "\n", omittingEmptySubsequences: false)
-                    .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("--") }
-                    .joined(separator: "\n")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                return cleaned.isEmpty ? nil : cleaned
-            }
-
         try await client.withConnection { conn in
-            for statement in statements {
-                _ = try await conn.query(
-                    PostgresQuery(unsafeSQL: statement),
-                    logger: logger
-                )
+            for statement in splitSQL(sql) {
+                _ = try await conn.query(PostgresQuery(unsafeSQL: statement), logger: logger)
             }
             _ = try await conn.query(
                 "INSERT INTO schema_migrations (version) VALUES (\(version))",
@@ -98,5 +81,61 @@ public struct MigrationRunner: Sendable {
             )
         }
         logger.info("Applied migration: \(version)")
+    }
+
+    /// Splits a SQL file into executable statements on `;`, respecting dollar-quoted
+    /// strings (`$$...$$` and `$tag$...$tag$`) so that semicolons inside PL/pgSQL
+    /// function bodies are not treated as statement terminators.
+    private func splitSQL(_ sql: String) -> [String] {
+        var statements: [String] = []
+        var current = ""
+        var dollarTag: String? = nil  // non-nil while inside a dollar-quoted string
+        let chars = Array(sql)
+        var i = 0
+
+        while i < chars.count {
+            if let tag = dollarTag {
+                // Inside a dollar-quoted string: scan for the closing tag.
+                if sql[sql.index(sql.startIndex, offsetBy: i)...].hasPrefix(tag) {
+                    current.append(contentsOf: tag)
+                    i += tag.count
+                    dollarTag = nil
+                } else {
+                    current.append(chars[i])
+                    i += 1
+                }
+            } else if chars[i] == "$" {
+                // Scan forward for the closing $ to detect a dollar-quote tag.
+                var j = i + 1
+                while j < chars.count && chars[j] != "$" && chars[j] != "\n" { j += 1 }
+                if j < chars.count && chars[j] == "$" {
+                    let tag = String(chars[i...j])  // e.g. "$$" or "$func$"
+                    dollarTag = tag
+                    current.append(contentsOf: tag)
+                    i = j + 1
+                } else {
+                    current.append(chars[i])
+                    i += 1
+                }
+            } else if chars[i] == ";" {
+                let stmt = cleanStatement(current)
+                if !stmt.isEmpty { statements.append(stmt) }
+                current = ""
+                i += 1
+            } else {
+                current.append(chars[i])
+                i += 1
+            }
+        }
+        let stmt = cleanStatement(current)
+        if !stmt.isEmpty { statements.append(stmt) }
+        return statements
+    }
+
+    private func cleanStatement(_ s: String) -> String {
+        s.split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("--") }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
