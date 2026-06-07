@@ -233,6 +233,85 @@ func documentReferenceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: authenticator ─────────────────────────────────────────────
+    case "authenticator":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            guard let refStr = d.authenticator?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── token: contenttype (content[*].attachment.contentType) ───────────────
+    case "contenttype":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for item in d.content {
+                guard let v = item.attachment.contentType?.value?.string, !v.isEmpty else { continue }
+                p.tokens.append(.init(paramName: "\(code)", system: nil, code: v))
+            }
+        }
+        """
+
+    // ── token: format (content[*].format — Coding) ───────────────────────────
+    case "format":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for item in d.content {
+                guard let coding = item.format else { continue }
+                let c = coding.code?.value?.string ?? ""
+                let sys = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "\(code)", system: sys, code: c))
+            }
+        }
+        """
+
+    // ── token: language (content[*].attachment.language) ─────────────────────
+    case "language":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for item in d.content {
+                guard let v = item.attachment.language?.value?.string, !v.isEmpty else { continue }
+                p.tokens.append(.init(paramName: "\(code)", system: nil, code: v))
+            }
+        }
+        """
+
+    // ── reference: custodian ──────────────────────────────────────────────────
+    case "custodian":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            guard let refStr = d.custodian?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── token: setting (context.practiceSetting) ──────────────────────────────
+    case "setting":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for coding in d.context?.practiceSetting?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let sys = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "\(code)", system: sys, code: c))
+            }
+        }
+        """
+
     default:
         return nil
     }

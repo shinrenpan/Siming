@@ -16,6 +16,14 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var securityLabelNot: [TokenParam]
     public var facility: [TokenParam]
     public var event: [TokenParam]
+    public var contentType: [TokenParam]
+    public var contentTypeNot: [TokenParam]
+    public var format: [TokenParam]
+    public var formatNot: [TokenParam]
+    public var language: [TokenParam]
+    public var languageNot: [TokenParam]
+    public var setting: [TokenParam]
+    public var settingNot: [TokenParam]
 
     // date params
     public var date: [DateParam]
@@ -29,6 +37,8 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var patient: String?
     public var author: String?
     public var encounter: String?
+    public var custodian: String?
+    public var authenticator: String?
 
     // system params
     public var id: [String]
@@ -56,6 +66,14 @@ public struct DocumentReferenceSearchQuery: Sendable {
         securityLabelNot: [TokenParam] = [],
         facility: [TokenParam] = [],
         event: [TokenParam] = [],
+        contentType: [TokenParam] = [],
+        contentTypeNot: [TokenParam] = [],
+        format: [TokenParam] = [],
+        formatNot: [TokenParam] = [],
+        language: [TokenParam] = [],
+        languageNot: [TokenParam] = [],
+        setting: [TokenParam] = [],
+        settingNot: [TokenParam] = [],
         date: [DateParam] = [],
         period: [DateParam] = [],
         description: [String] = [],
@@ -63,6 +81,8 @@ public struct DocumentReferenceSearchQuery: Sendable {
         patient: String? = nil,
         author: String? = nil,
         encounter: String? = nil,
+        custodian: String? = nil,
+        authenticator: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -84,6 +104,14 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.securityLabelNot = securityLabelNot
         self.facility         = facility
         self.event            = event
+        self.contentType      = contentType
+        self.contentTypeNot   = contentTypeNot
+        self.format           = format
+        self.formatNot        = formatNot
+        self.language         = language
+        self.languageNot      = languageNot
+        self.setting          = setting
+        self.settingNot       = settingNot
         self.date             = date
         self.period           = period
         self.description      = description
@@ -91,6 +119,8 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.patient          = patient
         self.author           = author
         self.encounter        = encounter
+        self.custodian        = custodian
+        self.authenticator    = authenticator
         self.id               = id
         self.lastUpdated      = lastUpdated
         self.missing          = missing

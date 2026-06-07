@@ -322,12 +322,16 @@ public struct DocumentReferenceStore: Sendable {
         }
 
         // token CTEs
-        if !query.status.isEmpty       { filterCTEs.append(tokenORCTE(name: "f_status",   paramName: "status",         tokens: query.status)) }
-        if !query.type.isEmpty         { filterCTEs.append(tokenORCTE(name: "f_type",     paramName: "type",           tokens: query.type)) }
-        if !query.category.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_category", paramName: "category",       tokens: query.category)) }
-        if !query.securityLabel.isEmpty { filterCTEs.append(tokenORCTE(name: "f_seclabel", paramName: "security-label", tokens: query.securityLabel)) }
-        if !query.facility.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_facility", paramName: "facility",       tokens: query.facility)) }
-        if !query.event.isEmpty        { filterCTEs.append(tokenORCTE(name: "f_event",    paramName: "event",          tokens: query.event)) }
+        if !query.status.isEmpty       { filterCTEs.append(tokenORCTE(name: "f_status",      paramName: "status",         tokens: query.status)) }
+        if !query.type.isEmpty         { filterCTEs.append(tokenORCTE(name: "f_type",        paramName: "type",           tokens: query.type)) }
+        if !query.category.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_category",    paramName: "category",       tokens: query.category)) }
+        if !query.securityLabel.isEmpty { filterCTEs.append(tokenORCTE(name: "f_seclabel",   paramName: "security-label", tokens: query.securityLabel)) }
+        if !query.facility.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_facility",    paramName: "facility",       tokens: query.facility)) }
+        if !query.event.isEmpty        { filterCTEs.append(tokenORCTE(name: "f_event",       paramName: "event",          tokens: query.event)) }
+        if !query.contentType.isEmpty  { filterCTEs.append(tokenORCTE(name: "f_contenttype", paramName: "contenttype",    tokens: query.contentType)) }
+        if !query.format.isEmpty       { filterCTEs.append(tokenORCTE(name: "f_format",      paramName: "format",         tokens: query.format)) }
+        if !query.language.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_language",    paramName: "language",       tokens: query.language)) }
+        if !query.setting.isEmpty      { filterCTEs.append(tokenORCTE(name: "f_setting",     paramName: "setting",        tokens: query.setting)) }
 
         // identifier
         if !query.identifier.isEmpty {
@@ -365,10 +369,12 @@ public struct DocumentReferenceStore: Sendable {
         }
 
         // reference CTEs
-        if let ref = query.subject   { filterCTEs.append(refCTE(name: "f_subject",   paramName: "subject",   ref: ref)) }
-        if let ref = query.patient   { filterCTEs.append(refCTE(name: "f_patient",   paramName: "patient",   ref: ref)) }
-        if let ref = query.author    { filterCTEs.append(refCTE(name: "f_author",    paramName: "author",    ref: ref)) }
-        if let ref = query.encounter { filterCTEs.append(refCTE(name: "f_encounter", paramName: "encounter", ref: ref)) }
+        if let ref = query.subject       { filterCTEs.append(refCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
+        if let ref = query.patient       { filterCTEs.append(refCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
+        if let ref = query.author        { filterCTEs.append(refCTE(name: "f_author",        paramName: "author",        ref: ref)) }
+        if let ref = query.encounter     { filterCTEs.append(refCTE(name: "f_encounter",     paramName: "encounter",     ref: ref)) }
+        if let ref = query.custodian     { filterCTEs.append(refCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
+        if let ref = query.authenticator { filterCTEs.append(refCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -399,6 +405,10 @@ public struct DocumentReferenceStore: Sendable {
         if !query.typeNot.isEmpty          { whereConditions.append(tokenNotCondition(paramName: "type",           tokens: query.typeNot)) }
         if !query.categoryNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
         if !query.securityLabelNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "security-label", tokens: query.securityLabelNot)) }
+        if !query.contentTypeNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "contenttype",    tokens: query.contentTypeNot)) }
+        if !query.formatNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "format",         tokens: query.formatNot)) }
+        if !query.languageNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "language",       tokens: query.languageNot)) }
+        if !query.settingNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "setting",        tokens: query.settingNot)) }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
@@ -589,12 +599,16 @@ public struct DocumentReferenceStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DocumentReference' AND param_name = '\(paramName)' AND \(cond)")
         }
 
-        if !query.status.isEmpty        { filterCTEs.append(countTokenORCTE(name: "f_status",   paramName: "status",         tokens: query.status)) }
-        if !query.type.isEmpty          { filterCTEs.append(countTokenORCTE(name: "f_type",     paramName: "type",           tokens: query.type)) }
-        if !query.category.isEmpty      { filterCTEs.append(countTokenORCTE(name: "f_category", paramName: "category",       tokens: query.category)) }
-        if !query.securityLabel.isEmpty { filterCTEs.append(countTokenORCTE(name: "f_seclabel", paramName: "security-label", tokens: query.securityLabel)) }
-        if !query.facility.isEmpty      { filterCTEs.append(countTokenORCTE(name: "f_facility", paramName: "facility",       tokens: query.facility)) }
-        if !query.event.isEmpty         { filterCTEs.append(countTokenORCTE(name: "f_event",    paramName: "event",          tokens: query.event)) }
+        if !query.status.isEmpty        { filterCTEs.append(countTokenORCTE(name: "f_status",      paramName: "status",         tokens: query.status)) }
+        if !query.type.isEmpty          { filterCTEs.append(countTokenORCTE(name: "f_type",        paramName: "type",           tokens: query.type)) }
+        if !query.category.isEmpty      { filterCTEs.append(countTokenORCTE(name: "f_category",    paramName: "category",       tokens: query.category)) }
+        if !query.securityLabel.isEmpty { filterCTEs.append(countTokenORCTE(name: "f_seclabel",    paramName: "security-label", tokens: query.securityLabel)) }
+        if !query.facility.isEmpty      { filterCTEs.append(countTokenORCTE(name: "f_facility",    paramName: "facility",       tokens: query.facility)) }
+        if !query.event.isEmpty         { filterCTEs.append(countTokenORCTE(name: "f_event",       paramName: "event",          tokens: query.event)) }
+        if !query.contentType.isEmpty   { filterCTEs.append(countTokenORCTE(name: "f_contenttype", paramName: "contenttype",    tokens: query.contentType)) }
+        if !query.format.isEmpty        { filterCTEs.append(countTokenORCTE(name: "f_format",      paramName: "format",         tokens: query.format)) }
+        if !query.language.isEmpty      { filterCTEs.append(countTokenORCTE(name: "f_language",    paramName: "language",       tokens: query.language)) }
+        if !query.setting.isEmpty       { filterCTEs.append(countTokenORCTE(name: "f_setting",     paramName: "setting",        tokens: query.setting)) }
 
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
@@ -623,10 +637,12 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(countDateCTE(name: "f_period\(i)", paramName: "period", dp: dp))
         }
 
-        if let ref = query.subject   { filterCTEs.append(countRefCTE(name: "f_subject",   paramName: "subject",   ref: ref)) }
-        if let ref = query.patient   { filterCTEs.append(countRefCTE(name: "f_patient",   paramName: "patient",   ref: ref)) }
-        if let ref = query.author    { filterCTEs.append(countRefCTE(name: "f_author",    paramName: "author",    ref: ref)) }
-        if let ref = query.encounter { filterCTEs.append(countRefCTE(name: "f_encounter", paramName: "encounter", ref: ref)) }
+        if let ref = query.subject       { filterCTEs.append(countRefCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
+        if let ref = query.patient       { filterCTEs.append(countRefCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
+        if let ref = query.author        { filterCTEs.append(countRefCTE(name: "f_author",        paramName: "author",        ref: ref)) }
+        if let ref = query.encounter     { filterCTEs.append(countRefCTE(name: "f_encounter",     paramName: "encounter",     ref: ref)) }
+        if let ref = query.custodian     { filterCTEs.append(countRefCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
+        if let ref = query.authenticator { filterCTEs.append(countRefCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'DocumentReference'", "r.deleted = false"]
         if !query.id.isEmpty {
@@ -678,6 +694,12 @@ public struct DocumentReferenceStore: Sendable {
         case "security-label": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'security-label'"
         case "facility":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'facility'"
         case "event":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'event'"
+        case "contenttype":    return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'contenttype'"
+        case "format":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'format'"
+        case "language":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'language'"
+        case "setting":        return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'setting'"
+        case "custodian":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'custodian'"
+        case "authenticator":  return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'authenticator'"
         case "date":           return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DocumentReference' AND param_name = 'date'"
         case "period":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DocumentReference' AND param_name = 'period'"
         case "description":    return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description'"

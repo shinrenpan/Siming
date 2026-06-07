@@ -39,8 +39,15 @@ public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> Sear
     return p
 }
 
-// TODO: unhandled — authenticator [reference] DocumentReference.authenticator
-private func extract_DocumentReference_authenticator(_ p: inout SearchParams, _ d: DocumentReference) {}
+// authenticator [reference] — DocumentReference.authenticator
+private func extract_DocumentReference_authenticator(_ p: inout SearchParams, _ d: DocumentReference) {
+    guard let refStr = d.authenticator?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "authenticator", refType: refType, refId: refId))
+}
 
 // author [reference] — DocumentReference.author
 private func extract_DocumentReference_author(_ p: inout SearchParams, _ d: DocumentReference) {
@@ -65,11 +72,23 @@ private func extract_DocumentReference_category(_ p: inout SearchParams, _ d: Do
     }
 }
 
-// TODO: unhandled — contenttype [token] DocumentReference.content.attachment.contentType
-private func extract_DocumentReference_contenttype(_ p: inout SearchParams, _ d: DocumentReference) {}
+// contenttype [token] — DocumentReference.content.attachment.contentType
+private func extract_DocumentReference_contenttype(_ p: inout SearchParams, _ d: DocumentReference) {
+    for item in d.content {
+        guard let v = item.attachment.contentType?.value?.string, !v.isEmpty else { continue }
+        p.tokens.append(.init(paramName: "contenttype", system: nil, code: v))
+    }
+}
 
-// TODO: unhandled — custodian [reference] DocumentReference.custodian
-private func extract_DocumentReference_custodian(_ p: inout SearchParams, _ d: DocumentReference) {}
+// custodian [reference] — DocumentReference.custodian
+private func extract_DocumentReference_custodian(_ p: inout SearchParams, _ d: DocumentReference) {
+    guard let refStr = d.custodian?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "custodian", refType: refType, refId: refId))
+}
 
 // date [date] — DocumentReference.date
 private func extract_DocumentReference_date(_ p: inout SearchParams, _ d: DocumentReference) {
@@ -121,8 +140,15 @@ private func extract_DocumentReference_facility(_ p: inout SearchParams, _ d: Do
     }
 }
 
-// TODO: unhandled — format [token] DocumentReference.content.format
-private func extract_DocumentReference_format(_ p: inout SearchParams, _ d: DocumentReference) {}
+// format [token] — DocumentReference.content.format
+private func extract_DocumentReference_format(_ p: inout SearchParams, _ d: DocumentReference) {
+    for item in d.content {
+        guard let coding = item.format else { continue }
+        let c = coding.code?.value?.string ?? ""
+        let sys = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "format", system: sys, code: c))
+    }
+}
 
 // identifier [token] — DocumentReference.masterIdentifier
 private func extract_DocumentReference_identifier(_ p: inout SearchParams, _ d: DocumentReference) {
@@ -138,8 +164,13 @@ private func extract_DocumentReference_identifier(_ p: inout SearchParams, _ d: 
     }
 }
 
-// TODO: unhandled — language [token] DocumentReference.content.attachment.language
-private func extract_DocumentReference_language(_ p: inout SearchParams, _ d: DocumentReference) {}
+// language [token] — DocumentReference.content.attachment.language
+private func extract_DocumentReference_language(_ p: inout SearchParams, _ d: DocumentReference) {
+    for item in d.content {
+        guard let v = item.attachment.language?.value?.string, !v.isEmpty else { continue }
+        p.tokens.append(.init(paramName: "language", system: nil, code: v))
+    }
+}
 
 // TODO: unhandled — location [uri] DocumentReference.content.attachment.url
 private func extract_DocumentReference_location(_ p: inout SearchParams, _ d: DocumentReference) {}
@@ -198,8 +229,14 @@ private func extract_DocumentReference_security_label(_ p: inout SearchParams, _
     }
 }
 
-// TODO: unhandled — setting [token] DocumentReference.context.practiceSetting
-private func extract_DocumentReference_setting(_ p: inout SearchParams, _ d: DocumentReference) {}
+// setting [token] — DocumentReference.context.practiceSetting
+private func extract_DocumentReference_setting(_ p: inout SearchParams, _ d: DocumentReference) {
+    for coding in d.context?.practiceSetting?.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let sys = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "setting", system: sys, code: c))
+    }
+}
 
 // status [token] — DocumentReference.status
 private func extract_DocumentReference_status(_ p: inout SearchParams, _ d: DocumentReference) {

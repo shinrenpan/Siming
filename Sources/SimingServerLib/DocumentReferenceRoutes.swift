@@ -374,16 +374,26 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let securityLabelNot = all("security-label:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let facility         = all("facility").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let event            = all("event").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let contentType      = all("contenttype").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let contentTypeNot   = all("contenttype:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let format           = all("format").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let formatNot        = all("format:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let language         = all("language").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let languageNot      = all("language:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let setting          = all("setting").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let settingNot       = all("setting:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
 
     let date   = all("date").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
     let period = all("period").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
 
     let description = all("description").map(String.init)
 
-    let subject   = first("subject").map(String.init)
-    let patient   = first("patient").map(String.init)
-    let author    = first("author").map(String.init)
-    let encounter = first("encounter").map(String.init)
+    let subject       = first("subject").map(String.init)
+    let patient       = first("patient").map(String.init)
+    let author        = first("author").map(String.init)
+    let encounter     = first("encounter").map(String.init)
+    let custodian     = first("custodian").map(String.init)
+    let authenticator = first("authenticator").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -396,8 +406,9 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
 
     var missing: [String: Bool] = [:]
     for p in ["status", "type", "category", "identifier", "security-label",
-              "facility", "event", "date", "period", "description",
-              "subject", "patient", "author", "encounter"] {
+              "facility", "event", "contenttype", "format", "language", "setting",
+              "date", "period", "description",
+              "subject", "patient", "author", "encounter", "custodian", "authenticator"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -413,10 +424,15 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         identifier: identifier,
         securityLabel: securityLabel, securityLabelNot: securityLabelNot,
         facility: facility, event: event,
+        contentType: contentType, contentTypeNot: contentTypeNot,
+        format: format, formatNot: formatNot,
+        language: language, languageNot: languageNot,
+        setting: setting, settingNot: settingNot,
         date: date, period: period,
         description: description,
         subject: subject, patient: patient,
         author: author, encounter: encounter,
+        custodian: custodian, authenticator: authenticator,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

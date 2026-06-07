@@ -119,6 +119,14 @@ actor TestDatabase {
         FamilyMemberHistoryStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeAppointmentStore() throws -> AppointmentStore {
+        AppointmentStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeMedicationAdministrationStore() throws -> MedicationAdministrationStore {
+        MedicationAdministrationStore(client: try requiredClient(), logger: logger)
+    }
+
     func truncate() async throws {
         let c = try requiredClient()
         try await c.withConnection { conn in
@@ -606,4 +614,67 @@ func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active"
     if let d = recordedDate { json += #","recordedDate":"\#(d)""# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.AllergyIntolerance.self, from: Data(json.utf8))
+}
+
+func makeAppointment(
+    patientId: String,
+    status: String = "booked",
+    start: String? = "2024-06-01T09:00:00Z",
+    end: String? = "2024-06-01T09:30:00Z",
+    serviceTypeCode: String? = nil,
+    specialtyCode: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://example.org"
+) throws -> ModelsR4.Appointment {
+    var json = #"""
+    {"resourceType":"Appointment",
+     "status":"\#(status)",
+     "participant":[{"actor":{"reference":"Patient/\#(patientId)"},"status":"accepted"}]
+    """#
+    if let s = start { json += #","start":"\#(s)""# }
+    if let e = end   { json += #","end":"\#(e)""# }
+    if let code = serviceTypeCode {
+        json += #","serviceType":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/service-type","code":"\#(code)"}]}]"#
+    }
+    if let code = specialtyCode {
+        json += #","specialty":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(code)"}]}]"#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Appointment.self, from: Data(json.utf8))
+}
+
+func makeMedicationAdministration(
+    patientId: String,
+    status: String = "completed",
+    medicationCode: String = "1049502",
+    medicationSystem: String = "http://www.nlm.nih.gov/research/umls/rxnorm",
+    effectiveDateTime: String? = "2024-06-01T09:00:00Z",
+    requestId: String? = nil,
+    reasonGivenCode: String? = nil,
+    identifier: String? = nil,
+    identifierSystem: String = "http://example.org"
+) throws -> ModelsR4.MedicationAdministration {
+    var json = #"""
+    {"resourceType":"MedicationAdministration",
+     "status":"\#(status)",
+     "medicationCodeableConcept":{"coding":[{"system":"\#(medicationSystem)","code":"\#(medicationCode)"}]},
+     "subject":{"reference":"Patient/\#(patientId)"}
+    """#
+    if let dt = effectiveDateTime {
+        json += #","effectiveDateTime":"\#(dt)""#
+    }
+    if let rid = requestId {
+        json += #","request":{"reference":"MedicationRequest/\#(rid)"}"#
+    }
+    if let code = reasonGivenCode {
+        json += #","reasonCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(code)"}]}]"#
+    }
+    if let id = identifier {
+        json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.MedicationAdministration.self, from: Data(json.utf8))
 }
