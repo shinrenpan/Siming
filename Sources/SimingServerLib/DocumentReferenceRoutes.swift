@@ -17,6 +17,8 @@ let knownDocumentReferenceParams: Set<String> = [
     "security-label", "facility", "event", "description",
     "date", "period",
     "subject", "patient", "author", "encounter",
+    "custodian", "authenticator",
+    "relatesto", "relation", "relation:not",
     "status:not", "type:not", "category:not", "security-label:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -394,6 +396,9 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let encounter     = first("encounter").map(String.init)
     let custodian     = first("custodian").map(String.init)
     let authenticator = first("authenticator").map(String.init)
+    let relatesto     = first("relatesto").map(String.init)
+    let relation      = all("relation").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
+    let relationNot   = all("relation:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -408,7 +413,8 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     for p in ["status", "type", "category", "identifier", "security-label",
               "facility", "event", "contenttype", "format", "language", "setting",
               "date", "period", "description",
-              "subject", "patient", "author", "encounter", "custodian", "authenticator"] {
+              "subject", "patient", "author", "encounter", "custodian", "authenticator",
+              "relatesto", "relation"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -433,6 +439,8 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         subject: subject, patient: patient,
         author: author, encounter: encounter,
         custodian: custodian, authenticator: authenticator,
+        relatesto: relatesto,
+        relation: relation, relationNot: relationNot,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

@@ -368,6 +368,9 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(("f_desc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description' AND value ILIKE \(pLike)"))
         }
 
+        // relation token CTE
+        if !query.relation.isEmpty { filterCTEs.append(tokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
+
         // reference CTEs
         if let ref = query.subject       { filterCTEs.append(refCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
         if let ref = query.patient       { filterCTEs.append(refCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
@@ -375,6 +378,7 @@ public struct DocumentReferenceStore: Sendable {
         if let ref = query.encounter     { filterCTEs.append(refCTE(name: "f_encounter",     paramName: "encounter",     ref: ref)) }
         if let ref = query.custodian     { filterCTEs.append(refCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
         if let ref = query.authenticator { filterCTEs.append(refCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
+        if let ref = query.relatesto     { filterCTEs.append(refCTE(name: "f_relatesto",     paramName: "relatesto",     ref: ref)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -409,6 +413,7 @@ public struct DocumentReferenceStore: Sendable {
         if !query.formatNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "format",         tokens: query.formatNot)) }
         if !query.languageNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "language",       tokens: query.languageNot)) }
         if !query.settingNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "setting",        tokens: query.settingNot)) }
+        if !query.relationNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "relation",       tokens: query.relationNot)) }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
@@ -637,12 +642,15 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(countDateCTE(name: "f_period\(i)", paramName: "period", dp: dp))
         }
 
+        if !query.relation.isEmpty { filterCTEs.append(countTokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
+
         if let ref = query.subject       { filterCTEs.append(countRefCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
         if let ref = query.patient       { filterCTEs.append(countRefCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
         if let ref = query.author        { filterCTEs.append(countRefCTE(name: "f_author",        paramName: "author",        ref: ref)) }
         if let ref = query.encounter     { filterCTEs.append(countRefCTE(name: "f_encounter",     paramName: "encounter",     ref: ref)) }
         if let ref = query.custodian     { filterCTEs.append(countRefCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
         if let ref = query.authenticator { filterCTEs.append(countRefCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
+        if let ref = query.relatesto     { filterCTEs.append(countRefCTE(name: "f_relatesto",     paramName: "relatesto",     ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'DocumentReference'", "r.deleted = false"]
         if !query.id.isEmpty {
@@ -707,6 +715,8 @@ public struct DocumentReferenceStore: Sendable {
         case "patient":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'patient'"
         case "author":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'author'"
         case "encounter":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'encounter'"
+        case "relatesto":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'relatesto'"
+        case "relation":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'relation'"
         default:               return nil
         }
     }

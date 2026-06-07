@@ -266,6 +266,63 @@ final class DocumentReferenceStoreTests: XCTestCase {
         XCTAssertTrue(ids1.isDisjoint(with: ids2))
     }
 
+    // ── relatesto / relation ──────────────────────────────────────────────────
+
+    func testSearch_byRelatesto() async throws {
+        let patient = try await patientStore.create(makePatient(family: "DocRelatesto"))
+        let target  = try await store.create(makeDocumentReference(patientId: patient.id))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id,
+                                                         relatesToTarget: "DocumentReference/\(target.id)",
+                                                         relatesToCode: "replaces"))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id))
+
+        let query = DocumentReferenceSearchQuery(
+            relatesto: "DocumentReference/\(target.id)", count: 10)
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+    }
+
+    func testSearch_byRelation() async throws {
+        let patient = try await patientStore.create(makePatient(family: "DocRelation"))
+        let target  = try await store.create(makeDocumentReference(patientId: patient.id))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id,
+                                                         relatesToTarget: "DocumentReference/\(target.id)",
+                                                         relatesToCode: "replaces"))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id,
+                                                         relatesToTarget: "DocumentReference/\(target.id)",
+                                                         relatesToCode: "transforms"))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id))
+
+        var query = DocumentReferenceSearchQuery(count: 10)
+        query.patient = "Patient/\(patient.id)"
+        query.relation = [.init(system: "http://hl7.org/fhir/document-relationship-type", code: "replaces")]
+        let result = try await store.search(query: query)
+        XCTAssertEqual(result.entries.count, 1)
+        let doc = try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: result.entries[0].jsonWithMeta)
+        XCTAssertTrue(doc.relatesTo?.contains(where: { $0.code.value?.rawValue == "replaces" }) ?? false)
+    }
+
+    func testSearch_byRelationNot() async throws {
+        let patient = try await patientStore.create(makePatient(family: "DocRelationNot"))
+        let target  = try await store.create(makeDocumentReference(patientId: patient.id))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id,
+                                                         relatesToTarget: "DocumentReference/\(target.id)",
+                                                         relatesToCode: "replaces"))
+        _ = try await store.create(makeDocumentReference(patientId: patient.id,
+                                                         relatesToTarget: "DocumentReference/\(target.id)",
+                                                         relatesToCode: "transforms"))
+
+        var query = DocumentReferenceSearchQuery(count: 10)
+        query.patient = "Patient/\(patient.id)"
+        query.relationNot = [.init(system: nil, code: "replaces")]
+        let result = try await store.search(query: query)
+        for entry in result.entries {
+            let doc = try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: entry.jsonWithMeta)
+            let codes = doc.relatesTo?.compactMap { $0.code.value?.rawValue } ?? []
+            XCTAssertFalse(codes.contains("replaces"))
+        }
+    }
+
     // ── Sort ──────────────────────────────────────────────────────────────────
 
     func testSearch_sortByDate() async throws {

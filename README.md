@@ -118,7 +118,7 @@ Server listens on `http://localhost:8080`.
 
 **Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 
-**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `_id`, `_lastUpdated`
+**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `relatesto`, `relation`, `_id`, `_lastUpdated`
 
 **CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `activity-date`, `instantiates-canonical`, `instantiates-uri`, `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
 

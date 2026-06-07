@@ -447,7 +447,9 @@ func makeDocumentReference(
     categorySystem: String = "http://loinc.org",
     date: String? = nil,
     description: String? = nil,
-    encounterId: String? = nil
+    encounterId: String? = nil,
+    relatesToTarget: String? = nil,
+    relatesToCode: String = "replaces"
 ) throws -> ModelsR4.DocumentReference {
     var json = #"""
     {"resourceType":"DocumentReference",
@@ -465,6 +467,9 @@ func makeDocumentReference(
     if let desc = description { json += #","description":"\#(desc)""# }
     if let encId = encounterId {
         json += #","context":{"encounter":[{"reference":"Encounter/\#(encId)"}]}"#
+    }
+    if let target = relatesToTarget {
+        json += #","relatesTo":[{"code":"\#(relatesToCode)","target":{"reference":"\#(target)"}}]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: Data(json.utf8))

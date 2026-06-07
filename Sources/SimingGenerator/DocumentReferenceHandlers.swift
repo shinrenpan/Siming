@@ -285,6 +285,36 @@ func documentReferenceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: relatesto (relatesTo[].target) ────────────────────────────
+    case "relatesto":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for rel in d.relatesTo ?? [] {
+                guard let refStr = rel.target.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "relatesto", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── token: relation (relatesTo[].code) ───────────────────────────────────
+    case "relation":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for rel in d.relatesTo ?? [] {
+                if let v = rel.code.value?.rawValue {
+                    p.tokens.append(.init(paramName: "relation",
+                                          system: "http://hl7.org/fhir/document-relationship-type", code: v))
+                }
+            }
+        }
+        """
+
     // ── reference: custodian ──────────────────────────────────────────────────
     case "custodian":
         return """

@@ -209,11 +209,27 @@ private func extract_DocumentReference_period(_ p: inout SearchParams, _ d: Docu
 // TODO: unhandled — related [reference] DocumentReference.context.related
 private func extract_DocumentReference_related(_ p: inout SearchParams, _ d: DocumentReference) {}
 
-// TODO: unhandled — relatesto [reference] DocumentReference.relatesTo.target
-private func extract_DocumentReference_relatesto(_ p: inout SearchParams, _ d: DocumentReference) {}
+// relatesto [reference] — DocumentReference.relatesTo.target
+private func extract_DocumentReference_relatesto(_ p: inout SearchParams, _ d: DocumentReference) {
+    for rel in d.relatesTo ?? [] {
+        guard let refStr = rel.target.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "relatesto", refType: refType, refId: refId))
+    }
+}
 
-// TODO: unhandled — relation [token] DocumentReference.relatesTo.code
-private func extract_DocumentReference_relation(_ p: inout SearchParams, _ d: DocumentReference) {}
+// relation [token] — DocumentReference.relatesTo.code
+private func extract_DocumentReference_relation(_ p: inout SearchParams, _ d: DocumentReference) {
+    for rel in d.relatesTo ?? [] {
+        if let v = rel.code.value?.rawValue {
+            p.tokens.append(.init(paramName: "relation",
+                                  system: "http://hl7.org/fhir/document-relationship-type", code: v))
+        }
+    }
+}
 
 // TODO: unhandled — relationship [composite] DocumentReference.relatesTo
 private func extract_DocumentReference_relationship(_ p: inout SearchParams, _ d: DocumentReference) {}

@@ -39,6 +39,11 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var encounter: String?
     public var custodian: String?
     public var authenticator: String?
+    public var relatesto: String?
+
+    // relatesto relation token
+    public var relation: [TokenParam]
+    public var relationNot: [TokenParam]
 
     // system params
     public var id: [String]
@@ -83,6 +88,9 @@ public struct DocumentReferenceSearchQuery: Sendable {
         encounter: String? = nil,
         custodian: String? = nil,
         authenticator: String? = nil,
+        relatesto: String? = nil,
+        relation: [TokenParam] = [],
+        relationNot: [TokenParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -121,6 +129,9 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.encounter        = encounter
         self.custodian        = custodian
         self.authenticator    = authenticator
+        self.relatesto        = relatesto
+        self.relation         = relation
+        self.relationNot      = relationNot
         self.id               = id
         self.lastUpdated      = lastUpdated
         self.missing          = missing
