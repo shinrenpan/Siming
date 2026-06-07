@@ -143,4 +143,111 @@ final class ObservationStoreTests: XCTestCase {
         let result = try await store.search(query: ObservationSearchQuery(lastUpdated: [future], count: 100))
         XCTAssertEqual(result.entries.count, 0)
     }
+
+    // ── New search parameters (Round 50) ──────────────────────────────────────
+
+    func testSearch_bySpecimen() async throws {
+        let pid = try await patientStore.create(makePatient(family: "SpecimenPt")).id
+        let specimenId = "specimen-abc"
+        _ = try await store.create(makeObservation(subjectId: pid, specimenId: specimenId))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(specimen: "Specimen/\(specimenId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byHasMember() async throws {
+        let pid = try await patientStore.create(makePatient(family: "HasMemberPt")).id
+        let memberId = "obs-member-xyz"
+        _ = try await store.create(makeObservation(subjectId: pid, hasMemberId: memberId))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(hasMember: "Observation/\(memberId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byPartOf() async throws {
+        let pid = try await patientStore.create(makePatient(family: "PartOfPt")).id
+        let parentId = "obs-parent-abc"
+        _ = try await store.create(makeObservation(subjectId: pid, partOfId: parentId))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(partOf: "Observation/\(parentId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byMethod() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MethodPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, methodCode: "129265001"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let tok = ObservationSearchQuery.TokenParam(system: "http://snomed.info/sct", code: "129265001")
+        let result = try await store.search(query: ObservationSearchQuery(method: [tok]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byMethodNot() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MethodNotPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, methodCode: "129265001"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let tok = ObservationSearchQuery.TokenParam(system: "http://snomed.info/sct", code: "129265001")
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)", methodNot: [tok]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byValueConcept() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ValConPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, valueConcept: "260385009"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let tok = ObservationSearchQuery.TokenParam(system: "http://snomed.info/sct", code: "260385009")
+        let result = try await store.search(query: ObservationSearchQuery(valueConcept: [tok]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byValueString() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ValStrPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, valueString: "Positive result"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)", valueString: ["Positive"]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byValueDate() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ValDatePt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, valueDateTime: "2024-06-15"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let dp = ObservationSearchQuery.DateParam.parse("eq2024-06-15")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)", valueDate: [dp]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byComboCode_matchesComponentCode() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let tok = ObservationSearchQuery.TokenParam(system: "http://loinc.org", code: "8480-6")
+        let result = try await store.search(query: ObservationSearchQuery(comboCode: [tok]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byComboCode_matchesObsCode() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboMainPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "55284-4"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7"))
+
+        let tok = ObservationSearchQuery.TokenParam(system: "http://loinc.org", code: "55284-4")
+        let result = try await store.search(query: ObservationSearchQuery(comboCode: [tok]))
+        XCTAssertEqual(result.total, 1)
+    }
 }

@@ -13,8 +13,11 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownObservationParams: Set<String> = [
-    "subject", "patient", "code", "status", "category", "date",
+    "subject", "patient", "code", "code:not", "status", "status:not", "category", "category:not", "date",
     "identifier", "encounter", "performer", "component-code", "value-quantity",
+    "based-on", "derived-from", "device", "focus", "has-member", "part-of", "specimen",
+    "combo-code", "combo-code:not", "method", "method:not",
+    "value-concept", "value-concept:not", "value-date", "value-string",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -400,8 +403,23 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let identifier    = first("identifier").map { ObservationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let encounter     = first("encounter").map(String.init)
     let performer     = first("performer").map(String.init)
+    let basedOn       = first("based-on").map(String.init)
+    let derivedFrom   = first("derived-from").map(String.init)
+    let device        = first("device").map(String.init)
+    let focus         = first("focus").map(String.init)
+    let hasMember     = first("has-member").map(String.init)
+    let partOf        = first("part-of").map(String.init)
+    let specimen      = first("specimen").map(String.init)
     let componentCode = first("component-code").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let comboCode     = all("combo-code").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let comboCodeNot  = all("combo-code:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let method        = all("method").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let methodNot     = all("method:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let valueConcept  = all("value-concept").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let valueConceptNot = all("value-concept:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let valueQuantity = first("value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
+    let valueDate     = all("value-date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let valueString   = all("value-string").map(String.init)
     let dates         = all("date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
     let id            = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -413,7 +431,9 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let totalMode     = ObservationSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["subject","patient","code","status","category","date","value-quantity",
-              "identifier","encounter","performer","component-code"] {
+              "identifier","encounter","performer","component-code",
+              "based-on","derived-from","device","focus","has-member","part-of","specimen",
+              "combo-code","method","value-concept","value-date","value-string"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -425,7 +445,13 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
         status: status, statusNot: statusNot,
         category: category, categoryNot: categoryNot,
         identifier: identifier, encounter: encounter, performer: performer,
-        componentCode: componentCode, valueQuantity: valueQuantity,
+        basedOn: basedOn, derivedFrom: derivedFrom, device: device, focus: focus,
+        hasMember: hasMember, partOf: partOf, specimen: specimen,
+        componentCode: componentCode,
+        comboCode: comboCode, comboCodeNot: comboCodeNot,
+        method: method, methodNot: methodNot,
+        valueConcept: valueConcept, valueConceptNot: valueConceptNot,
+        valueQuantity: valueQuantity, valueDate: valueDate, valueString: valueString,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

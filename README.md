@@ -88,7 +88,7 @@ Server listens on `http://localhost:8080`.
 
 **Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `_id`, `_lastUpdated`
 
-**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `identifier`, `_id`, `_lastUpdated`
+**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `_id`, `_lastUpdated`
 
 **Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `_id`, `_lastUpdated`
 

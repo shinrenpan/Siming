@@ -204,12 +204,37 @@ func makeMedication(
     return try JSONDecoder().decode(ModelsR4.Medication.self, from: Data(json.utf8))
 }
 
-func makeObservation(subjectId: String, code: String = "29463-7", status: String = "final") throws -> ModelsR4.Observation {
-    let json = #"""
+func makeObservation(
+    subjectId: String,
+    code: String = "29463-7",
+    status: String = "final",
+    specimenId: String? = nil,
+    hasMemberId: String? = nil,
+    partOfId: String? = nil,
+    methodCode: String? = nil,
+    valueQuantity: Double? = nil,
+    valueConcept: String? = nil,
+    valueString: String? = nil,
+    valueDateTime: String? = nil,
+    componentCode: String? = nil
+) throws -> ModelsR4.Observation {
+    var json = #"""
     {"resourceType":"Observation","status":"\#(status)",
      "code":{"coding":[{"system":"http://loinc.org","code":"\#(code)"}]},
-     "subject":{"reference":"Patient/\#(subjectId)"}}
+     "subject":{"reference":"Patient/\#(subjectId)"}
     """#
+    if let sid = specimenId { json += #","specimen":{"reference":"Specimen/\#(sid)"}"# }
+    if let hid = hasMemberId { json += #","hasMember":[{"reference":"Observation/\#(hid)"}]"# }
+    if let pid = partOfId { json += #","partOf":[{"reference":"Observation/\#(pid)"}]"# }
+    if let m = methodCode { json += #","method":{"coding":[{"system":"http://snomed.info/sct","code":"\#(m)"}]}"# }
+    if let vq = valueQuantity { json += #","valueQuantity":{"value":\#(vq),"system":"http://unitsofmeasure.org","code":"kg"}"# }
+    if let vc = valueConcept { json += #","valueCodeableConcept":{"coding":[{"system":"http://snomed.info/sct","code":"\#(vc)"}]}"# }
+    if let vs = valueString { json += #","valueString":"\#(vs)""# }
+    if let vd = valueDateTime { json += #","valueDateTime":"\#(vd)""# }
+    if let cc = componentCode {
+        json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueQuantity":{"value":1,"unit":"mmHg"}}]"#
+    }
+    json += "}"
     return try JSONDecoder().decode(ModelsR4.Observation.self, from: Data(json.utf8))
 }
 

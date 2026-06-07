@@ -24,6 +24,89 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
     let fn = "extract_Observation_\(code.replacingOccurrences(of: "-", with: "_"))"
     let header = "// \(code) [\(spec.type)] — \(expr)"
 
+    // ── code-based overrides (expr dispatch gives wrong type for these) ─────────
+
+    // combo-code: must index BOTH obs.code AND component[].code
+    if code == "combo-code" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for coding in obs.code.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+            }
+            for comp in obs.component ?? [] {
+                for coding in comp.code.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+                }
+            }
+        }
+        """
+    }
+
+    // value-concept: obs.value as CodeableConcept → idx_token
+    if code == "value-concept" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            guard case .codeableConcept(let cc) = obs.value else { return }
+            for coding in cc.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "value-concept", system: s, code: c))
+            }
+        }
+        """
+    }
+
+    // value-date: obs.value as DateTime → idx_date
+    if code == "value-date" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            guard case .dateTime(let prim) = obs.value, let dt = prim.value else { return }
+            let cal = Calendar(identifier: .gregorian)
+            var dc = DateComponents()
+            dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+            dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+            dc.timeZone = dt.timeZone
+            let date = cal.date(from: dc) ?? Date()
+            p.dates.append(.init(paramName: "value-date", dateStart: date, dateEnd: date))
+        }
+        """
+    }
+
+    // value-string: obs.value as string → idx_string
+    if code == "value-string" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            guard case .string(let prim) = obs.value, let s = prim.value?.string else { return }
+            p.strings.append(.init(paramName: "value-string", value: s))
+        }
+        """
+    }
+
+    // part-of: obs.partOf[] → idx_reference
+    if code == "part-of" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for ref in obs.partOf ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "part-of", refType: refType, refId: refId))
+            }
+        }
+        """
+    }
+
     switch expr {
 
     // ── token: code ───────────────────────────────────────────────────────────

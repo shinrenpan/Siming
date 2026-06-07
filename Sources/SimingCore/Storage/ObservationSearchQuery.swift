@@ -15,8 +15,23 @@ public struct ObservationSearchQuery: Sendable {
     public var identifier: [IdentifierParam]  // token OR, system|code format
     public var encounter: String?             // reference: "Encounter/id" or bare id
     public var performer: String?             // reference: single performer
+    public var basedOn: String?
+    public var derivedFrom: String?
+    public var device: String?
+    public var focus: String?
+    public var hasMember: String?
+    public var partOf: String?
+    public var specimen: String?
     public var componentCode: [TokenParam]    // component-code token OR
+    public var comboCode: [TokenParam]
+    public var comboCodeNot: [TokenParam]
+    public var method: [TokenParam]
+    public var methodNot: [TokenParam]
+    public var valueConcept: [TokenParam]
+    public var valueConceptNot: [TokenParam]
     public var valueQuantity: [QuantityParam] // value-quantity OR list
+    public var valueDate: [DateParam]
+    public var valueString: [String]
     public var id: [String]               // _id filter (OR)
     public var lastUpdated: [DateParam]   // _lastUpdated range filter
     public var missing: [String: Bool]    // param:missing=true/false
@@ -42,8 +57,23 @@ public struct ObservationSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         encounter: String? = nil,
         performer: String? = nil,
+        basedOn: String? = nil,
+        derivedFrom: String? = nil,
+        device: String? = nil,
+        focus: String? = nil,
+        hasMember: String? = nil,
+        partOf: String? = nil,
+        specimen: String? = nil,
         componentCode: [TokenParam] = [],
+        comboCode: [TokenParam] = [],
+        comboCodeNot: [TokenParam] = [],
+        method: [TokenParam] = [],
+        methodNot: [TokenParam] = [],
+        valueConcept: [TokenParam] = [],
+        valueConceptNot: [TokenParam] = [],
         valueQuantity: [QuantityParam] = [],
+        valueDate: [DateParam] = [],
+        valueString: [String] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -65,8 +95,23 @@ public struct ObservationSearchQuery: Sendable {
         self.identifier     = identifier
         self.encounter      = encounter
         self.performer      = performer
+        self.basedOn        = basedOn
+        self.derivedFrom    = derivedFrom
+        self.device         = device
+        self.focus          = focus
+        self.hasMember      = hasMember
+        self.partOf         = partOf
+        self.specimen       = specimen
         self.componentCode  = componentCode
+        self.comboCode      = comboCode
+        self.comboCodeNot   = comboCodeNot
+        self.method         = method
+        self.methodNot      = methodNot
+        self.valueConcept   = valueConcept
+        self.valueConceptNot = valueConceptNot
         self.valueQuantity  = valueQuantity
+        self.valueDate      = valueDate
+        self.valueString    = valueString
         self.id             = id
         self.lastUpdated    = lastUpdated
         self.missing        = missing

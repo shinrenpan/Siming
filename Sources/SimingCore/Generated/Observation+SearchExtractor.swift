@@ -106,8 +106,12 @@ private func extract_Observation_combo_code(_ p: inout SearchParams, _ obs: Obse
         let s = coding.system?.value?.url.absoluteString
         p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
     }
-    if let text = obs.code.text?.value?.string {
-        p.tokens.append(.init(paramName: "combo-code", system: nil, code: text))
+    for comp in obs.component ?? [] {
+        for coding in comp.code.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+        }
     }
 }
 
@@ -290,8 +294,17 @@ private func extract_Observation_method(_ p: inout SearchParams, _ obs: Observat
     }
 }
 
-// TODO: unhandled — part-of [reference] Observation.partOf
-private func extract_Observation_part_of(_ p: inout SearchParams, _ obs: Observation) {}
+// part-of [reference] — Observation.partOf
+private func extract_Observation_part_of(_ p: inout SearchParams, _ obs: Observation) {
+    for ref in obs.partOf ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "part-of", refType: refType, refId: refId))
+    }
+}
 
 // patient [reference] — Observation.subject
 private func extract_Observation_patient(_ p: inout SearchParams, _ obs: Observation) {
@@ -345,22 +358,24 @@ private func extract_Observation_subject(_ p: inout SearchParams, _ obs: Observa
 
 // value-concept [token] — Observation.value
 private func extract_Observation_value_concept(_ p: inout SearchParams, _ obs: Observation) {
-    guard case .quantity(let q) = obs.value else { return }
-    guard let decimalVal = q.value?.value?.decimal else { return }
-    let sys  = q.system?.value?.url.absoluteString
-    let unit = q.code?.value?.string
-    p.quantities.append(.init(paramName: "value-concept", system: sys, code: unit,
-                              value: Decimal(string: decimalVal.description) ?? 0))
+    guard case .codeableConcept(let cc) = obs.value else { return }
+    for coding in cc.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let s = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "value-concept", system: s, code: c))
+    }
 }
 
 // value-date [date] — Observation.value
 private func extract_Observation_value_date(_ p: inout SearchParams, _ obs: Observation) {
-    guard case .quantity(let q) = obs.value else { return }
-    guard let decimalVal = q.value?.value?.decimal else { return }
-    let sys  = q.system?.value?.url.absoluteString
-    let unit = q.code?.value?.string
-    p.quantities.append(.init(paramName: "value-date", system: sys, code: unit,
-                              value: Decimal(string: decimalVal.description) ?? 0))
+    guard case .dateTime(let prim) = obs.value, let dt = prim.value else { return }
+    let cal = Calendar(identifier: .gregorian)
+    var dc = DateComponents()
+    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+    dc.timeZone = dt.timeZone
+    let date = cal.date(from: dc) ?? Date()
+    p.dates.append(.init(paramName: "value-date", dateStart: date, dateEnd: date))
 }
 
 // value-quantity [quantity] — Observation.value
@@ -375,10 +390,6 @@ private func extract_Observation_value_quantity(_ p: inout SearchParams, _ obs: 
 
 // value-string [string] — Observation.value
 private func extract_Observation_value_string(_ p: inout SearchParams, _ obs: Observation) {
-    guard case .quantity(let q) = obs.value else { return }
-    guard let decimalVal = q.value?.value?.decimal else { return }
-    let sys  = q.system?.value?.url.absoluteString
-    let unit = q.code?.value?.string
-    p.quantities.append(.init(paramName: "value-string", system: sys, code: unit,
-                              value: Decimal(string: decimalVal.description) ?? 0))
+    guard case .string(let prim) = obs.value, let s = prim.value?.string else { return }
+    p.strings.append(.init(paramName: "value-string", value: s))
 }

@@ -417,6 +417,62 @@ public struct ObservationStore: Sendable {
             }
         }
 
+        // new reference CTEs: based-on, derived-from, device, focus, has-member, part-of, specimen
+        func obsRefCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rtP = bind(String(parts[0])); let riP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND ref_type = \(rtP) AND ref_id = \(riP)")
+            } else {
+                let riP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND ref_id = \(riP)")
+            }
+        }
+        if let r = query.basedOn    { filterCTEs.append(obsRefCTE(name: "f_based_on",    paramName: "based-on",    ref: r)) }
+        if let r = query.derivedFrom { filterCTEs.append(obsRefCTE(name: "f_derived_from", paramName: "derived-from", ref: r)) }
+        if let r = query.device     { filterCTEs.append(obsRefCTE(name: "f_device",      paramName: "device",      ref: r)) }
+        if let r = query.focus      { filterCTEs.append(obsRefCTE(name: "f_focus",       paramName: "focus",       ref: r)) }
+        if let r = query.hasMember  { filterCTEs.append(obsRefCTE(name: "f_has_member",  paramName: "has-member",  ref: r)) }
+        if let r = query.partOf     { filterCTEs.append(obsRefCTE(name: "f_part_of",     paramName: "part-of",     ref: r)) }
+        if let r = query.specimen   { filterCTEs.append(obsRefCTE(name: "f_specimen",    paramName: "specimen",    ref: r)) }
+
+        // token OR helper
+        func obsTokenORCTE(name: String, paramName: String, tokens: [ObservationSearchQuery.TokenParam]) -> (String, String) {
+            var or: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { or.append("system = \(bind(sys))") }
+                else {
+                    let cP = bind(tok.code); var sc = ""
+                    if let sys = tok.system { sc = " AND system = \(bind(sys))" }
+                    or.append("(code = \(cP)\(sc))")
+                }
+            }
+            return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR ")))")
+        }
+        if !query.comboCode.isEmpty    { filterCTEs.append(obsTokenORCTE(name: "f_combo_code",    paramName: "combo-code",    tokens: query.comboCode)) }
+        if !query.method.isEmpty       { filterCTEs.append(obsTokenORCTE(name: "f_method",        paramName: "method",        tokens: query.method)) }
+        if !query.valueConcept.isEmpty { filterCTEs.append(obsTokenORCTE(name: "f_value_concept", paramName: "value-concept", tokens: query.valueConcept)) }
+
+        // value-date — idx_date
+        for (i, dp) in query.valueDate.enumerated() {
+            let sP = bind(dp.dateStart); let eP = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(eP) AND date_end >= \(sP)"
+            case .ne: cond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
+            case .lt: cond = "date_end < \(sP)"; case .le: cond = "date_start <= \(eP)"
+            case .gt: cond = "date_start > \(eP)"; case .ge: cond = "date_end >= \(sP)"
+            case .sa: cond = "date_start > \(eP)"; case .eb: cond = "date_end < \(sP)"
+            }
+            filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
+        }
+
+        // value-string — idx_string prefix search
+        for (i, vs) in query.valueString.enumerated() {
+            let pLike = bind("\(vs)%")
+            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"))
+        }
+
         // component-code — token OR
         if !query.componentCode.isEmpty {
             var orClauses: [String] = []
@@ -549,6 +605,23 @@ public struct ObservationStore: Sendable {
             }
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
         }
+
+        // combo-code:not / method:not / value-concept:not
+        func obsTokenNotCond(paramName: String, tokens: [ObservationSearchQuery.TokenParam]) -> String {
+            var or: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { or.append("system = \(bind(sys))") }
+                else {
+                    let cP = bind(tok.code); var sc = ""
+                    if let sys = tok.system { sc = " AND system = \(bind(sys))" }
+                    or.append("(code = \(cP)\(sc))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR "))))"
+        }
+        if !query.comboCodeNot.isEmpty    { whereConditions.append(obsTokenNotCond(paramName: "combo-code",    tokens: query.comboCodeNot)) }
+        if !query.methodNot.isEmpty       { whereConditions.append(obsTokenNotCond(paramName: "method",        tokens: query.methodNot)) }
+        if !query.valueConceptNot.isEmpty { whereConditions.append(obsTokenNotCond(paramName: "value-concept", tokens: query.valueConceptNot)) }
 
         // :missing modifier
         for paramName in query.missing.keys.sorted() {
@@ -815,6 +888,50 @@ public struct ObservationStore: Sendable {
                     "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'performer' AND ref_id = \(refIdP)"))
             }
         }
+        func countObsRefCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rtP = bind(String(parts[0])); let riP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND ref_type = \(rtP) AND ref_id = \(riP)")
+            } else {
+                let riP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND ref_id = \(riP)")
+            }
+        }
+        if let r = query.basedOn    { filterCTEs.append(countObsRefCTE(name: "f_based_on",    paramName: "based-on",    ref: r)) }
+        if let r = query.derivedFrom { filterCTEs.append(countObsRefCTE(name: "f_derived_from", paramName: "derived-from", ref: r)) }
+        if let r = query.device     { filterCTEs.append(countObsRefCTE(name: "f_device",      paramName: "device",      ref: r)) }
+        if let r = query.focus      { filterCTEs.append(countObsRefCTE(name: "f_focus",       paramName: "focus",       ref: r)) }
+        if let r = query.hasMember  { filterCTEs.append(countObsRefCTE(name: "f_has_member",  paramName: "has-member",  ref: r)) }
+        if let r = query.partOf     { filterCTEs.append(countObsRefCTE(name: "f_part_of",     paramName: "part-of",     ref: r)) }
+        if let r = query.specimen   { filterCTEs.append(countObsRefCTE(name: "f_specimen",    paramName: "specimen",    ref: r)) }
+        func countObsTokenORCTE(name: String, paramName: String, tokens: [ObservationSearchQuery.TokenParam]) -> (String, String) {
+            var or: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { or.append("system = \(bind(sys))") }
+                else { let cP = bind(tok.code); var sc = ""; if let sys = tok.system { sc = " AND system = \(bind(sys))" }; or.append("(code = \(cP)\(sc))") }
+            }
+            return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR ")))")
+        }
+        if !query.comboCode.isEmpty    { filterCTEs.append(countObsTokenORCTE(name: "f_combo_code",    paramName: "combo-code",    tokens: query.comboCode)) }
+        if !query.method.isEmpty       { filterCTEs.append(countObsTokenORCTE(name: "f_method",        paramName: "method",        tokens: query.method)) }
+        if !query.valueConcept.isEmpty { filterCTEs.append(countObsTokenORCTE(name: "f_value_concept", paramName: "value-concept", tokens: query.valueConcept)) }
+        for (i, dp) in query.valueDate.enumerated() {
+            let sP = bind(dp.dateStart); let eP = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(eP) AND date_end >= \(sP)"
+            case .ne: cond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
+            case .lt: cond = "date_end < \(sP)"; case .le: cond = "date_start <= \(eP)"
+            case .gt: cond = "date_start > \(eP)"; case .ge: cond = "date_end >= \(sP)"
+            case .sa: cond = "date_start > \(eP)"; case .eb: cond = "date_end < \(sP)"
+            }
+            filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
+        }
+        for (i, vs) in query.valueString.enumerated() {
+            let pLike = bind("\(vs)%")
+            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"))
+        }
         if !query.componentCode.isEmpty {
             var orClauses: [String] = []
             for tok in query.componentCode {
@@ -984,6 +1101,18 @@ public struct ObservationStore: Sendable {
         case "component-code":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-code'"
         case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'date'"
         case "value-quantity":     return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity'"
+        case "based-on":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'based-on'"
+        case "derived-from":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'derived-from'"
+        case "device":             return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'device'"
+        case "focus":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'focus'"
+        case "has-member":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'has-member'"
+        case "part-of":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'part-of'"
+        case "specimen":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Observation' AND param_name = 'specimen'"
+        case "combo-code":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'combo-code'"
+        case "method":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'method'"
+        case "value-concept":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'value-concept'"
+        case "value-date":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date'"
+        case "value-string":       return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string'"
         default:                   return nil
         }
     }
