@@ -184,7 +184,7 @@ final class ImmunizationStoreTests: XCTestCase {
         _ = try await store.create(makeImmunization(patientId: pid, lotNumber: "LOT-ABC-123"))
         _ = try await store.create(makeImmunization(patientId: pid, lotNumber: "LOT-XYZ-999"))
 
-        let result = try await store.search(query: ImmunizationSearchQuery(lotNumber: "LOT-ABC"))
+        let result = try await store.search(query: ImmunizationSearchQuery(lotNumber: .init(value: "LOT-ABC", modifier: .startsWith)))
         XCTAssertEqual(result.total, 1)
     }
 
@@ -194,7 +194,7 @@ final class ImmunizationStoreTests: XCTestCase {
         _ = try await store.create(makeImmunization(patientId: pid, lotNumber: "BATCH-001-EXT"))
 
         // starts-with: "BATCH-001" matches both
-        let result1 = try await store.search(query: ImmunizationSearchQuery(lotNumber: "BATCH-001"))
+        let result1 = try await store.search(query: ImmunizationSearchQuery(lotNumber: .init(value: "BATCH-001", modifier: .startsWith)))
         XCTAssertEqual(result1.total, 2)
     }
 
@@ -298,7 +298,7 @@ final class ImmunizationStoreTests: XCTestCase {
         _ = try await store.create(makeImmunization(patientId: pid, series: "Dose1"))
         _ = try await store.create(makeImmunization(patientId: pid, series: "Dose2"))
         _ = try await store.create(makeImmunization(patientId: pid))
-        let result = try await store.search(query: ImmunizationSearchQuery(series: "Dose1"))
+        let result = try await store.search(query: ImmunizationSearchQuery(series: .init(value: "Dose1", modifier: .startsWith)))
         XCTAssertEqual(result.total, 1)
     }
 

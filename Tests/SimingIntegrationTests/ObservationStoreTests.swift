@@ -214,7 +214,7 @@ final class ObservationStoreTests: XCTestCase {
         _ = try await store.create(makeObservation(subjectId: pid))
 
         let result = try await store.search(query: ObservationSearchQuery(
-            subject: "Patient/\(pid)", valueString: ["Positive"]
+            subject: "Patient/\(pid)", valueString: [.init(value: "Positive", modifier: .startsWith)]
         ))
         XCTAssertEqual(result.total, 1)
     }

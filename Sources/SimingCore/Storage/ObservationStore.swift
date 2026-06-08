@@ -476,10 +476,15 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
         }
 
-        // value-string — idx_string prefix search
+        // value-string — idx_string, modifier-aware
         for (i, vs) in query.valueString.enumerated() {
-            let pLike = bind("\(vs)%")
-            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"))
+            let cond: String
+            switch vs.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(vs.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + vs.value + "%"))"
+            case .exact: cond = "value = \(bind(vs.value))"
+            }
+            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND \(cond)"))
         }
 
         // component-code — token OR
@@ -1161,8 +1166,13 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
         }
         for (i, vs) in query.valueString.enumerated() {
-            let pLike = bind("\(vs)%")
-            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"))
+            let cond: String
+            switch vs.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(vs.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + vs.value + "%"))"
+            case .exact: cond = "value = \(bind(vs.value))"
+            }
+            filterCTEs.append(("f_vstr\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND \(cond)"))
         }
         if !query.componentCode.isEmpty {
             var orClauses: [String] = []

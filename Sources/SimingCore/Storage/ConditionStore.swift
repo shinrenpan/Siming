@@ -606,24 +606,28 @@ public struct ConditionStore: Sendable {
         if !query.onsetAge.isEmpty      { filterCTEs.append(quantityCTE(name: "f_onset_age",     paramName: "onset-age",      quantities: query.onsetAge)) }
         if !query.abatementAge.isEmpty  { filterCTEs.append(quantityCTE(name: "f_abatement_age", paramName: "abatement-age",  quantities: query.abatementAge)) }
 
-        // onset-info — idx_string (prefix match)
+        // onset-info — idx_string, modifier-aware
         if let onsetInfo = query.onsetInfo {
-            let p = bind(onsetInfo + "%")
-            filterCTEs.append(("f_onset_info", """
-                SELECT DISTINCT resource_id FROM idx_string
-                WHERE resource_type = 'Condition' AND param_name = 'onset-info'
-                  AND lower(value) LIKE lower(\(p))
-                """))
+            let cond: String
+            switch onsetInfo.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(onsetInfo.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + onsetInfo.value + "%"))"
+            case .exact: cond = "value = \(bind(onsetInfo.value))"
+            }
+            filterCTEs.append(("f_onset_info",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info' AND \(cond)"))
         }
 
-        // abatement-string — idx_string (prefix match)
+        // abatement-string — idx_string, modifier-aware
         if let abatStr = query.abatementString {
-            let p = bind(abatStr + "%")
-            filterCTEs.append(("f_abatement_string", """
-                SELECT DISTINCT resource_id FROM idx_string
-                WHERE resource_type = 'Condition' AND param_name = 'abatement-string'
-                  AND lower(value) LIKE lower(\(p))
-                """))
+            let cond: String
+            switch abatStr.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(abatStr.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + abatStr.value + "%"))"
+            case .exact: cond = "value = \(bind(abatStr.value))"
+            }
+            filterCTEs.append(("f_abatement_string",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string' AND \(cond)"))
         }
 
         // recorded-date — idx_date range
@@ -1061,14 +1065,24 @@ public struct ConditionStore: Sendable {
         if !query.abatementAge.isEmpty  { filterCTEs.append(quantityCTECount(name: "f_abatement_age", paramName: "abatement-age",  quantities: query.abatementAge)) }
 
         if let onsetInfo = query.onsetInfo {
-            let p = bind(onsetInfo + "%")
+            let cond: String
+            switch onsetInfo.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(onsetInfo.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + onsetInfo.value + "%"))"
+            case .exact: cond = "value = \(bind(onsetInfo.value))"
+            }
             filterCTEs.append(("f_onset_info",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info' AND lower(value) LIKE lower(\(p))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info' AND \(cond)"))
         }
         if let abatStr = query.abatementString {
-            let p = bind(abatStr + "%")
+            let cond: String
+            switch abatStr.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(abatStr.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + abatStr.value + "%"))"
+            case .exact: cond = "value = \(bind(abatStr.value))"
+            }
             filterCTEs.append(("f_abatement_string",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string' AND lower(value) LIKE lower(\(p))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string' AND \(cond)"))
         }
 
         var whereConditions = ["r.resource_type = 'Condition'", "r.deleted = false"]

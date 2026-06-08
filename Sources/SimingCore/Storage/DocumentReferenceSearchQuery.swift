@@ -30,7 +30,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var period: [DateParam]
 
     // string params
-    public var description: [String]
+    public var description: [StringParam]
     public var location: [String]     // content[*].attachment.url (uri type — exact match)
 
     // reference params
@@ -86,7 +86,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         settingNot: [TokenParam] = [],
         date: [DateParam] = [],
         period: [DateParam] = [],
-        description: [String] = [],
+        description: [StringParam] = [],
         location: [String] = [],
         subject: String? = nil,
         patient: String? = nil,
@@ -180,6 +180,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         }
     }
 
+    public typealias StringParam     = PatientSearchQuery.StringParam
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
     public typealias SortOrder       = PatientSearchQuery.SortOrder

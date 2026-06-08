@@ -30,8 +30,8 @@ public struct ConditionSearchQuery: Sendable {
     public var stageNot: [TokenParam]                // stage:not modifier
     public var onsetAge: [QuantityParam]              // Condition.onset as Age quantity filter
     public var abatementAge: [QuantityParam]          // Condition.abatement as Age quantity filter
-    public var onsetInfo: String?                    // Condition.onset as string (prefix)
-    public var abatementString: String?              // Condition.abatement as string (prefix)
+    public var onsetInfo: StringParam?               // Condition.onset as string (prefix/contains/exact)
+    public var abatementString: StringParam?         // Condition.abatement as string (prefix/contains/exact)
     public var id: [String]                          // _id filter (OR)
     public var lastUpdated: [DateParam]              // _lastUpdated range filter
     public var missing: [String: Bool]               // param:missing=true/false
@@ -72,8 +72,8 @@ public struct ConditionSearchQuery: Sendable {
         stageNot: [TokenParam] = [],
         onsetAge: [QuantityParam] = [],
         abatementAge: [QuantityParam] = [],
-        onsetInfo: String? = nil,
-        abatementString: String? = nil,
+        onsetInfo: StringParam? = nil,
+        abatementString: StringParam? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -123,6 +123,7 @@ public struct ConditionSearchQuery: Sendable {
         self.cursor               = cursor
     }
 
+    public typealias StringParam     = PatientSearchQuery.StringParam
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
     public typealias QuantityParam   = ObservationSearchQuery.QuantityParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam

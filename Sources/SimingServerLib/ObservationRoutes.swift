@@ -18,7 +18,7 @@ let knownObservationParams: Set<String> = [
     "based-on", "derived-from", "device", "focus", "has-member", "part-of", "specimen",
     "combo-code", "combo-code:not", "method", "method:not",
     "value-concept", "value-concept:not", "combo-value-concept", "combo-value-concept:not",
-    "value-date", "value-string",
+    "value-date", "value-string", "value-string:contains", "value-string:exact", "value-string:text",
     "data-absent-reason", "combo-data-absent-reason", "component-data-absent-reason",
     "component-value-concept", "component-value-quantity", "combo-value-quantity",
     "code-value-quantity", "code-value-string", "code-value-concept", "code-value-date",
@@ -441,7 +441,10 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let comboCodeValueConcept  = all("combo-code-value-concept").flatMap { ObservationSearchQuery.CompositeCodeConcept.parseList(String($0)) }
     let valueQuantity = first("value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let valueDate     = all("value-date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
-    let valueString   = all("value-string").map(String.init)
+    var valueString: [ObservationSearchQuery.StringParam] = all("value-string").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .startsWith) }
+    valueString += all("value-string:contains").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .contains) }
+    valueString += all("value-string:exact").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .exact) }
+    valueString += all("value-string:text").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .text) }
     let dates         = all("date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
     let id            = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }

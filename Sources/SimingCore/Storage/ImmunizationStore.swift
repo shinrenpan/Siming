@@ -323,8 +323,14 @@ public struct ImmunizationStore: Sendable {
         if let rr  = query.reasonReference { filterCTEs.append(refCTE(name: "f_reason_ref",  paramName: "reason-reference",  ref: rr)) }
 
         if let series = query.series {
+            let cond: String
+            switch series.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(series.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + series.value + "%"))"
+            case .exact: cond = "value = \(bind(series.value))"
+            }
             filterCTEs.append(("f_series",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND lower(value) LIKE lower(\(bind("\(series)%")))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND \(cond)"))
         }
 
         func tokenORCTE(name: String, paramName: String, tokens: [ImmunizationSearchQuery.TokenParam]) -> (String, String) {
@@ -349,11 +355,16 @@ public struct ImmunizationStore: Sendable {
         if !query.targetDisease.isEmpty  { filterCTEs.append(tokenORCTE(name: "f_target_disease",paramName: "target-disease",  tokens: query.targetDisease)) }
         for (i, dp) in query.reactionDate.enumerated() { filterCTEs.append(dateCTE(prefix: "f_rxn_date", paramName: "reaction-date", dp: dp, idx: i)) }
 
-        // lot-number — idx_string (startsWith match by default)
+        // lot-number — idx_string, modifier-aware
         if let ln = query.lotNumber {
-            let pBind = bind("\(ln)%")
+            let cond: String
+            switch ln.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(ln.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + ln.value + "%"))"
+            case .exact: cond = "value = \(bind(ln.value))"
+            }
             filterCTEs.append(("f_lot_number",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND lower(value) LIKE lower(\(pBind))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND \(cond)"))
         }
 
         if !query.identifier.isEmpty {
@@ -642,8 +653,14 @@ public struct ImmunizationStore: Sendable {
         if let rr  = query.reasonReference { filterCTEs.append(refCTECount(name: "f_reason_ref",  paramName: "reason-reference", ref: rr)) }
 
         if let series = query.series {
+            let cond: String
+            switch series.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(series.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + series.value + "%"))"
+            case .exact: cond = "value = \(bind(series.value))"
+            }
             filterCTEs.append(("f_series",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND lower(value) LIKE lower(\(bind("\(series)%")))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND \(cond)"))
         }
 
         func tokenCTE(name: String, paramName: String, tokens: [ImmunizationSearchQuery.TokenParam]) -> (String, String) {
@@ -668,9 +685,14 @@ public struct ImmunizationStore: Sendable {
         for (i, dp) in query.reactionDate.enumerated() { filterCTEs.append(dateCTECount(prefix: "f_rxn_date", paramName: "reaction-date", dp: dp, idx: i)) }
 
         if let ln = query.lotNumber {
-            let pBind = bind("\(ln)%")
+            let cond: String
+            switch ln.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(ln.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + ln.value + "%"))"
+            case .exact: cond = "value = \(bind(ln.value))"
+            }
             filterCTEs.append(("f_lot_number",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND lower(value) LIKE lower(\(pBind))"))
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number' AND \(cond)"))
         }
 
         func dateCTECount(prefix: String, paramName: String, dp: ImmunizationSearchQuery.DateParam, idx: Int) -> (String, String) {

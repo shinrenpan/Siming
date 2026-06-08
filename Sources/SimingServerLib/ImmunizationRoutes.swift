@@ -16,8 +16,9 @@ let knownImmunizationParams: Set<String> = [
     "patient", "status", "status:not", "vaccine-code", "vaccine-code:not", "identifier", "date",
     "performer", "location", "manufacturer", "reaction", "reaction-date",
     "reason-code", "reason-code:not", "reason-reference",
-    "series", "status-reason", "status-reason:not", "target-disease", "target-disease:not",
-    "lot-number",
+    "series", "series:contains", "series:exact", "series:text",
+    "status-reason", "status-reason:not", "target-disease", "target-disease:not",
+    "lot-number", "lot-number:contains", "lot-number:exact", "lot-number:text",
     "status:not", "vaccine-code:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -391,12 +392,12 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let reasonCode    = all("reason-code").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let reasonCodeNot = all("reason-code:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let reasonReference = first("reason-reference").map(String.init)
-    let series      = first("series").map(String.init)
+    let series      = ImmunizationSearchQuery.StringParam.parse(key: "series", from: pairs)
     let statusReason    = all("status-reason").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let statusReasonNot = all("status-reason:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let targetDisease    = all("target-disease").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let targetDiseaseNot = all("target-disease:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
-    let lotNumber   = first("lot-number").map(String.init)
+    let lotNumber   = ImmunizationSearchQuery.StringParam.parse(key: "lot-number", from: pairs)
     let date        = all("date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }

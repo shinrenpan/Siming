@@ -18,12 +18,12 @@ public struct ImmunizationSearchQuery: Sendable {
     public var reasonCode: [TokenParam]             // Immunization.reasonCode token OR
     public var reasonCodeNot: [TokenParam]          // reason-code:not modifier
     public var reasonReference: String?             // Immunization.reasonReference reference
-    public var series: String?                      // Immunization.protocolApplied.series string
+    public var series: StringParam?                  // Immunization.protocolApplied.series string
     public var statusReason: [TokenParam]           // Immunization.statusReason token OR
     public var statusReasonNot: [TokenParam]        // status-reason:not modifier
     public var targetDisease: [TokenParam]          // Immunization.protocolApplied.targetDisease token OR
     public var targetDiseaseNot: [TokenParam]       // target-disease:not modifier
-    public var lotNumber: String?                   // lot-number string search
+    public var lotNumber: StringParam?               // lot-number string search
     public var date: [DateParam]                    // occurrence date range
     public var id: [String]                         // _id filter (OR)
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
@@ -53,12 +53,12 @@ public struct ImmunizationSearchQuery: Sendable {
         reasonCode: [TokenParam] = [],
         reasonCodeNot: [TokenParam] = [],
         reasonReference: String? = nil,
-        series: String? = nil,
+        series: StringParam? = nil,
         statusReason: [TokenParam] = [],
         statusReasonNot: [TokenParam] = [],
         targetDisease: [TokenParam] = [],
         targetDiseaseNot: [TokenParam] = [],
-        lotNumber: String? = nil,
+        lotNumber: StringParam? = nil,
         date: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
@@ -102,6 +102,7 @@ public struct ImmunizationSearchQuery: Sendable {
         self.cursor          = cursor
     }
 
+    public typealias StringParam     = PatientSearchQuery.StringParam
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
     public typealias SortOrder       = PatientSearchQuery.SortOrder

@@ -178,7 +178,7 @@ final class DocumentReferenceStoreTests: XCTestCase {
         _ = try await store.create(makeDocumentReference(patientId: patient.id, description: "Annual physical exam report"))
         _ = try await store.create(makeDocumentReference(patientId: patient.id, description: "Lab results"))
 
-        let query = DocumentReferenceSearchQuery(description: ["physical exam"], count: 10)
+        let query = DocumentReferenceSearchQuery(description: [.init(value: "physical exam", modifier: .contains)], count: 10)
         let result = try await store.search(query: query)
         XCTAssertEqual(result.entries.count, 1)
     }

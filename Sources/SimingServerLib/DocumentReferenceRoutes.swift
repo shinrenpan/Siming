@@ -14,7 +14,7 @@ private let docRefPreferHeader = HTTPField.Name("Prefer")!
 
 let knownDocumentReferenceParams: Set<String> = [
     "status", "type", "category", "identifier",
-    "security-label", "facility", "event", "description",
+    "security-label", "facility", "event", "description", "description:contains", "description:exact", "description:text",
     "date", "period",
     "subject", "patient", "author", "encounter",
     "custodian", "authenticator",
@@ -389,7 +389,10 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let date   = all("date").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
     let period = all("period").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
 
-    let description = all("description").map(String.init)
+    var description: [DocumentReferenceSearchQuery.StringParam] = all("description").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .startsWith) }
+    description += all("description:contains").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .contains) }
+    description += all("description:exact").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .exact) }
+    description += all("description:text").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .text) }
     let location    = all("location").map(String.init)
 
     let subject       = first("subject").map(String.init)

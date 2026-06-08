@@ -96,6 +96,11 @@ public struct PatientSearchQuery: Sendable {
         public let value: String
         public let modifier: Modifier
 
+        public init(value: String, modifier: Modifier) {
+            self.value    = value
+            self.modifier = modifier
+        }
+
         // Tries key:text, key:contains, key:exact, then bare key (starts-with).
         public static func parse(key: String, from qp: some Collection<(key: Substring, value: Substring)>) -> StringParam? {
             if let v = qp.first(where: { $0.key == "\(key):text" })?.value {

@@ -224,7 +224,7 @@ final class ConditionStoreTests: XCTestCase {
         _ = try await store.create(makeCondition(subjectId: pid, onsetString: "childhood"))
         _ = try await store.create(makeCondition(subjectId: pid))
 
-        let result = try await store.search(query: ConditionSearchQuery(onsetInfo: "child"))
+        let result = try await store.search(query: ConditionSearchQuery(onsetInfo: .init(value: "child", modifier: .startsWith)))
         XCTAssertEqual(result.total, 1)
     }
 
@@ -235,7 +235,7 @@ final class ConditionStoreTests: XCTestCase {
         _ = try await store.create(makeCondition(subjectId: pid, abatementString: "resolved spontaneously"))
         _ = try await store.create(makeCondition(subjectId: pid))
 
-        let result = try await store.search(query: ConditionSearchQuery(abatementString: "resolved"))
+        let result = try await store.search(query: ConditionSearchQuery(abatementString: .init(value: "resolved", modifier: .startsWith)))
         XCTAssertEqual(result.total, 1)
     }
 

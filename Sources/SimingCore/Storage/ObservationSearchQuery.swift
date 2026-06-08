@@ -49,7 +49,7 @@ public struct ObservationSearchQuery: Sendable {
     public var comboCodeValueQuantity: [CompositeCodeQuantity]      // combo-code-value-quantity
     public var comboCodeValueConcept: [CompositeCodeConcept]        // combo-code-value-concept
     public var valueDate: [DateParam]
-    public var valueString: [String]
+    public var valueString: [StringParam]
     public var id: [String]               // _id filter (OR)
     public var lastUpdated: [DateParam]   // _lastUpdated range filter
     public var missing: [String: Bool]    // param:missing=true/false
@@ -107,7 +107,7 @@ public struct ObservationSearchQuery: Sendable {
         comboCodeValueQuantity: [CompositeCodeQuantity] = [],
         comboCodeValueConcept: [CompositeCodeConcept] = [],
         valueDate: [DateParam] = [],
-        valueString: [String] = [],
+        valueString: [StringParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -174,6 +174,8 @@ public struct ObservationSearchQuery: Sendable {
     }
 
     // ── Nested types ──────────────────────────────────────────────────────────
+
+    public typealias StringParam = PatientSearchQuery.StringParam
 
     public struct TokenParam: Sendable {
         public let system: String?

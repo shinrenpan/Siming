@@ -363,10 +363,15 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(dateCTE(name: "f_period\(i)", paramName: "period", dp: dp))
         }
 
-        // string: description
+        // string: description, modifier-aware
         for (i, desc) in query.description.enumerated() {
-            let pLike = bind("%\(desc)%")
-            filterCTEs.append(("f_desc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description' AND value ILIKE \(pLike)"))
+            let cond: String
+            switch desc.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(desc.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + desc.value + "%"))"
+            case .exact: cond = "value = \(bind(desc.value))"
+            }
+            filterCTEs.append(("f_desc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description' AND \(cond)"))
         }
 
         // location (uri type — exact match)
@@ -664,6 +669,16 @@ public struct DocumentReferenceStore: Sendable {
         }
         for (i, dp) in query.period.enumerated() {
             filterCTEs.append(countDateCTE(name: "f_period\(i)", paramName: "period", dp: dp))
+        }
+
+        for (i, desc) in query.description.enumerated() {
+            let cond: String
+            switch desc.modifier {
+            case .startsWith: cond = "lower(value) LIKE lower(\(bind(desc.value + "%")))"
+            case .contains, .text: cond = "value ILIKE \(bind("%" + desc.value + "%"))"
+            case .exact: cond = "value = \(bind(desc.value))"
+            }
+            filterCTEs.append(("f_desc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description' AND \(cond)"))
         }
 
         for (i, loc) in query.location.enumerated() {

@@ -20,7 +20,8 @@ let knownConditionParams: Set<String> = [
     "asserter", "evidence-detail",
     "body-site", "body-site:not", "evidence", "evidence:not",
     "severity", "severity:not", "stage", "stage:not",
-    "onset-info", "abatement-string",
+    "onset-info", "onset-info:contains", "onset-info:exact", "onset-info:text",
+    "abatement-string", "abatement-string:contains", "abatement-string:exact", "abatement-string:text",
     "onset-age", "abatement-age",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -414,8 +415,8 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let severityNot        = first("severity:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let stage              = first("stage").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let stageNot           = first("stage:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
-    let onsetInfo          = first("onset-info").map(String.init)
-    let abatementString    = first("abatement-string").map(String.init)
+    let onsetInfo       = ConditionSearchQuery.StringParam.parse(key: "onset-info", from: pairs)
+    let abatementString = ConditionSearchQuery.StringParam.parse(key: "abatement-string", from: pairs)
     let onsetAge           = first("onset-age").map { ConditionSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let abatementAge       = first("abatement-age").map { ConditionSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let id                 = first("_id").map {
