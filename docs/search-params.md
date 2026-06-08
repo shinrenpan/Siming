@@ -4,7 +4,7 @@ Supported FHIR R4 search parameters for each resource type.
 
 **Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `death-date`, `_id`, `_lastUpdated`
 
-**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `component-value-quantity`, `combo-value-quantity`, `_id`, `_lastUpdated`
+**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `component-value-quantity`, `combo-value-quantity`, `code-value-quantity`, `code-value-string`, `code-value-concept`, `code-value-date`, `_id`, `_lastUpdated`
 
 **Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `participant`, `practitioner`, `reason-code`, `reason-reference`, `part-of`, `service-provider`, `based-on`, `location`, `location-period`, `diagnosis`, `account`, `appointment`, `episode-of-care`, `participant-type`, `special-arrangement`, `length`, `_id`, `_lastUpdated`
 

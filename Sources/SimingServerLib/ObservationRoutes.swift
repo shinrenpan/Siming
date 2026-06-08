@@ -20,6 +20,7 @@ let knownObservationParams: Set<String> = [
     "value-concept", "value-concept:not", "value-date", "value-string",
     "data-absent-reason", "combo-data-absent-reason", "component-data-absent-reason",
     "component-value-concept", "component-value-quantity", "combo-value-quantity",
+    "code-value-quantity", "code-value-string", "code-value-concept", "code-value-date",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -425,6 +426,10 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let componentValueConcept   = all("component-value-concept").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let componentValueQuantity  = first("component-value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let comboValueQuantity      = first("combo-value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
+    let codeValueQuantity = all("code-value-quantity").flatMap { ObservationSearchQuery.CompositeCodeQuantity.parseList(String($0)) }
+    let codeValueString   = all("code-value-string").flatMap { ObservationSearchQuery.CompositeCodeString.parseList(String($0)) }
+    let codeValueConcept  = all("code-value-concept").flatMap { ObservationSearchQuery.CompositeCodeConcept.parseList(String($0)) }
+    let codeValueDate     = all("code-value-date").flatMap { ObservationSearchQuery.CompositeCodeDate.parseList(String($0)) }
     let valueQuantity = first("value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let valueDate     = all("value-date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
     let valueString   = all("value-string").map(String.init)
@@ -443,7 +448,8 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
               "based-on","derived-from","device","focus","has-member","part-of","specimen",
               "combo-code","method","value-concept","value-date","value-string",
               "data-absent-reason","combo-data-absent-reason","component-data-absent-reason",
-              "component-value-concept","component-value-quantity","combo-value-quantity"] {
+              "component-value-concept","component-value-quantity","combo-value-quantity",
+              "code-value-quantity","code-value-string","code-value-concept","code-value-date"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -467,7 +473,10 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
         componentValueConcept: componentValueConcept,
         componentValueQuantity: componentValueQuantity,
         comboValueQuantity: comboValueQuantity,
-        valueQuantity: valueQuantity, valueDate: valueDate, valueString: valueString,
+        valueQuantity: valueQuantity,
+        codeValueQuantity: codeValueQuantity, codeValueString: codeValueString,
+        codeValueConcept: codeValueConcept, codeValueDate: codeValueDate,
+        valueDate: valueDate, valueString: valueString,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

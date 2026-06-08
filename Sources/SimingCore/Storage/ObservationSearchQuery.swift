@@ -36,6 +36,11 @@ public struct ObservationSearchQuery: Sendable {
     public var componentValueQuantity: [QuantityParam] // component-value-quantity quantity OR
     public var comboValueQuantity: [QuantityParam]     // combo-value-quantity quantity OR (obs.value only; component part not yet indexed)
     public var valueQuantity: [QuantityParam] // value-quantity OR list
+    // ── Root-level composite params ───────────────────────────────────────────
+    public var codeValueQuantity: [CompositeCodeQuantity]   // code-value-quantity: code$value-quantity
+    public var codeValueString: [CompositeCodeString]       // code-value-string: code$value-string
+    public var codeValueConcept: [CompositeCodeConcept]     // code-value-concept: code$value-concept
+    public var codeValueDate: [CompositeCodeDate]           // code-value-date: code$value-date
     public var valueDate: [DateParam]
     public var valueString: [String]
     public var id: [String]               // _id filter (OR)
@@ -84,6 +89,10 @@ public struct ObservationSearchQuery: Sendable {
         componentValueQuantity: [QuantityParam] = [],
         comboValueQuantity: [QuantityParam] = [],
         valueQuantity: [QuantityParam] = [],
+        codeValueQuantity: [CompositeCodeQuantity] = [],
+        codeValueString: [CompositeCodeString] = [],
+        codeValueConcept: [CompositeCodeConcept] = [],
+        codeValueDate: [CompositeCodeDate] = [],
         valueDate: [DateParam] = [],
         valueString: [String] = [],
         id: [String] = [],
@@ -128,6 +137,10 @@ public struct ObservationSearchQuery: Sendable {
         self.componentValueQuantity    = componentValueQuantity
         self.comboValueQuantity        = comboValueQuantity
         self.valueQuantity  = valueQuantity
+        self.codeValueQuantity = codeValueQuantity
+        self.codeValueString   = codeValueString
+        self.codeValueConcept  = codeValueConcept
+        self.codeValueDate     = codeValueDate
         self.valueDate      = valueDate
         self.valueString    = valueString
         self.id             = id
@@ -204,4 +217,66 @@ public struct ObservationSearchQuery: Sendable {
     public typealias SearchCursor    = PatientSearchQuery.SearchCursor
     public typealias IdentifierParam = PatientSearchQuery.IdentifierParam
     public typealias TotalMode       = PatientSearchQuery.TotalMode
+
+    // ── Composite param types — code$value ────────────────────────────────────
+
+    public struct CompositeCodeQuantity: Sendable {
+        public let codeToken: TokenParam
+        public let valueQuantity: QuantityParam
+        public static func parse(_ raw: String) -> CompositeCodeQuantity? {
+            guard let dollarIdx = raw.firstIndex(of: "$") else { return nil }
+            let codePart  = String(raw[raw.startIndex..<dollarIdx])
+            let valuePart = String(raw[raw.index(after: dollarIdx)...])
+            guard let qty = QuantityParam.parse(valuePart) else { return nil }
+            return CompositeCodeQuantity(codeToken: TokenParam.parse(codePart), valueQuantity: qty)
+        }
+        public static func parseList(_ raw: String) -> [CompositeCodeQuantity] {
+            raw.split(separator: ",").compactMap { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
+    }
+
+    public struct CompositeCodeString: Sendable {
+        public let codeToken: TokenParam
+        public let valueString: String
+        public static func parse(_ raw: String) -> CompositeCodeString? {
+            guard let dollarIdx = raw.firstIndex(of: "$") else { return nil }
+            let codePart  = String(raw[raw.startIndex..<dollarIdx])
+            let valuePart = String(raw[raw.index(after: dollarIdx)...])
+            guard !valuePart.isEmpty else { return nil }
+            return CompositeCodeString(codeToken: TokenParam.parse(codePart), valueString: valuePart)
+        }
+        public static func parseList(_ raw: String) -> [CompositeCodeString] {
+            raw.split(separator: ",").compactMap { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
+    }
+
+    public struct CompositeCodeConcept: Sendable {
+        public let codeToken: TokenParam
+        public let valueConcept: TokenParam
+        public static func parse(_ raw: String) -> CompositeCodeConcept? {
+            guard let dollarIdx = raw.firstIndex(of: "$") else { return nil }
+            let codePart    = String(raw[raw.startIndex..<dollarIdx])
+            let conceptPart = String(raw[raw.index(after: dollarIdx)...])
+            return CompositeCodeConcept(codeToken: TokenParam.parse(codePart),
+                                        valueConcept: TokenParam.parse(conceptPart))
+        }
+        public static func parseList(_ raw: String) -> [CompositeCodeConcept] {
+            raw.split(separator: ",").compactMap { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
+    }
+
+    public struct CompositeCodeDate: Sendable {
+        public let codeToken: TokenParam
+        public let valueDate: DateParam
+        public static func parse(_ raw: String) -> CompositeCodeDate? {
+            guard let dollarIdx = raw.firstIndex(of: "$") else { return nil }
+            let codePart  = String(raw[raw.startIndex..<dollarIdx])
+            let datePart  = String(raw[raw.index(after: dollarIdx)...])
+            guard let dp = DateParam.parse(datePart) else { return nil }
+            return CompositeCodeDate(codeToken: TokenParam.parse(codePart), valueDate: dp)
+        }
+        public static func parseList(_ raw: String) -> [CompositeCodeDate] {
+            raw.split(separator: ",").compactMap { parse(String($0).trimmingCharacters(in: .whitespaces)) }
+        }
+    }
 }

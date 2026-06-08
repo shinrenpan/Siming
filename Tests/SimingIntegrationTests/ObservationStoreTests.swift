@@ -336,6 +336,70 @@ final class ObservationStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: code-value-quantity (composite) ───────────────────────────────
+
+    func testSearch_byCodeValueQuantity_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CVQPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7", valueQuantity: 75.0))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7", valueQuantity: 40.0))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4", valueQuantity: 90.0))
+
+        let composite = ObservationSearchQuery.CompositeCodeQuantity.parse("29463-7$ge60")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            codeValueQuantity: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: code-value-string (composite) ─────────────────────────────────
+
+    func testSearch_byCodeValueString_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CVSPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "55286-9", valueString: "normal"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "55286-9", valueString: "abnormal"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4", valueString: "normal"))
+
+        let composite = ObservationSearchQuery.CompositeCodeString.parse("55286-9$norm")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            codeValueString: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: code-value-concept (composite) ────────────────────────────────
+
+    func testSearch_byCodeValueConcept_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CVCPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "72166-2", valueConcept: "428041000124106"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "72166-2", valueConcept: "8517006"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4", valueConcept: "428041000124106"))
+
+        let composite = ObservationSearchQuery.CompositeCodeConcept.parse("72166-2$428041000124106")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            codeValueConcept: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: code-value-date (composite) ───────────────────────────────────
+
+    func testSearch_byCodeValueDate_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CVDPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8310-5", valueDateTime: "2024-06-01"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8310-5", valueDateTime: "2022-01-01"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7", valueDateTime: "2024-06-01"))
+
+        let composite = ObservationSearchQuery.CompositeCodeDate.parse("8310-5$ge2023-01-01")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            codeValueDate: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── Search: combo-value-quantity ──────────────────────────────────────────
 
     func testSearch_byComboValueQuantity_ge_returnsMatchOnly() async throws {

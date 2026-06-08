@@ -584,6 +584,86 @@ public struct ObservationStore: Sendable {
                 """))
         }
 
+        // ── Root-level composite params (INTERSECT-per-pair, UNION across OR values) ─
+
+        // Helper: quantity comparison string
+        func qCond(_ qp: ObservationSearchQuery.QuantityParam) -> String {
+            var c: String
+            switch qp.prefix {
+            case .eq: c = "value = \(bind(qp.value))"
+            case .ne: c = "value != \(bind(qp.value))"
+            case .lt: c = "value < \(bind(qp.value))"
+            case .le: c = "value <= \(bind(qp.value))"
+            case .gt: c = "value > \(bind(qp.value))"
+            case .ge: c = "value >= \(bind(qp.value))"
+            case .sa: c = "value > \(bind(qp.value))"
+            case .eb: c = "value < \(bind(qp.value))"
+            case .ap:
+                let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1)
+                c = "value BETWEEN \(lo) AND \(hi)"
+            }
+            if let sys = qp.system { c += " AND system = \(bind(sys))" }
+            if let code = qp.code  { c += " AND code = \(bind(code))" }
+            return c
+        }
+
+        func tokenCodeCond(_ tok: ObservationSearchQuery.TokenParam) -> String {
+            if tok.code.isEmpty, let sys = tok.system { return "system = \(bind(sys))" }
+            let cP = bind(tok.code)
+            if let sys = tok.system { return "code = \(cP) AND system = \(bind(sys))" }
+            return "code = \(cP)"
+        }
+
+        if !query.codeValueQuantity.isEmpty {
+            let parts = query.codeValueQuantity.map { pair -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(tokenCodeCond(pair.codeToken))"
+                let valSQ  = "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity' AND \(qCond(pair.valueQuantity))"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvq", parts.joined(separator: "\nUNION\n")))
+        }
+
+        if !query.codeValueString.isEmpty {
+            let parts = query.codeValueString.map { pair -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(tokenCodeCond(pair.codeToken))"
+                let pLike  = bind("\(pair.valueString)%")
+                let valSQ  = "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvs", parts.joined(separator: "\nUNION\n")))
+        }
+
+        if !query.codeValueConcept.isEmpty {
+            let parts = query.codeValueConcept.map { pair -> String in
+                let codeSQ    = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(tokenCodeCond(pair.codeToken))"
+                let conceptSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'value-concept' AND \(tokenCodeCond(pair.valueConcept))"
+                return "(\(codeSQ) INTERSECT \(conceptSQ))"
+            }
+            filterCTEs.append(("f_cvc", parts.joined(separator: "\nUNION\n")))
+        }
+
+        if !query.codeValueDate.isEmpty {
+            let parts = query.codeValueDate.enumerated().map { (_, pair) -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(tokenCodeCond(pair.codeToken))"
+                let dp = pair.valueDate
+                let sP = bind(dp.dateStart); let eP = bind(dp.dateEnd)
+                let dateCond: String
+                switch dp.prefix {
+                case .eq: dateCond = "date_start <= \(eP) AND date_end >= \(sP)"
+                case .ne: dateCond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
+                case .lt: dateCond = "date_end < \(sP)"
+                case .le: dateCond = "date_start <= \(eP)"
+                case .gt: dateCond = "date_start > \(eP)"
+                case .ge: dateCond = "date_end >= \(sP)"
+                case .sa: dateCond = "date_start > \(eP)"
+                case .eb: dateCond = "date_end < \(sP)"
+                }
+                let valSQ = "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(dateCond)"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvd", parts.joined(separator: "\nUNION\n")))
+        }
+
         // date — idx_date range with two-bound comparison per FHIR R4 §2.4.0.1
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
@@ -1085,6 +1165,79 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_comp_vquantity",
                 "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
         }
+        // root-level composite params in buildCountSQL
+        func countTokenCodeCond(_ tok: ObservationSearchQuery.TokenParam) -> String {
+            if tok.code.isEmpty, let sys = tok.system { return "system = \(bind(sys))" }
+            let cP = bind(tok.code)
+            if let sys = tok.system { return "code = \(cP) AND system = \(bind(sys))" }
+            return "code = \(cP)"
+        }
+        func countQCond(_ qp: ObservationSearchQuery.QuantityParam) -> String {
+            var c: String
+            switch qp.prefix {
+            case .eq: c = "value = \(bind(qp.value))"
+            case .ne: c = "value != \(bind(qp.value))"
+            case .lt: c = "value < \(bind(qp.value))"
+            case .le: c = "value <= \(bind(qp.value))"
+            case .gt: c = "value > \(bind(qp.value))"
+            case .ge: c = "value >= \(bind(qp.value))"
+            case .sa: c = "value > \(bind(qp.value))"
+            case .eb: c = "value < \(bind(qp.value))"
+            case .ap:
+                let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1)
+                c = "value BETWEEN \(lo) AND \(hi)"
+            }
+            if let sys = qp.system { c += " AND system = \(bind(sys))" }
+            if let code = qp.code  { c += " AND code = \(bind(code))" }
+            return c
+        }
+        if !query.codeValueQuantity.isEmpty {
+            let parts = query.codeValueQuantity.map { pair -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(countTokenCodeCond(pair.codeToken))"
+                let valSQ  = "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity' AND \(countQCond(pair.valueQuantity))"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvq", parts.joined(separator: "\nUNION\n")))
+        }
+        if !query.codeValueString.isEmpty {
+            let parts = query.codeValueString.map { pair -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(countTokenCodeCond(pair.codeToken))"
+                let pLike  = bind("\(pair.valueString)%")
+                let valSQ  = "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string' AND lower(value) LIKE lower(\(pLike))"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvs", parts.joined(separator: "\nUNION\n")))
+        }
+        if !query.codeValueConcept.isEmpty {
+            let parts = query.codeValueConcept.map { pair -> String in
+                let codeSQ    = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(countTokenCodeCond(pair.codeToken))"
+                let conceptSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'value-concept' AND \(countTokenCodeCond(pair.valueConcept))"
+                return "(\(codeSQ) INTERSECT \(conceptSQ))"
+            }
+            filterCTEs.append(("f_cvc", parts.joined(separator: "\nUNION\n")))
+        }
+        if !query.codeValueDate.isEmpty {
+            let parts = query.codeValueDate.map { pair -> String in
+                let codeSQ = "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND \(countTokenCodeCond(pair.codeToken))"
+                let dp = pair.valueDate
+                let sP = bind(dp.dateStart); let eP = bind(dp.dateEnd)
+                let dateCond: String
+                switch dp.prefix {
+                case .eq: dateCond = "date_start <= \(eP) AND date_end >= \(sP)"
+                case .ne: dateCond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
+                case .lt: dateCond = "date_end < \(sP)"
+                case .le: dateCond = "date_start <= \(eP)"
+                case .gt: dateCond = "date_start > \(eP)"
+                case .ge: dateCond = "date_end >= \(sP)"
+                case .sa: dateCond = "date_start > \(eP)"
+                case .eb: dateCond = "date_end < \(sP)"
+                }
+                let valSQ = "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(dateCond)"
+                return "(\(codeSQ) INTERSECT \(valSQ))"
+            }
+            filterCTEs.append(("f_cvd", parts.joined(separator: "\nUNION\n")))
+        }
+
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
