@@ -257,6 +257,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 ## Working rules for Claude Code
 
+- **Model escalation:** Default to current model (Sonnet). Before starting a round, proactively flag to the user if Opus + xHigh is recommended — specifically when: (1) SQL query logic has significant uncertainty or correctness risk, (2) the change spans 3+ architectural layers with non-trivial interdependencies, (3) an architectural decision has multiple valid approaches with real tradeoffs, or (4) a root cause is not fully understood. Do NOT switch models or invoke `/code-review ultra` unilaterally — always ask the user first.
 - Verify package versions against GitHub/registry before pinning — never from memory.
 - Hand-tuned SQL over ORM abstractions; this project's whole value is storage/search performance.
 - Make minimal changes; don't refactor unrelated code.
