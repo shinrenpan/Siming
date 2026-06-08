@@ -2,6 +2,16 @@
 
 Supported FHIR R4 search parameters for each resource type.
 
+## Modifier support
+
+**String params** — all string-type params support `:contains`, `:exact`, `:text` modifiers (default is prefix/startsWith).
+
+**Token params** — all token params support `:not` modifier. `:text` modifier (display-text search) is not yet implemented.
+
+**Date params** — all date params support prefixes: `eq` (default), `ne`, `lt`, `le`, `gt`, `ge`, `sa`, `eb`, `ap` (approximate ±10%).
+
+**`_include` / `_revinclude`** — support `:iterate` for recursive resolution (max 5 levels) and `*` wildcard paramName (e.g. `_include=Patient:*`).
+
 **Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `death-date`, `_id`, `_lastUpdated`
 
 **Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `component-value-quantity`, `combo-value-concept`, `combo-value-quantity`, `code-value-quantity`, `code-value-string`, `code-value-concept`, `code-value-date`, `component-code-value-quantity`, `component-code-value-concept`, `combo-code-value-quantity`, `combo-code-value-concept`, `_id`, `_lastUpdated`

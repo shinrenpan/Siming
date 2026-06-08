@@ -40,6 +40,41 @@ Per-resource search parameter implementation details and known gaps.
 
 Fully implemented for all 23 resources. Child param types mapped in `chainChildParamType` in `ChainedParam.swift`. Includes: `effective-time`, `reason-given`, `reason-not-given`, `reason-code`.
 
+### `_include` / `_revinclude`
+
+Fully implemented for all 23 resources via `IncludeResolver` (queries `idx_reference` directly).
+
+- **`:iterate` modifier** — `_include:iterate` and `_revinclude:iterate` resolve recursively (max 5 levels). Each pass uses the newly-discovered resources of the matching `sourceType` as the next frontier; already-processed IDs are skipped to prevent cycles.
+- **Wildcard `*`** — `_include=Patient:*` or `_revinclude=Observation:*` drops the `param_name` filter so all reference params of the source type are followed.
+- `search.mode` is set correctly: `"match"` for main results, `"include"` for included resources.
+
+### Date `ap` (approximate) prefix
+
+Supported on **all** date parameters across all 23 resources, including `_lastUpdated`.
+
+- **Semantics:** ±10% of the precision period. `delta = (dateEnd − dateStart) × 0.1`. idx_date: `date_start <= apExpandedEnd AND date_end >= apExpandedStart`. `last_updated`: `BETWEEN apExpandedStart AND apExpandedEnd`.
+- Computed properties `apExpandedStart` / `apExpandedEnd` on `BirthdateParam`.
+
+### String parameter modifiers
+
+All string-type search params support FHIR R4 modifiers. Dispatch in both `buildSearchSQL` and `buildCountSQL`:
+
+| Modifier | SQL pattern | Index used |
+|---|---|---|
+| (default / startsWith) | `lower(value) LIKE lower('foo%')` | `idx_string_lower_prefix_idx` (btree) |
+| `:contains` / `:text` | `value ILIKE '%foo%'` | `idx_string_trgm_idx` (trigram GIN) |
+| `:exact` | `value = 'foo'` | `idx_string_exact_idx` (btree) |
+
+Resources and params with modifier support:
+- **Patient** — `name`, `family`, `given`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phonetic`
+- **Observation** — `value-string`
+- **DocumentReference** — `description`
+- **Immunization** — `series`, `lot-number`
+- **Condition** — `onset-info`, `abatement-string`
+- **Practitioner, Organization, Location, RelatedPerson** — all `name` / `address` / `phonetic` variants
+
+`PatientSearchQuery.StringParam` is the shared type (public init, public `Modifier` enum). All other resources alias it via `typealias StringParam = PatientSearchQuery.StringParam`.
+
 ### Patient compartment membership
 
 **Not in compartment:** Location, Medication, Practitioner, Organization (per FHIR R4 spec — not resource-connected to a Patient).
