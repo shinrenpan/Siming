@@ -75,6 +75,20 @@ Resources and params with modifier support:
 
 `PatientSearchQuery.StringParam` is the shared type (public init, public `Modifier` enum). All other resources alias it via `typealias StringParam = PatientSearchQuery.StringParam`.
 
+### Token `:not` modifier — `identifier:not`
+
+`identifier:not` is supported on **all 23 resources** (FHIR R4 §3.2.1). Implemented as a `NOT IN` subquery against `idx_token`:
+
+```sql
+r.id NOT IN (
+  SELECT resource_id FROM idx_token
+  WHERE resource_type = 'Patient' AND param_name = 'identifier'
+  AND (code = $n [AND system = $m | AND system IS NULL])
+)
+```
+
+Three wire formats accepted: `system|code`, `|code` (null system), `code` (any system — no system condition). Multiple values in one param are OR'd before the NOT IN. Each SearchQuery has `identifierNot: [IdentifierParam]`; Routes accept `identifier:not` in knownParams and strict-mode whitelist.
+
 ### Patient compartment membership
 
 **Not in compartment:** Location, Medication, Practitioner, Organization (per FHIR R4 spec — not resource-connected to a Patient).
