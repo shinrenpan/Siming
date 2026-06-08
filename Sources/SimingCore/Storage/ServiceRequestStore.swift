@@ -358,6 +358,11 @@ public struct ServiceRequestStore: Sendable {
             filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
         }
 
+        // order-detail — token OR
+        if !query.orderDetail.isEmpty {
+            filterCTEs.append(tokenORCTE(name: "f_order_detail", paramName: "order-detail", tokens: query.orderDetail))
+        }
+
         // date CTEs
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(dateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
@@ -405,7 +410,8 @@ public struct ServiceRequestStore: Sendable {
         if !query.intentNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "intent",   tokens: query.intentNot)) }
         if !query.priorityNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "priority", tokens: query.priorityNot)) }
         if !query.codeNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "code",     tokens: query.codeNot)) }
-        if !query.categoryNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "category", tokens: query.categoryNot)) }
+        if !query.categoryNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "category",     tokens: query.categoryNot)) }
+        if !query.orderDetailNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
@@ -584,6 +590,20 @@ public struct ServiceRequestStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
+        func countTokenNotCondition(paramName: String, tokens: [ServiceRequestSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
         func countRefCTE(name: String, paramName: String, ref: String) -> (String, String) {
             let parts = ref.split(separator: "/")
             if parts.count == 2 {
@@ -645,6 +665,10 @@ public struct ServiceRequestStore: Sendable {
             filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
         }
 
+        if !query.orderDetail.isEmpty {
+            filterCTEs.append(countTokenORCTE(name: "f_order_detail", paramName: "order-detail", tokens: query.orderDetail))
+        }
+
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(countDateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
         }
@@ -666,6 +690,7 @@ public struct ServiceRequestStore: Sendable {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+        if !query.orderDetailNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
 
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }
@@ -724,6 +749,7 @@ public struct ServiceRequestStore: Sendable {
         case "replaces":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'replaces'"
         case "specimen":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'specimen'"
         case "instantiates-uri":  return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri'"
+        case "order-detail":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = 'order-detail'"
         default:               return nil
         }
     }

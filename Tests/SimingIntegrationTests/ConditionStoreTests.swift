@@ -239,6 +239,32 @@ final class ConditionStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: onset-age ────────────────────────────────────────────────────
+
+    func testSearch_byOnsetAge_lt_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConOnsetAgePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, onsetAgeValue: 40))
+        _ = try await store.create(makeCondition(subjectId: pid, onsetAgeValue: 70))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let param = ConditionSearchQuery.QuantityParam.parse("lt50")!
+        let result = try await store.search(query: ConditionSearchQuery(onsetAge: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: abatement-age ────────────────────────────────────────────────
+
+    func testSearch_byAbatementAge_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConAbatAgePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, abatementAgeValue: 75))
+        _ = try await store.create(makeCondition(subjectId: pid, abatementAgeValue: 45))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let param = ConditionSearchQuery.QuantityParam.parse("ge70")!
+        let result = try await store.search(query: ConditionSearchQuery(abatementAge: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

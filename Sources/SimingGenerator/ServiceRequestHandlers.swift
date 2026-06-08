@@ -319,6 +319,21 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── token: order-detail (CodeableConcept array) ───────────────────────────
+    case "order-detail":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ sr: ServiceRequest) {
+            for cc in sr.orderDetail ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "order-detail", system: s, code: c))
+                }
+            }
+        }
+        """
+
     default:
         return nil
     }

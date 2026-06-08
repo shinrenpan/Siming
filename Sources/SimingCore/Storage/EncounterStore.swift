@@ -646,6 +646,29 @@ public struct EncounterStore: Sendable {
                 """))
         }
 
+        // length — idx_quantity numeric filter
+        if !query.length.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.length {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap: let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1); cond = "value BETWEEN \(lo) AND \(hi)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_length", "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Encounter' AND param_name = 'length' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         // date — idx_date range (Encounter.period → param_name='date')
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
@@ -1128,6 +1151,28 @@ public struct EncounterStore: Sendable {
         if !query.participantType.isEmpty   { filterCTEs.append(tokenCTE(name: "f_participant_type",  paramName: "participant-type",   tokens: query.participantType)) }
         if !query.specialArrangement.isEmpty { filterCTEs.append(tokenCTE(name: "f_special_arr",     paramName: "special-arrangement", tokens: query.specialArrangement)) }
 
+        if !query.length.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.length {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap: let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1); cond = "value BETWEEN \(lo) AND \(hi)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_length", "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Encounter' AND param_name = 'length' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
             let cond: String
@@ -1266,6 +1311,7 @@ public struct EncounterStore: Sendable {
         case "location-period":      return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Encounter' AND param_name = 'location-period'"
         case "participant-type":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'participant-type'"
         case "special-arrangement":  return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'special-arrangement'"
+        case "length":               return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Encounter' AND param_name = 'length'"
         default:                     return nil
         }
     }

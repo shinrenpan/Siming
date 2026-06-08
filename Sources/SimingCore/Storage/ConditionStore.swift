@@ -579,6 +579,31 @@ public struct ConditionStore: Sendable {
                 """))
         }
 
+        // onset-age / abatement-age — idx_quantity numeric filter
+        func quantityCTE(name: String, paramName: String, quantities: [ConditionSearchQuery.QuantityParam]) -> (String, String) {
+            var orClauses: [String] = []
+            for qp in quantities {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap: let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1); cond = "value BETWEEN \(lo) AND \(hi)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            return (name, "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
+        }
+        if !query.onsetAge.isEmpty      { filterCTEs.append(quantityCTE(name: "f_onset_age",     paramName: "onset-age",      quantities: query.onsetAge)) }
+        if !query.abatementAge.isEmpty  { filterCTEs.append(quantityCTE(name: "f_abatement_age", paramName: "abatement-age",  quantities: query.abatementAge)) }
+
         // onset-info — idx_string (prefix match)
         if let onsetInfo = query.onsetInfo {
             let p = bind(onsetInfo + "%")
@@ -1006,6 +1031,30 @@ public struct ConditionStore: Sendable {
         if !query.severity.isEmpty { filterCTEs.append(tokenCTECount(name: "f_severity",  paramName: "severity",  tokens: query.severity)) }
         if !query.stage.isEmpty    { filterCTEs.append(tokenCTECount(name: "f_stage",     paramName: "stage",     tokens: query.stage)) }
 
+        func quantityCTECount(name: String, paramName: String, quantities: [ConditionSearchQuery.QuantityParam]) -> (String, String) {
+            var orClauses: [String] = []
+            for qp in quantities {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap: let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1); cond = "value BETWEEN \(lo) AND \(hi)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            return (name, "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
+        }
+        if !query.onsetAge.isEmpty      { filterCTEs.append(quantityCTECount(name: "f_onset_age",     paramName: "onset-age",      quantities: query.onsetAge)) }
+        if !query.abatementAge.isEmpty  { filterCTEs.append(quantityCTECount(name: "f_abatement_age", paramName: "abatement-age",  quantities: query.abatementAge)) }
+
         if let onsetInfo = query.onsetInfo {
             let p = bind(onsetInfo + "%")
             filterCTEs.append(("f_onset_info",
@@ -1128,6 +1177,8 @@ public struct ConditionStore: Sendable {
         case "stage":                 return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'stage'"
         case "onset-info":            return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info'"
         case "abatement-string":      return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string'"
+        case "onset-age":             return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Condition' AND param_name = 'onset-age'"
+        case "abatement-age":         return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Condition' AND param_name = 'abatement-age'"
         default:                      return nil
         }
     }

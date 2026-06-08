@@ -20,6 +20,7 @@ let knownEncounterParams: Set<String> = [
     "account", "appointment", "episode-of-care", "reason-reference",
     "location-period", "participant-type", "participant-type:not",
     "special-arrangement", "special-arrangement:not",
+    "length",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -418,6 +419,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let participantTypeNot = first("participant-type:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let specialArrangement    = first("special-arrangement").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let specialArrangementNot = first("special-arrangement:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let length             = first("length").map { EncounterSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let dates          = all("date").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
     let id             = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -432,7 +434,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
               "participant", "practitioner", "reason-code", "part-of",
               "service-provider", "based-on", "location", "diagnosis",
               "account", "appointment", "episode-of-care", "reason-reference",
-              "location-period", "participant-type", "special-arrangement"] {
+              "location-period", "participant-type", "special-arrangement", "length"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -452,6 +454,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
         locationPeriod: locationPeriod,
         participantType: participantType, participantTypeNot: participantTypeNot,
         specialArrangement: specialArrangement, specialArrangementNot: specialArrangementNot,
+        length: length,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

@@ -21,8 +21,11 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var requisition: [TokenParam]
 
     // string params
-    public var orderDetail: StringParam?     // free-text search on orderDetail
     public var instantiatesUri: [String]     // ServiceRequest.instantiatesUri (exact URL match)
+
+    // order-detail token params
+    public var orderDetail: [TokenParam]     // ServiceRequest.orderDetail token OR
+    public var orderDetailNot: [TokenParam]  // order-detail:not modifier
 
     // date params
     public var authored: [DateParam]
@@ -67,8 +70,9 @@ public struct ServiceRequestSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         performerType: [TokenParam] = [],
         requisition: [TokenParam] = [],
-        orderDetail: StringParam? = nil,
         instantiatesUri: [String] = [],
+        orderDetail: [TokenParam] = [],
+        orderDetailNot: [TokenParam] = [],
         authored: [DateParam] = [],
         occurrence: [DateParam] = [],
         subject: String? = nil,
@@ -103,8 +107,9 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.identifier     = identifier
         self.performerType  = performerType
         self.requisition    = requisition
-        self.orderDetail    = orderDetail
         self.instantiatesUri = instantiatesUri
+        self.orderDetail    = orderDetail
+        self.orderDetailNot = orderDetailNot
         self.authored       = authored
         self.occurrence     = occurrence
         self.subject        = subject
@@ -127,7 +132,6 @@ public struct ServiceRequestSearchQuery: Sendable {
     }
 
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
-    public typealias StringParam     = PatientSearchQuery.StringParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
     public typealias SortOrder       = PatientSearchQuery.SortOrder
     public typealias SearchCursor    = PatientSearchQuery.SearchCursor

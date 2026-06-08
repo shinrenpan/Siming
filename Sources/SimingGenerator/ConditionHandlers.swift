@@ -320,6 +320,34 @@ func conditionHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── quantity: onset-age (onset as Age) ───────────────────────────────────
+    case "onset-age":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let onset = cond.onset, case .age(let age) = onset,
+                  let decimalVal = age.value?.value?.decimal else { return }
+            let sys  = age.system?.value?.url.absoluteString
+            let unit = age.code?.value?.string
+            p.quantities.append(.init(paramName: "onset-age", system: sys, code: unit,
+                                      value: Decimal(string: decimalVal.description) ?? 0))
+        }
+        """
+
+    // ── quantity: abatement-age (abatement as Age) ────────────────────────────
+    case "abatement-age":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let abatement = cond.abatement, case .age(let age) = abatement,
+                  let decimalVal = age.value?.value?.decimal else { return }
+            let sys  = age.system?.value?.url.absoluteString
+            let unit = age.code?.value?.string
+            p.quantities.append(.init(paramName: "abatement-age", system: sys, code: unit,
+                                      value: Decimal(string: decimalVal.description) ?? 0))
+        }
+        """
+
     default:
         return nil
     }

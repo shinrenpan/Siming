@@ -303,6 +303,30 @@ final class ServiceRequestStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: order-detail ──────────────────────────────────────────────────
+
+    func testSearch_byOrderDetail_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "SROrdDetPt")).id
+        _ = try await store.create(makeServiceRequest(patientId: pid, orderDetailCode: "PROC001"))
+        _ = try await store.create(makeServiceRequest(patientId: pid))
+
+        let result = try await store.search(query: ServiceRequestSearchQuery(
+            orderDetail: [.init(system: nil, code: "PROC001")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byOrderDetailNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "SROrdDetNotPt")).id
+        _ = try await store.create(makeServiceRequest(patientId: pid, orderDetailCode: "PROC001"))
+        _ = try await store.create(makeServiceRequest(patientId: pid, orderDetailCode: "PROC002"))
+
+        let result = try await store.search(query: ServiceRequestSearchQuery(
+            orderDetailNot: [.init(system: nil, code: "PROC001")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

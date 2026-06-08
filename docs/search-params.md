@@ -6,9 +6,9 @@ Supported FHIR R4 search parameters for each resource type.
 
 **Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `_id`, `_lastUpdated`
 
-**Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `participant`, `practitioner`, `reason-code`, `reason-reference`, `part-of`, `service-provider`, `based-on`, `location`, `location-period`, `diagnosis`, `account`, `appointment`, `episode-of-care`, `participant-type`, `special-arrangement`, `_id`, `_lastUpdated`
+**Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `participant`, `practitioner`, `reason-code`, `reason-reference`, `part-of`, `service-provider`, `based-on`, `location`, `location-period`, `diagnosis`, `account`, `appointment`, `episode-of-care`, `participant-type`, `special-arrangement`, `length`, `_id`, `_lastUpdated`
 
-**Condition** — `subject`, `patient`, `clinical-status`, `verification-status`, `category`, `code`, `encounter`, `onset-date`, `abatement-date`, `recorded-date`, `identifier`, `asserter`, `body-site`, `evidence`, `evidence-detail`, `severity`, `stage`, `onset-info`, `abatement-string`, `_id`, `_lastUpdated`
+**Condition** — `subject`, `patient`, `clinical-status`, `verification-status`, `category`, `code`, `encounter`, `onset-date`, `abatement-date`, `recorded-date`, `identifier`, `asserter`, `body-site`, `evidence`, `evidence-detail`, `severity`, `stage`, `onset-info`, `abatement-string`, `onset-age`, `abatement-age`, `_id`, `_lastUpdated`
 
 **MedicationRequest** — `subject`, `patient`, `status`, `intent`, `medication`, `code`, `priority`, `authored-on`, `identifier`, `encounter`, `requester`, `intended-dispenser`, `intended-performer`, `intended-performertype`, `_id`, `_lastUpdated`
 
@@ -30,7 +30,7 @@ Supported FHIR R4 search parameters for each resource type.
 
 **RelatedPerson** — `name`, `phonetic` (alias for `name`), `identifier`, `active`, `gender`, `relationship`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `address-use`, `phone`, `email`, `telecom`, `patient`, `_id`, `_lastUpdated`
 
-**ServiceRequest** — `status`, `intent`, `priority`, `code`, `category`, `body-site`, `performer-type`, `requisition`, `identifier`, `authored`, `occurrence`, `subject`, `patient`, `encounter`, `requester`, `performer`, `based-on`, `replaces`, `specimen`, `instantiates-uri`, `_id`, `_lastUpdated`
+**ServiceRequest** — `status`, `intent`, `priority`, `code`, `category`, `body-site`, `performer-type`, `requisition`, `identifier`, `authored`, `occurrence`, `subject`, `patient`, `encounter`, `requester`, `performer`, `based-on`, `replaces`, `specimen`, `instantiates-uri`, `order-detail`, `_id`, `_lastUpdated`
 
 **Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 

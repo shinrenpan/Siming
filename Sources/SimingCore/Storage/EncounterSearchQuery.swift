@@ -31,6 +31,7 @@ public struct EncounterSearchQuery: Sendable {
     public var participantTypeNot: [TokenParam] // participant-type:not modifier
     public var specialArrangement: [TokenParam]    // Encounter.hospitalization.specialArrangement token OR
     public var specialArrangementNot: [TokenParam] // special-arrangement:not modifier
+    public var length: [QuantityParam]             // Encounter.length quantity filter
     public var id: [String]                 // _id filter (OR)
     public var lastUpdated: [DateParam]     // _lastUpdated range filter
     public var missing: [String: Bool]      // param:missing=true/false
@@ -72,6 +73,7 @@ public struct EncounterSearchQuery: Sendable {
         participantTypeNot: [TokenParam] = [],
         specialArrangement: [TokenParam] = [],
         specialArrangementNot: [TokenParam] = [],
+        length: [QuantityParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -109,6 +111,7 @@ public struct EncounterSearchQuery: Sendable {
         self.participantTypeNot = participantTypeNot
         self.specialArrangement    = specialArrangement
         self.specialArrangementNot = specialArrangementNot
+        self.length          = length
         self.id              = id
         self.lastUpdated     = lastUpdated
         self.missing         = missing
@@ -121,6 +124,7 @@ public struct EncounterSearchQuery: Sendable {
     }
 
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
+    public typealias QuantityParam   = ObservationSearchQuery.QuantityParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
     public typealias SortOrder       = PatientSearchQuery.SortOrder
     public typealias SearchCursor    = PatientSearchQuery.SearchCursor

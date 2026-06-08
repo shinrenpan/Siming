@@ -28,6 +28,8 @@ public struct ConditionSearchQuery: Sendable {
     public var severityNot: [TokenParam]             // severity:not modifier
     public var stage: [TokenParam]                   // Condition.stage.summary token OR
     public var stageNot: [TokenParam]                // stage:not modifier
+    public var onsetAge: [QuantityParam]              // Condition.onset as Age quantity filter
+    public var abatementAge: [QuantityParam]          // Condition.abatement as Age quantity filter
     public var onsetInfo: String?                    // Condition.onset as string (prefix)
     public var abatementString: String?              // Condition.abatement as string (prefix)
     public var id: [String]                          // _id filter (OR)
@@ -68,6 +70,8 @@ public struct ConditionSearchQuery: Sendable {
         severityNot: [TokenParam] = [],
         stage: [TokenParam] = [],
         stageNot: [TokenParam] = [],
+        onsetAge: [QuantityParam] = [],
+        abatementAge: [QuantityParam] = [],
         onsetInfo: String? = nil,
         abatementString: String? = nil,
         id: [String] = [],
@@ -104,6 +108,8 @@ public struct ConditionSearchQuery: Sendable {
         self.severityNot          = severityNot
         self.stage                = stage
         self.stageNot             = stageNot
+        self.onsetAge             = onsetAge
+        self.abatementAge         = abatementAge
         self.onsetInfo            = onsetInfo
         self.abatementString      = abatementString
         self.id                   = id
@@ -118,6 +124,7 @@ public struct ConditionSearchQuery: Sendable {
     }
 
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
+    public typealias QuantityParam   = ObservationSearchQuery.QuantityParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
     public typealias SortOrder       = PatientSearchQuery.SortOrder
     public typealias SearchCursor    = PatientSearchQuery.SearchCursor

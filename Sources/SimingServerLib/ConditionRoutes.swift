@@ -21,6 +21,7 @@ let knownConditionParams: Set<String> = [
     "body-site", "body-site:not", "evidence", "evidence:not",
     "severity", "severity:not", "stage", "stage:not",
     "onset-info", "abatement-string",
+    "onset-age", "abatement-age",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -415,6 +416,8 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let stageNot           = first("stage:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let onsetInfo          = first("onset-info").map(String.init)
     let abatementString    = first("abatement-string").map(String.init)
+    let onsetAge           = first("onset-age").map { ConditionSearchQuery.QuantityParam.parseList(String($0)) } ?? []
+    let abatementAge       = first("abatement-age").map { ConditionSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let id                 = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
@@ -428,7 +431,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
               "category", "code", "identifier", "onset-date", "abatement-date", "recorded-date",
               "asserter", "evidence-detail",
               "body-site", "evidence", "severity", "stage",
-              "onset-info", "abatement-string"] {
+              "onset-info", "abatement-string", "onset-age", "abatement-age"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -449,6 +452,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
         evidence: evidence, evidenceNot: evidenceNot,
         severity: severity, severityNot: severityNot,
         stage: stage, stageNot: stageNot,
+        onsetAge: onsetAge, abatementAge: abatementAge,
         onsetInfo: onsetInfo, abatementString: abatementString,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

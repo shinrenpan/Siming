@@ -138,8 +138,15 @@ private func extract_Encounter_identifier(_ p: inout SearchParams, _ enc: Encoun
     }
 }
 
-// TODO: unhandled — length [quantity] Encounter.length
-private func extract_Encounter_length(_ p: inout SearchParams, _ enc: Encounter) {}
+// length [quantity] — Encounter.length
+private func extract_Encounter_length(_ p: inout SearchParams, _ enc: Encounter) {
+    guard let qty = enc.length,
+          let decimalVal = qty.value?.value?.decimal else { return }
+    let sys  = qty.system?.value?.url.absoluteString
+    let unit = qty.code?.value?.string
+    p.quantities.append(.init(paramName: "length", system: sys, code: unit,
+                              value: Decimal(string: decimalVal.description) ?? 0))
+}
 
 // location [reference] — Encounter.location.location
 private func extract_Encounter_location(_ p: inout SearchParams, _ enc: Encounter) {

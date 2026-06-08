@@ -81,7 +81,7 @@ All of the following are fully implemented:
 - `special-arrangement` — `enc.hospitalization.specialArrangement[].coding[]` via idx_token with `:not`.
 - `reason-code`, `part-of`, `service-provider`, `based-on`, `location`, `diagnosis` — fully implemented.
 
-**TODO stubs:** `length` (quantity type — no idx_quantity support for this param yet).
+- `length` — `enc.length` (Duration extends Quantity) via idx_quantity; supports all prefix comparisons including `ap` (±10%).
 
 ### Condition
 
@@ -94,7 +94,8 @@ All of the following are fully implemented:
 - `onset-info` — `cond.onset` when string via idx_string (prefix match).
 - `abatement-string` — `cond.abatement` when string via idx_string (prefix match).
 
-**TODO stubs:** `abatement-age`, `onset-age` (quantity type).
+- `onset-age` — `cond.onset` when `.age(Age)` case via idx_quantity; `.range` and other onset cases silently skipped.
+- `abatement-age` — `cond.abatement` when `.age(Age)` case via idx_quantity; other abatement cases silently skipped.
 
 ### MedicationRequest
 
@@ -148,7 +149,7 @@ All of the following are fully implemented:
 
 ### ServiceRequest
 
-- `orderDetail` — StringParam defined in `ServiceRequestSearchQuery` but **not indexed** (no extractor implementation); setting it has no filter effect. Known zombie param.
+- `order-detail` — `sr.orderDetail[].coding[]` via idx_token with `:not` modifier.
 - `instantiates-uri` — indexes `sr.instantiatesUri[]` via idx_string (exact URL match).
 
 ### DocumentReference

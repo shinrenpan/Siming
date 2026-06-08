@@ -350,6 +350,20 @@ func encounterHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── quantity: length (Duration extends Quantity) ──────────────────────────
+    case "Encounter.length":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            guard let qty = enc.length,
+                  let decimalVal = qty.value?.value?.decimal else { return }
+            let sys  = qty.system?.value?.url.absoluteString
+            let unit = qty.code?.value?.string
+            p.quantities.append(.init(paramName: "length", system: sys, code: unit,
+                                      value: Decimal(string: decimalVal.description) ?? 0))
+        }
+        """
+
     default:
         return nil
     }

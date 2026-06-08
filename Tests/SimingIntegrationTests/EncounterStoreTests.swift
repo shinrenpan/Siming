@@ -333,6 +333,19 @@ final class EncounterStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: length ────────────────────────────────────────────────────────
+
+    func testSearch_byLength_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncLenPt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, lengthValue: 120))
+        _ = try await store.create(makeEncounter(subjectId: pid, lengthValue: 30))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let param = EncounterSearchQuery.QuantityParam.parse("ge60")!
+        let result = try await store.search(query: EncounterSearchQuery(length: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

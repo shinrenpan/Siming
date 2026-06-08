@@ -35,8 +35,15 @@ public func extractConditionSearchParams(_ cond: Condition) -> SearchParams {
     return p
 }
 
-// TODO: unhandled — abatement-age [quantity] Condition.abatement.as(Age) | Condition.abatement.as(Range)
-private func extract_Condition_abatement_age(_ p: inout SearchParams, _ cond: Condition) {}
+// abatement-age [quantity] — Condition.abatement.as(Age)
+private func extract_Condition_abatement_age(_ p: inout SearchParams, _ cond: Condition) {
+    guard let abatement = cond.abatement, case .age(let age) = abatement,
+          let decimalVal = age.value?.value?.decimal else { return }
+    let sys  = age.system?.value?.url.absoluteString
+    let unit = age.code?.value?.string
+    p.quantities.append(.init(paramName: "abatement-age", system: sys, code: unit,
+                              value: Decimal(string: decimalVal.description) ?? 0))
+}
 
 // abatement-date [date] — Condition.abatement.as(dateTime)
 private func extract_Condition_abatement_date(_ p: inout SearchParams, _ cond: Condition) {
@@ -174,8 +181,15 @@ private func extract_Condition_identifier(_ p: inout SearchParams, _ cond: Condi
     }
 }
 
-// TODO: unhandled — onset-age [quantity] Condition.onset.as(Age) | Condition.onset.as(Range)
-private func extract_Condition_onset_age(_ p: inout SearchParams, _ cond: Condition) {}
+// onset-age [quantity] — Condition.onset.as(Age)
+private func extract_Condition_onset_age(_ p: inout SearchParams, _ cond: Condition) {
+    guard let onset = cond.onset, case .age(let age) = onset,
+          let decimalVal = age.value?.value?.decimal else { return }
+    let sys  = age.system?.value?.url.absoluteString
+    let unit = age.code?.value?.string
+    p.quantities.append(.init(paramName: "onset-age", system: sys, code: unit,
+                              value: Decimal(string: decimalVal.description) ?? 0))
+}
 
 // onset-date [date] — Condition.onset.as(dateTime)
 private func extract_Condition_onset_date(_ p: inout SearchParams, _ cond: Condition) {

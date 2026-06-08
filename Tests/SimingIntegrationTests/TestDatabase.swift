@@ -274,7 +274,8 @@ func makeEncounter(
     appointmentId: String? = nil,
     episodeOfCareId: String? = nil,
     reasonReferenceId: String? = nil,
-    specialArrangementCode: String? = nil
+    specialArrangementCode: String? = nil,
+    lengthValue: Double? = nil
 ) throws -> ModelsR4.Encounter {
     var json = #"""
     {"resourceType":"Encounter","status":"\#(status)",
@@ -343,6 +344,9 @@ func makeEncounter(
     if let sc = specialArrangementCode {
         json += #","hospitalization":{"specialArrangement":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-EncounterSpecialCourtesy","code":"\#(sc)"}]}]}"#
     }
+    if let lv = lengthValue {
+        json += #","length":{"value":\#(lv),"system":"http://unitsofmeasure.org","code":"min"}"#
+    }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Encounter.self, from: Data(json.utf8))
 }
@@ -358,7 +362,9 @@ func makeCondition(
     severityCode: String? = nil,
     stageCode: String? = nil,
     onsetString: String? = nil,
-    abatementString: String? = nil
+    abatementString: String? = nil,
+    onsetAgeValue: Double? = nil,
+    abatementAgeValue: Double? = nil
 ) throws -> ModelsR4.Condition {
     var json = #"""
     {"resourceType":"Condition",
@@ -368,7 +374,9 @@ func makeCondition(
     """#
     if let d = onsetDate        { json += #","onsetDateTime":"\#(d)""# }
     if let s = onsetString      { json += #","onsetString":"\#(s)""# }
+    if let a = onsetAgeValue    { json += #","onsetAge":{"value":\#(a),"system":"http://unitsofmeasure.org","code":"a"}"# }
     if let a = abatementString  { json += #","abatementString":"\#(a)""# }
+    if let a = abatementAgeValue { json += #","abatementAge":{"value":\#(a),"system":"http://unitsofmeasure.org","code":"a"}"# }
     if let aid = asserterId     { json += #","asserter":{"reference":"Practitioner/\#(aid)"}"# }
     if let bc = bodySiteCode    { json += #","bodySite":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(bc)"}]}]"# }
     if let ec = evidenceCode    { json += #","evidence":[{"code":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(ec)"}]}]}]"# }
@@ -613,7 +621,8 @@ func makeServiceRequest(
     categorySystem: String = "http://snomed.info/sct",
     authoredOn: String? = nil,
     encounterRef: String? = nil,
-    instantiatesUri: String? = nil
+    instantiatesUri: String? = nil,
+    orderDetailCode: String? = nil
 ) throws -> ModelsR4.ServiceRequest {
     var json = #"""
     {"resourceType":"ServiceRequest",
@@ -631,6 +640,9 @@ func makeServiceRequest(
     if let a = authoredOn { json += #","authoredOn":"\#(a)""# }
     if let e = encounterRef { json += #","encounter":{"reference":"\#(e)"}"# }
     if let u = instantiatesUri { json += #","instantiatesUri":["\#(u)"]"# }
+    if let od = orderDetailCode {
+        json += #","orderDetail":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(od)"}]}]"#
+    }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: Data(json.utf8))
 }
