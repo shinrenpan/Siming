@@ -17,6 +17,7 @@ let knownDiagnosticReportParams: Set<String> = [
     "based-on", "conclusion", "conclusion:not", "media", "result", "results-interpreter", "specimen",
     "status", "code", "category", "identifier", "date", "issued",
     "status:not", "code:not", "category:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -391,7 +392,8 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
     let codeNot     = all("code:not").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
     let category    = all("category").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot = all("category:not").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier  = first("identifier").map { DiagnosticReportSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { DiagnosticReportSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { DiagnosticReportSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date        = all("date").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
     let issued      = all("issued").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
     let id          = first("_id").map {
@@ -417,7 +419,7 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         status: status, statusNot: statusNot,
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
-        identifier: identifier, encounter: encounter, performer: performer,
+        identifier: identifier, identifierNot: identifierNot, encounter: encounter, performer: performer,
         basedOn: basedOn, conclusion: conclusion, conclusionNot: conclusionNot,
         media: media, result: result, resultsInterpreter: resultsInterpreter, specimen: specimen,
         date: date, issued: issued,

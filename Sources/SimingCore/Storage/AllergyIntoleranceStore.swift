@@ -410,6 +410,30 @@ public struct AllergyIntoleranceStore: Sendable {
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
         }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         if !query.clinicalStatusNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "clinical-status",     tokens: query.clinicalStatusNot)) }
         if !query.verificationStatusNot.isEmpty { whereConditions.append(notTokenCond(paramName: "verification-status", tokens: query.verificationStatusNot)) }
         if !query.typeNot.isEmpty             { whereConditions.append(notTokenCond(paramName: "type",                 tokens: query.typeNot)) }
@@ -660,6 +684,30 @@ public struct AllergyIntoleranceStore: Sendable {
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
+        }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
         }
 
         // Chained search params

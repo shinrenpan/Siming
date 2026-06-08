@@ -18,6 +18,7 @@ let knownProcedureParams: Set<String> = [
     "location", "part-of", "reason-code", "reason-code:not", "reason-reference",
     "status", "code", "category", "identifier", "date",
     "status:not", "code:not", "category:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -393,7 +394,8 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
     let codeNot     = all("code:not").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
     let category    = all("category").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot = all("category:not").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier  = first("identifier").map { ProcedureSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { ProcedureSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { ProcedureSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date        = all("date").compactMap { ProcedureSearchQuery.DateParam.parse(String($0)) }
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -419,7 +421,7 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         status: status, statusNot: statusNot,
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
-        identifier: identifier, encounter: encounter, performer: performer,
+        identifier: identifier, identifierNot: identifierNot, encounter: encounter, performer: performer,
         basedOn: basedOn, instantiatesCanonical: instantiatesCanonical,
         instantiatesUri: instantiatesUri, location: location, partOf: partOf,
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot, reasonReference: reasonReference,

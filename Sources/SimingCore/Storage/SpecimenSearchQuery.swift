@@ -12,6 +12,7 @@ public struct SpecimenSearchQuery: Sendable {
     public var accession: [TokenParam]
     public var accessionNot: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var bodysite: [TokenParam]
     public var container: [TokenParam]
     public var containerNot: [TokenParam]
@@ -49,6 +50,7 @@ public struct SpecimenSearchQuery: Sendable {
         accession: [TokenParam] = [],
         accessionNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         bodysite: [TokenParam] = [],
         container: [TokenParam] = [],
         containerNot: [TokenParam] = [],
@@ -76,6 +78,7 @@ public struct SpecimenSearchQuery: Sendable {
         self.accession      = accession
         self.accessionNot   = accessionNot
         self.identifier     = identifier
+        self.identifierNot  = identifierNot
         self.bodysite       = bodysite
         self.container      = container
         self.containerNot   = containerNot

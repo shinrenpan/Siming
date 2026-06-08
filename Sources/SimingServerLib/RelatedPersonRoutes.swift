@@ -18,6 +18,7 @@ let knownRelatedPersonParams: Set<String> = [
     "name", "phonetic", "address", "address-city", "address-country",
     "address-postalcode", "address-state", "birthdate", "patient",
     "active:not", "gender:not", "relationship:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -368,6 +369,7 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
     let gender           = all("gender").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let genderNot        = all("gender:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let identifier       = first("identifier").map { RelatedPersonSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot    = first("identifier:not").map { RelatedPersonSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let relationship     = all("relationship").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let relationshipNot  = all("relationship:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let phone            = all("phone").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
@@ -406,7 +408,7 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
     return RelatedPersonSearchQuery(
         active: active, activeNot: activeNot,
         gender: gender, genderNot: genderNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         relationship: relationship, relationshipNot: relationshipNot,
         phone: phone, email: email, telecom: telecom, addressUse: addressUse,
         name: name, address: address,

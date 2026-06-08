@@ -17,6 +17,7 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var categoryNot: [TokenParam]
     public var bodySite: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var performerType: [TokenParam]
     public var requisition: [TokenParam]
 
@@ -69,6 +70,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         categoryNot: [TokenParam] = [],
         bodySite: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         performerType: [TokenParam] = [],
         requisition: [TokenParam] = [],
         instantiatesCanonical: [String] = [],
@@ -107,6 +109,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.categoryNot    = categoryNot
         self.bodySite       = bodySite
         self.identifier     = identifier
+        self.identifierNot  = identifierNot
         self.performerType  = performerType
         self.requisition    = requisition
         self.instantiatesCanonical = instantiatesCanonical

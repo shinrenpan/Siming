@@ -391,6 +391,30 @@ public struct AppointmentStore: Sendable {
             whereConditions.append(cond)
         }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Appointment' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         // :not modifiers
         if !query.statusNot.isEmpty         { whereConditions.append(tokenNotCondition(paramName: "status",           tokens: query.statusNot)) }
         if !query.serviceTypeNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "service-type",     tokens: query.serviceTypeNot)) }
@@ -648,6 +672,30 @@ public struct AppointmentStore: Sendable {
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
+        }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Appointment' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
         }
 
         for (i, chain) in query.chains.enumerated() {

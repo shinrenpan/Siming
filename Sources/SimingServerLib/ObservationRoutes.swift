@@ -14,7 +14,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownObservationParams: Set<String> = [
     "subject", "patient", "code", "code:not", "status", "status:not", "category", "category:not", "date",
-    "identifier", "encounter", "performer", "component-code", "value-quantity",
+    "identifier", "identifier:not", "encounter", "performer", "component-code", "value-quantity",
     "based-on", "derived-from", "device", "focus", "has-member", "part-of", "specimen",
     "combo-code", "combo-code:not", "method", "method:not",
     "value-concept", "value-concept:not", "combo-value-concept", "combo-value-concept:not",
@@ -407,6 +407,7 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let category      = first("category").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let categoryNot   = first("category:not").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier    = first("identifier").map { ObservationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { ObservationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let encounter     = first("encounter").map(String.init)
     let performer     = first("performer").map(String.init)
     let basedOn       = first("based-on").map(String.init)
@@ -475,7 +476,7 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
         subject: subject, code: code, codeNot: codeNot, date: dates,
         status: status, statusNot: statusNot,
         category: category, categoryNot: categoryNot,
-        identifier: identifier, encounter: encounter, performer: performer,
+        identifier: identifier, identifierNot: identifierNot, encounter: encounter, performer: performer,
         basedOn: basedOn, derivedFrom: derivedFrom, device: device, focus: focus,
         hasMember: hasMember, partOf: partOf, specimen: specimen,
         componentCode: componentCode,

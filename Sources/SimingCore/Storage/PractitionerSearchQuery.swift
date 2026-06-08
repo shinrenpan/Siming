@@ -9,6 +9,7 @@ public struct PractitionerSearchQuery: Sendable {
     public var given: StringParam?
     public var phonetic: StringParam?
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var active: Bool?
     public var gender: [String]
     public var genderNot: [String]
@@ -40,6 +41,7 @@ public struct PractitionerSearchQuery: Sendable {
         given: StringParam? = nil,
         phonetic: StringParam? = nil,
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         active: Bool? = nil,
         gender: [String] = [],
         genderNot: [String] = [],
@@ -67,6 +69,7 @@ public struct PractitionerSearchQuery: Sendable {
         self.given             = given
         self.phonetic          = phonetic
         self.identifier        = identifier
+        self.identifierNot     = identifierNot
         self.active            = active
         self.gender            = gender
         self.genderNot         = genderNot

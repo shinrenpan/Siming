@@ -17,6 +17,7 @@ let knownMedicationRequestParams: Set<String> = [
     "priority", "identifier", "date", "authoredon", "encounter", "requester",
     "intended-dispenser", "intended-performer",
     "intended-performertype", "intended-performertype:not",
+    "identifier:not",
     "medication",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -391,7 +392,8 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     let codeNot      = all("code:not").flatMap { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) }
     let priority     = all("priority").flatMap { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) }
     let priorityNot  = all("priority:not").flatMap { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier   = first("identifier").map { MedicationRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { MedicationRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { MedicationRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date         = all("date").compactMap { MedicationRequestSearchQuery.DateParam.parse(String($0)) }
     let authoredOn   = all("authoredon").compactMap { MedicationRequestSearchQuery.DateParam.parse(String($0)) }
     let encounter    = first("encounter").map(String.init)
@@ -426,7 +428,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         category: category, categoryNot: categoryNot,
         code: code, codeNot: codeNot,
         priority: priority, priorityNot: priorityNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         date: date,
         authoredOn: authoredOn,
         encounter: encounter, requester: requester,

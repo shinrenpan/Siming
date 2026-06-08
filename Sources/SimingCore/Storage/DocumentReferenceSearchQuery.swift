@@ -12,6 +12,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var category: [TokenParam]
     public var categoryNot: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var securityLabel: [TokenParam]
     public var securityLabelNot: [TokenParam]
     public var facility: [TokenParam]
@@ -72,6 +73,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         securityLabel: [TokenParam] = [],
         securityLabelNot: [TokenParam] = [],
         facility: [TokenParam] = [],
@@ -116,6 +118,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.category         = category
         self.categoryNot      = categoryNot
         self.identifier       = identifier
+        self.identifierNot    = identifierNot
         self.securityLabel    = securityLabel
         self.securityLabelNot = securityLabelNot
         self.facility         = facility

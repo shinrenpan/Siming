@@ -15,6 +15,7 @@ public struct ConditionSearchQuery: Sendable {
     public var code: [TokenParam]                    // CodeableConcept token OR
     public var codeNot: [TokenParam]                 // code:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]      // identifier:not modifier
     public var onsetDate: [DateParam]                // onset-date range filter
     public var abatementDate: [DateParam]            // abatement-date range filter
     public var recordedDate: [DateParam]             // recorded-date range filter
@@ -57,6 +58,7 @@ public struct ConditionSearchQuery: Sendable {
         code: [TokenParam] = [],
         codeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         onsetDate: [DateParam] = [],
         abatementDate: [DateParam] = [],
         recordedDate: [DateParam] = [],
@@ -95,6 +97,7 @@ public struct ConditionSearchQuery: Sendable {
         self.code                 = code
         self.codeNot              = codeNot
         self.identifier           = identifier
+        self.identifierNot        = identifierNot
         self.onsetDate            = onsetDate
         self.abatementDate        = abatementDate
         self.recordedDate         = recordedDate

@@ -13,7 +13,7 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownLocationParams: Set<String> = [
-    "name", "identifier", "status", "type", "operational-status",
+    "name", "identifier", "identifier:not", "status", "type", "operational-status",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
     "organization", "partof", "endpoint",
     "status:not", "type:not",
@@ -388,7 +388,8 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let typeNot          = all("type:not").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
     let operationalStatus = all("operational-status").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
 
-    let identifier  = first("identifier").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let organization = first("organization").map(String.init)
     let partof       = first("partof").map(String.init)
     let endpoint     = first("endpoint").map(String.init)
@@ -413,7 +414,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let has    = parseHasParams(from: pairs)
 
     return LocationSearchQuery(
-        name: name, identifier: identifier,
+        name: name, identifier: identifier, identifierNot: identifierNot,
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
         operationalStatus: operationalStatus,

@@ -19,6 +19,7 @@ let knownAppointmentParams: Set<String> = [
     "reason-code", "service-category", "part-status", "identifier", "date",
     "status:not", "service-type:not", "appointment-type:not", "specialty:not",
     "reason-code:not", "service-category:not", "part-status:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -379,7 +380,8 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     let partStatus       = all("part-status").flatMap { AppointmentSearchQuery.TokenParam.parseList(String($0)) }
     let partStatusNot    = all("part-status:not").flatMap { AppointmentSearchQuery.TokenParam.parseList(String($0)) }
 
-    let identifier = first("identifier").map { AppointmentSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { AppointmentSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { AppointmentSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date       = all("date").compactMap { AppointmentSearchQuery.DateParam.parse(String($0)) }
 
     let patient        = first("patient").map(String.init)
@@ -415,7 +417,7 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     return AppointmentSearchQuery(
         patient: patient, actor: actor, practitioner: practitioner, location: location,
         status: status, statusNot: statusNot,
-        identifier: identifier, date: date,
+        identifier: identifier, identifierNot: identifierNot, date: date,
         serviceType: serviceType, serviceTypeNot: serviceTypeNot,
         appointmentType: appointmentType, appointmentTypeNot: appointmentTypeNot,
         specialty: specialty, specialtyNot: specialtyNot,

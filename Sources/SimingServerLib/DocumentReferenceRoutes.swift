@@ -14,6 +14,7 @@ private let docRefPreferHeader = HTTPField.Name("Prefer")!
 
 let knownDocumentReferenceParams: Set<String> = [
     "status", "type", "category", "identifier",
+    "identifier:not",
     "security-label", "facility", "event", "description", "description:contains", "description:exact", "description:text",
     "date", "period",
     "subject", "patient", "author", "encounter",
@@ -373,6 +374,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let category         = all("category").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot      = all("category:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let identifier       = first("identifier").map { DocumentReferenceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot    = first("identifier:not").map { DocumentReferenceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let securityLabel    = all("security-label").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let securityLabelNot = all("security-label:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let facility         = all("facility").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
@@ -434,7 +436,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
         category: category, categoryNot: categoryNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         securityLabel: securityLabel, securityLabelNot: securityLabelNot,
         facility: facility, event: event,
         contentType: contentType, contentTypeNot: contentTypeNot,

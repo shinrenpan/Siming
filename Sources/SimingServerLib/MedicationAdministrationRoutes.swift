@@ -17,6 +17,7 @@ let knownMedicationAdministrationParams: Set<String> = [
     "effective-time", "subject", "patient", "context", "request",
     "performer", "device", "medication",
     "status:not", "code:not", "reason-given:not", "reason-not-given:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -371,6 +372,7 @@ func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substr
     let reasonNotGiven    = all("reason-not-given").flatMap { MedicationAdministrationSearchQuery.TokenParam.parseList(String($0)) }
     let reasonNotGivenNot = all("reason-not-given:not").flatMap { MedicationAdministrationSearchQuery.TokenParam.parseList(String($0)) }
     let identifier        = first("identifier").map { MedicationAdministrationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot     = first("identifier:not").map { MedicationAdministrationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let effectiveTime = all("effective-time").compactMap { MedicationAdministrationSearchQuery.DateParam.parse(String($0)) }
 
@@ -411,7 +413,7 @@ func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substr
         code: code, codeNot: codeNot,
         reasonGiven: reasonGiven, reasonGivenNot: reasonGivenNot,
         reasonNotGiven: reasonNotGiven, reasonNotGivenNot: reasonNotGivenNot,
-        identifier: identifier, effectiveTime: effectiveTime,
+        identifier: identifier, identifierNot: identifierNot, effectiveTime: effectiveTime,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

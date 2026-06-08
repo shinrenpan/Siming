@@ -6,6 +6,7 @@ public struct LocationSearchQuery: Sendable {
 
     public var name: StringParam?
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var status: [TokenParam]
     public var endpoint: String?
     public var statusNot: [TokenParam]
@@ -35,6 +36,7 @@ public struct LocationSearchQuery: Sendable {
     public init(
         name: StringParam? = nil,
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         status: [TokenParam] = [],
         statusNot: [TokenParam] = [],
         type: [TokenParam] = [],
@@ -60,6 +62,7 @@ public struct LocationSearchQuery: Sendable {
     ) {
         self.name              = name
         self.identifier        = identifier
+        self.identifierNot     = identifierNot
         self.status            = status
         self.endpoint          = endpoint
         self.statusNot         = statusNot

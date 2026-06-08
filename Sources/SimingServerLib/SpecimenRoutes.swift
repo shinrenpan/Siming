@@ -18,6 +18,7 @@ let knownSpecimenParams: Set<String> = [
     "collected",
     "subject", "patient", "collector", "parent",
     "status:not", "type:not", "accession:not", "container:not", "container-id:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -370,6 +371,7 @@ func parseSpecimenQuery(from pairs: some Collection<(key: Substring, value: Subs
     let accession      = all("accession").flatMap { SpecimenSearchQuery.TokenParam.parseList(String($0)) }
     let accessionNot   = all("accession:not").flatMap { SpecimenSearchQuery.TokenParam.parseList(String($0)) }
     let identifier     = first("identifier").map { SpecimenSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot  = first("identifier:not").map { SpecimenSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let bodysite       = all("bodysite").flatMap { SpecimenSearchQuery.TokenParam.parseList(String($0)) }
     let container      = all("container").flatMap { SpecimenSearchQuery.TokenParam.parseList(String($0)) }
     let containerNot   = all("container:not").flatMap { SpecimenSearchQuery.TokenParam.parseList(String($0)) }
@@ -407,7 +409,7 @@ func parseSpecimenQuery(from pairs: some Collection<(key: Substring, value: Subs
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
         accession: accession, accessionNot: accessionNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         bodysite: bodysite,
         container: container, containerNot: containerNot,
         containerId: containerId, containerIdNot: containerIdNot,

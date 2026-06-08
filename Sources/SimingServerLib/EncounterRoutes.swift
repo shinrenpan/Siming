@@ -14,7 +14,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownEncounterParams: Set<String> = [
     "subject", "patient", "status", "status:not", "class", "class:not", "type", "type:not",
-    "date", "identifier",
+    "date", "identifier", "identifier:not",
     "participant", "practitioner", "reason-code", "reason-code:not",
     "part-of", "service-provider", "based-on", "location", "diagnosis",
     "account", "appointment", "episode-of-care", "reason-reference",
@@ -401,6 +401,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let type           = first("type").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let typeNot        = first("type:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier     = first("identifier").map { EncounterSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot  = first("identifier:not").map { EncounterSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let participant    = first("participant").map(String.init)
     let practitioner   = first("practitioner").map(String.init)
     let reasonCode    = first("reason-code").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
@@ -444,7 +445,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     return EncounterSearchQuery(
         subject: subject, status: status, statusNot: statusNot,
         encounterClass: encounterClass, classNot: classNot,
-        type: type, typeNot: typeNot, date: dates, identifier: identifier,
+        type: type, typeNot: typeNot, date: dates, identifier: identifier, identifierNot: identifierNot,
         participant: participant, practitioner: practitioner,
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
         partOf: partOf, serviceProvider: serviceProvider,

@@ -11,6 +11,7 @@ public struct GoalSearchQuery: Sendable {
     public var category: [TokenParam]
     public var categoryNot: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
 
     // date params
     public var startDate: [DateParam]
@@ -41,6 +42,7 @@ public struct GoalSearchQuery: Sendable {
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         startDate: [DateParam] = [],
         targetDate: [DateParam] = [],
         subject: String? = nil,
@@ -61,6 +63,7 @@ public struct GoalSearchQuery: Sendable {
         self.category           = category
         self.categoryNot        = categoryNot
         self.identifier         = identifier
+        self.identifierNot      = identifierNot
         self.startDate          = startDate
         self.targetDate         = targetDate
         self.subject            = subject

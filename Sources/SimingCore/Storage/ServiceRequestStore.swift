@@ -421,6 +421,30 @@ public struct ServiceRequestStore: Sendable {
         if !query.categoryNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "category",     tokens: query.categoryNot)) }
         if !query.orderDetailNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         // :missing
         for paramName in query.missing.keys.sorted() {
             if let sub = serviceRequestMissingSubquery(param: paramName) {
@@ -705,6 +729,27 @@ public struct ServiceRequestStore: Sendable {
             whereConditions.append("r.id IN (\(phs))")
         }
         if !query.orderDetailNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter { orClauses.append("system = \(bind(sys))") }
+                } else {
+                    let codeP = bind(ident.code); var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
 
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }

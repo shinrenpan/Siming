@@ -10,6 +10,7 @@ public struct MedicationSearchQuery: Sendable {
     public var statusNot: [TokenParam]
     public var form: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var ingredientCode: [TokenParam]
     public var lotNumber: [TokenParam]
     public var manufacturer: String?
@@ -35,6 +36,7 @@ public struct MedicationSearchQuery: Sendable {
         statusNot: [TokenParam] = [],
         form: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         ingredientCode: [TokenParam] = [],
         lotNumber: [TokenParam] = [],
         manufacturer: String? = nil,
@@ -56,6 +58,7 @@ public struct MedicationSearchQuery: Sendable {
         self.statusNot      = statusNot
         self.form           = form
         self.identifier     = identifier
+        self.identifierNot  = identifierNot
         self.ingredientCode = ingredientCode
         self.lotNumber      = lotNumber
         self.manufacturer   = manufacturer

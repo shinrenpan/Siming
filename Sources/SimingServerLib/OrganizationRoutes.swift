@@ -16,7 +16,7 @@ let knownOrganizationParams: Set<String> = [
     "name", "phonetic", "identifier", "active", "type",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
     "partof", "endpoint",
-    "type:not",
+    "type:not", "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -391,7 +391,8 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
     let type    = all("type").flatMap { OrganizationSearchQuery.TokenParam.parseList(String($0)) }
     let typeNot = all("type:not").flatMap { OrganizationSearchQuery.TokenParam.parseList(String($0)) }
 
-    let identifier = first("identifier").map { OrganizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { OrganizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { OrganizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let partof     = first("partof").map(String.init)
     let endpoint   = first("endpoint").map(String.init)
 
@@ -415,7 +416,7 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
     let has    = parseHasParams(from: pairs)
 
     return OrganizationSearchQuery(
-        name: name, phonetic: phonetic, identifier: identifier, active: active,
+        name: name, phonetic: phonetic, identifier: identifier, identifierNot: identifierNot, active: active,
         type: type, typeNot: typeNot,
         address: address, addressCity: addressCity, addressState: addressState,
         addressPostalCode: addressPostalCode, addressCountry: addressCountry,

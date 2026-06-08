@@ -13,6 +13,7 @@ public struct EncounterSearchQuery: Sendable {
     public var typeNot: [TokenParam]        // type:not modifier
     public var date: [DateParam]            // Encounter.period range filter (stored as param_name='date')
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var participant: String?         // Encounter.participant.individual reference
     public var practitioner: String?        // Encounter.participant.individual (Practitioner only)
     public var reasonCode: [TokenParam]     // Encounter.reasonCode token OR
@@ -55,6 +56,7 @@ public struct EncounterSearchQuery: Sendable {
         typeNot: [TokenParam] = [],
         date: [DateParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         participant: String? = nil,
         practitioner: String? = nil,
         reasonCode: [TokenParam] = [],
@@ -93,6 +95,7 @@ public struct EncounterSearchQuery: Sendable {
         self.typeNot         = typeNot
         self.date            = date
         self.identifier      = identifier
+        self.identifierNot   = identifierNot
         self.participant     = participant
         self.practitioner    = practitioner
         self.reasonCode      = reasonCode

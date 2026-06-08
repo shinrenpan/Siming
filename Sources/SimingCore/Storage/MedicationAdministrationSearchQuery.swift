@@ -20,6 +20,7 @@ public struct MedicationAdministrationSearchQuery: Sendable {
     public var reasonNotGiven: [TokenParam]       // reason-not-given (statusReason) token OR
     public var reasonNotGivenNot: [TokenParam]    // reason-not-given:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var effectiveTime: [DateParam]         // effective-time date range
 
     public var id: [String]
@@ -52,6 +53,7 @@ public struct MedicationAdministrationSearchQuery: Sendable {
         reasonNotGiven: [TokenParam] = [],
         reasonNotGivenNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         effectiveTime: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
@@ -78,7 +80,8 @@ public struct MedicationAdministrationSearchQuery: Sendable {
         self.reasonGivenNot = reasonGivenNot
         self.reasonNotGiven    = reasonNotGiven
         self.reasonNotGivenNot = reasonNotGivenNot
-        self.identifier     = identifier
+        self.identifier        = identifier
+        self.identifierNot     = identifierNot
         self.effectiveTime  = effectiveTime
         self.id             = id
         self.lastUpdated    = lastUpdated

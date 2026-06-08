@@ -21,6 +21,7 @@ let knownServiceRequestParams: Set<String> = [
     "instantiates-canonical", "instantiates-uri",
     "order-detail", "order-detail:not",
     "status:not", "intent:not", "priority:not", "code:not", "category:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -379,7 +380,8 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let bodySite     = all("body-site").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let performerType = all("performer-type").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let requisition  = all("requisition").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier   = first("identifier").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let orderDetail    = all("order-detail").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let orderDetailNot = all("order-detail:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
@@ -429,7 +431,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
         bodySite: bodySite,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         performerType: performerType,
         requisition: requisition,
         instantiatesCanonical: instantiatesCanonical,

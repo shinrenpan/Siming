@@ -16,6 +16,7 @@ let knownMedicationStatementParams: Set<String> = [
     "status", "category", "code", "identifier",
     "effective", "subject", "patient", "context", "source", "medication", "part-of",
     "status:not", "category:not", "code:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -367,7 +368,8 @@ func parseMedicationStatementQuery(from pairs: some Collection<(key: Substring, 
     let categoryNot = all("category:not").flatMap { MedicationStatementSearchQuery.TokenParam.parseList(String($0)) }
     let code        = all("code").flatMap { MedicationStatementSearchQuery.TokenParam.parseList(String($0)) }
     let codeNot     = all("code:not").flatMap { MedicationStatementSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier  = first("identifier").map { MedicationStatementSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { MedicationStatementSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { MedicationStatementSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let effective = all("effective").compactMap { MedicationStatementSearchQuery.DateParam.parse(String($0)) }
 
@@ -403,7 +405,7 @@ func parseMedicationStatementQuery(from pairs: some Collection<(key: Substring, 
         status: status, statusNot: statusNot,
         category: category, categoryNot: categoryNot,
         code: code, codeNot: codeNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         effective: effective,
         context: context, source: source, medication: medication, partOf: partOf,
         id: id, lastUpdated: lastUpdated,

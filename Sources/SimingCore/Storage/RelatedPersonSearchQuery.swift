@@ -10,6 +10,7 @@ public struct RelatedPersonSearchQuery: Sendable {
     public var gender: [TokenParam]
     public var genderNot: [TokenParam]
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var relationship: [TokenParam]
     public var relationshipNot: [TokenParam]
     public var phone: [TokenParam]
@@ -51,6 +52,7 @@ public struct RelatedPersonSearchQuery: Sendable {
         gender: [TokenParam] = [],
         genderNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         relationship: [TokenParam] = [],
         relationshipNot: [TokenParam] = [],
         phone: [TokenParam] = [],
@@ -80,6 +82,7 @@ public struct RelatedPersonSearchQuery: Sendable {
         self.gender             = gender
         self.genderNot          = genderNot
         self.identifier         = identifier
+        self.identifierNot      = identifierNot
         self.relationship       = relationship
         self.relationshipNot    = relationshipNot
         self.phone              = phone

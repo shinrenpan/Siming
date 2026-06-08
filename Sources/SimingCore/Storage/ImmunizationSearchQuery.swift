@@ -10,6 +10,7 @@ public struct ImmunizationSearchQuery: Sendable {
     public var vaccineCode: [TokenParam]            // vaccine-code token OR
     public var vaccineCodeNot: [TokenParam]         // vaccine-code:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]     // identifier:not modifier
     public var performer: String?                   // performer reference
     public var location: String?                    // Immunization.location reference
     public var manufacturer: String?                // Immunization.manufacturer reference
@@ -45,6 +46,7 @@ public struct ImmunizationSearchQuery: Sendable {
         vaccineCode: [TokenParam] = [],
         vaccineCodeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         performer: String? = nil,
         location: String? = nil,
         manufacturer: String? = nil,
@@ -76,6 +78,7 @@ public struct ImmunizationSearchQuery: Sendable {
         self.vaccineCode     = vaccineCode
         self.vaccineCodeNot  = vaccineCodeNot
         self.identifier      = identifier
+        self.identifierNot   = identifierNot
         self.performer       = performer
         self.location        = location
         self.manufacturer    = manufacturer

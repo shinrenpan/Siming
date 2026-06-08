@@ -19,6 +19,7 @@ let knownAllergyIntoleranceParams: Set<String> = [
     "asserter", "recorder",
     "clinical-status:not", "verification-status:not", "type:not", "category:not",
     "criticality:not", "code:not", "manifestation:not", "severity:not", "route:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -403,6 +404,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
     let asserter            = first("asserter").map(String.init)
     let recorder            = first("recorder").map(String.init)
     let identifier          = first("identifier").map { AllergyIntoleranceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot       = first("identifier:not").map { AllergyIntoleranceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date                = all("date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
     let lastDate            = all("last-date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
     let onset               = all("onset").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
@@ -436,7 +438,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
         severity: severity, severityNot: severityNot,
         route: route, routeNot: routeNot,
         asserter: asserter, recorder: recorder,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         date: date, lastDate: lastDate, onset: onset,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

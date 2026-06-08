@@ -396,7 +396,8 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
     let communication    = all("communication").flatMap { PractitionerSearchQuery.TokenParam.parseList(String($0)) }
     let communicationNot = all("communication:not").flatMap { PractitionerSearchQuery.TokenParam.parseList(String($0)) }
 
-    let identifier = first("identifier").map { PractitionerSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { PractitionerSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { PractitionerSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let phone = first("phone").map(String.init)
     let email = first("email").map(String.init)
@@ -423,7 +424,7 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
 
     return PractitionerSearchQuery(
         name: name, family: family, given: given, phonetic: phonetic,
-        identifier: identifier, active: active,
+        identifier: identifier, identifierNot: identifierNot, active: active,
         gender: gender, genderNot: genderNot,
         address: address, addressCity: addressCity, addressState: addressState,
         addressPostalCode: addressPostalCode, addressCountry: addressCountry,

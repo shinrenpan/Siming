@@ -13,6 +13,7 @@ public struct MedicationStatementSearchQuery: Sendable {
     public var code: [TokenParam]                   // medication-as-CodeableConcept token OR
     public var codeNot: [TokenParam]                // code:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var effective: [DateParam]               // effective[x] range filter
     public var context: String?                     // reference: "Encounter/id"
     public var source: String?                      // reference: informationSource
@@ -41,6 +42,7 @@ public struct MedicationStatementSearchQuery: Sendable {
         code: [TokenParam] = [],
         codeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         effective: [DateParam] = [],
         context: String? = nil,
         source: String? = nil,
@@ -64,7 +66,8 @@ public struct MedicationStatementSearchQuery: Sendable {
         self.categoryNot  = categoryNot
         self.code         = code
         self.codeNot      = codeNot
-        self.identifier   = identifier
+        self.identifier      = identifier
+        self.identifierNot   = identifierNot
         self.effective    = effective
         self.context      = context
         self.source       = source

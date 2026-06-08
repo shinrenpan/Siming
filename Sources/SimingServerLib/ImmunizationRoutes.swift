@@ -13,7 +13,7 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownImmunizationParams: Set<String> = [
-    "patient", "status", "status:not", "vaccine-code", "vaccine-code:not", "identifier", "date",
+    "patient", "status", "status:not", "vaccine-code", "vaccine-code:not", "identifier", "identifier:not", "date",
     "performer", "location", "manufacturer", "reaction", "reaction-date",
     "reason-code", "reason-code:not", "reason-reference",
     "series", "series:contains", "series:exact", "series:text",
@@ -383,7 +383,8 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let statusNot   = all("status:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let vaccineCode    = all("vaccine-code").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let vaccineCodeNot = all("vaccine-code:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
-    let identifier  = first("identifier").map { ImmunizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifier    = first("identifier").map { ImmunizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot = first("identifier:not").map { ImmunizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let performer   = first("performer").map(String.init)
     let location    = first("location").map(String.init)
     let manufacturer = first("manufacturer").map(String.init)
@@ -422,7 +423,7 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
         subject: subject.map(String.init),
         status: status, statusNot: statusNot,
         vaccineCode: vaccineCode, vaccineCodeNot: vaccineCodeNot,
-        identifier: identifier, performer: performer,
+        identifier: identifier, identifierNot: identifierNot, performer: performer,
         location: location, manufacturer: manufacturer, reaction: reaction,
         reactionDate: reactionDate, reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
         reasonReference: reasonReference, series: series,

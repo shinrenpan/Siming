@@ -17,6 +17,7 @@ let knownGoalParams: Set<String> = [
     "start-date", "target-date",
     "subject", "patient",
     "lifecycle-status:not", "category:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -368,6 +369,7 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
     let category           = all("category").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot        = all("category:not").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
     let identifier         = first("identifier").map { GoalSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot      = first("identifier:not").map { GoalSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let startDate  = all("start-date").compactMap { GoalSearchQuery.DateParam.parse(String($0)) }
     let targetDate = all("target-date").compactMap { GoalSearchQuery.DateParam.parse(String($0)) }
@@ -399,7 +401,7 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
         lifecycleStatus: lifecycleStatus, lifecycleStatusNot: lifecycleStatusNot,
         achievementStatus: achievementStatus,
         category: category, categoryNot: categoryNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         startDate: startDate, targetDate: targetDate,
         subject: subject, patient: patient,
         id: id, lastUpdated: lastUpdated,

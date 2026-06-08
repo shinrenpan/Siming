@@ -7,6 +7,7 @@ public struct OrganizationSearchQuery: Sendable {
     public var name: StringParam?
     public var phonetic: StringParam?
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var active: Bool?
     public var type: [TokenParam]
     public var typeNot: [TokenParam]
@@ -34,6 +35,7 @@ public struct OrganizationSearchQuery: Sendable {
         name: StringParam? = nil,
         phonetic: StringParam? = nil,
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         active: Bool? = nil,
         type: [TokenParam] = [],
         typeNot: [TokenParam] = [],
@@ -57,6 +59,7 @@ public struct OrganizationSearchQuery: Sendable {
         self.name              = name
         self.phonetic          = phonetic
         self.identifier        = identifier
+        self.identifierNot     = identifierNot
         self.active            = active
         self.type              = type
         self.typeNot           = typeNot

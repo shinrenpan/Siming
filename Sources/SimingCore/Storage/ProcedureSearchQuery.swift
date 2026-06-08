@@ -12,6 +12,7 @@ public struct ProcedureSearchQuery: Sendable {
     public var category: [TokenParam]               // token OR
     public var categoryNot: [TokenParam]            // category:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]     // identifier:not modifier
     public var encounter: String?                   // encounter reference
     public var performer: String?                   // performer reference
     public var basedOn: String?                     // Procedure.basedOn reference
@@ -45,6 +46,7 @@ public struct ProcedureSearchQuery: Sendable {
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         encounter: String? = nil,
         performer: String? = nil,
         basedOn: String? = nil,
@@ -74,6 +76,7 @@ public struct ProcedureSearchQuery: Sendable {
         self.category    = category
         self.categoryNot = categoryNot
         self.identifier  = identifier
+        self.identifierNot = identifierNot
         self.encounter             = encounter
         self.performer             = performer
         self.basedOn               = basedOn

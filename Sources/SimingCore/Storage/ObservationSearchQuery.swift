@@ -13,6 +13,7 @@ public struct ObservationSearchQuery: Sendable {
     public var category: [TokenParam]     // OR: "vital-signs,laboratory"
     public var categoryNot: [TokenParam]  // :not modifier — exclude matching
     public var identifier: [IdentifierParam]  // token OR, system|code format
+    public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var encounter: String?             // reference: "Encounter/id" or bare id
     public var performer: String?             // reference: single performer
     public var basedOn: String?
@@ -73,6 +74,7 @@ public struct ObservationSearchQuery: Sendable {
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         encounter: String? = nil,
         performer: String? = nil,
         basedOn: String? = nil,
@@ -127,6 +129,7 @@ public struct ObservationSearchQuery: Sendable {
         self.category       = category
         self.categoryNot    = categoryNot
         self.identifier     = identifier
+        self.identifierNot  = identifierNot
         self.encounter      = encounter
         self.performer      = performer
         self.basedOn        = basedOn

@@ -739,6 +739,30 @@ public struct EncounterStore: Sendable {
             whereConditions.append(cond)
         }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         if !query.statusNot.isEmpty {
             let phs = query.statusNot.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'status' AND code IN (\(phs)))")
@@ -1235,6 +1259,30 @@ public struct EncounterStore: Sendable {
                 else { let cp = bind(tok.code); var sc = ""; if let s = tok.system { sc = " AND system = \(bind(s))" }; orClauses.append("(code = \(cp)\(sc))") }
             }
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
         }
 
         if !query.statusNot.isEmpty {

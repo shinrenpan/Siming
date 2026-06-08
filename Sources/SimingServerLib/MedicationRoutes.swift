@@ -17,6 +17,7 @@ let knownMedicationParams: Set<String> = [
     "lot-number", "ingredient-code", "manufacturer", "ingredient",
     "expiration-date",
     "code:not", "status:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -369,6 +370,7 @@ func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Su
     let ingredientCode = all("ingredient-code").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
     let lotNumber      = all("lot-number").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
     let identifier     = first("identifier").map { MedicationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot  = first("identifier:not").map { MedicationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let manufacturer   = first("manufacturer").map(String.init)
     let ingredient     = first("ingredient").map(String.init)
     let expirationDate = all("expiration-date").compactMap { MedicationSearchQuery.DateParam.parse(String($0)) }
@@ -395,7 +397,7 @@ func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Su
     return MedicationSearchQuery(
         code: code, codeNot: codeNot,
         status: status, statusNot: statusNot,
-        form: form, identifier: identifier,
+        form: form, identifier: identifier, identifierNot: identifierNot,
         ingredientCode: ingredientCode, lotNumber: lotNumber,
         manufacturer: manufacturer, ingredient: ingredient,
         expirationDate: expirationDate,

@@ -11,6 +11,7 @@ public struct AppointmentSearchQuery: Sendable {
     public var status: [TokenParam]                  // token OR: proposed | pending | booked | arrived | fulfilled | ...
     public var statusNot: [TokenParam]               // status:not modifier
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]      // identifier:not modifier
     public var date: [DateParam]                     // Appointment.start date range
     public var serviceType: [TokenParam]             // service-type CodeableConcept token OR
     public var serviceTypeNot: [TokenParam]          // service-type:not modifier
@@ -48,6 +49,7 @@ public struct AppointmentSearchQuery: Sendable {
         status: [TokenParam] = [],
         statusNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         date: [DateParam] = [],
         serviceType: [TokenParam] = [],
         serviceTypeNot: [TokenParam] = [],
@@ -81,6 +83,7 @@ public struct AppointmentSearchQuery: Sendable {
         self.status           = status
         self.statusNot        = statusNot
         self.identifier       = identifier
+        self.identifierNot    = identifierNot
         self.date             = date
         self.serviceType      = serviceType
         self.serviceTypeNot   = serviceTypeNot

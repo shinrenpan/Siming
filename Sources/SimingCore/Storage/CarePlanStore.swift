@@ -405,6 +405,30 @@ public struct CarePlanStore: Sendable {
             whereConditions.append(cond)
         }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         // :not modifiers
         if !query.statusNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "status",  tokens: query.statusNot)) }
         if !query.intentNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "intent",  tokens: query.intentNot)) }
@@ -661,6 +685,31 @@ public struct CarePlanStore: Sendable {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         for dn in query.activityDateNot {
             let s = bind(dn.dateStart); let e = bind(dn.dateEnd)
             whereConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")

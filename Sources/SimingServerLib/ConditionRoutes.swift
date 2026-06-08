@@ -17,6 +17,7 @@ let knownConditionParams: Set<String> = [
     "category", "code", "identifier",
     "onset-date", "abatement-date", "recorded-date",
     "clinical-status:not", "verification-status:not", "category:not", "code:not",
+    "identifier:not",
     "asserter", "evidence-detail",
     "body-site", "body-site:not", "evidence", "evidence:not",
     "severity", "severity:not", "stage", "stage:not",
@@ -402,6 +403,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let code               = first("code").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let codeNot            = first("code:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier         = first("identifier").map { ConditionSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot      = first("identifier:not").map { ConditionSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let onsetDate          = all("onset-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
     let abatementDate      = all("abatement-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
     let recordedDate       = all("recorded-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
@@ -446,7 +448,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
         verificationStatus: verificationStatus, verificationStatusNot: verificationStatusNot,
         category: category, categoryNot: categoryNot,
         code: code, codeNot: codeNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         onsetDate: onsetDate, abatementDate: abatementDate, recordedDate: recordedDate,
         asserter: asserter, evidenceDetail: evidenceDetail,
         bodySite: bodySite, bodySiteNot: bodySiteNot,

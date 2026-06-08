@@ -16,6 +16,7 @@ let knownFamilyMemberHistoryParams: Set<String> = [
     "status", "relationship", "sex", "code", "identifier", "date", "patient",
     "instantiates-canonical", "instantiates-uri",
     "status:not", "relationship:not", "sex:not", "code:not",
+    "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
 ]
@@ -370,6 +371,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let code            = all("code").flatMap { FamilyMemberHistorySearchQuery.TokenParam.parseList(String($0)) }
     let codeNot         = all("code:not").flatMap { FamilyMemberHistorySearchQuery.TokenParam.parseList(String($0)) }
     let identifier      = first("identifier").map { FamilyMemberHistorySearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let identifierNot   = first("identifier:not").map { FamilyMemberHistorySearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
     let date                  = all("date").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
     let instantiatesCanonical = all("instantiates-canonical").map(String.init)
@@ -402,7 +404,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
         relationship: relationship, relationshipNot: relationshipNot,
         sex: sex, sexNot: sexNot,
         code: code, codeNot: codeNot,
-        identifier: identifier,
+        identifier: identifier, identifierNot: identifierNot,
         date: date,
         instantiatesCanonical: instantiatesCanonical,
         instantiatesUri: instantiatesUri,

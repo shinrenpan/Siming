@@ -437,6 +437,30 @@ public struct LocationStore: Sendable {
             whereConditions.append(tokenNotCondition(paramName: "type", tokens: query.typeNot))
         }
 
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter {
+                        orClauses.append("system = \(bind(sys))")
+                    }
+                } else {
+                    let codeP = bind(ident.code)
+                    var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
+        }
+
         // :missing
         for paramName in query.missing.keys.sorted() {
             if let sub = locationMissingSubquery(param: paramName) {
@@ -676,6 +700,27 @@ public struct LocationStore: Sendable {
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
+        }
+
+        // identifier:not
+        if !query.identifierNot.isEmpty {
+            var orClauses: [String] = []
+            for ident in query.identifierNot {
+                if ident.code.isEmpty {
+                    if case .specific(let sys?) = ident.systemFilter { orClauses.append("system = \(bind(sys))") }
+                } else {
+                    let codeP = bind(ident.code); var sysCond = ""
+                    switch ident.systemFilter {
+                    case .any: break
+                    case .specific(nil): sysCond = " AND system IS NULL"
+                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
+                    }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            if !orClauses.isEmpty {
+                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+            }
         }
 
         let cBindStr: (String) -> String = { bind($0) }

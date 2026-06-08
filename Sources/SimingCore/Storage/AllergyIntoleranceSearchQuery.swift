@@ -26,6 +26,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var asserter: String?                         // AllergyIntolerance.asserter reference
     public var recorder: String?                         // AllergyIntolerance.recorder reference
     public var identifier: [IdentifierParam]
+    public var identifierNot: [IdentifierParam]          // identifier:not modifier
     public var date: [DateParam]                        // recordedDate range filter
     public var lastDate: [DateParam]                    // lastOccurrence range filter
     public var onset: [DateParam]                       // reaction.onset range filter
@@ -65,6 +66,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         asserter: String? = nil,
         recorder: String? = nil,
         identifier: [IdentifierParam] = [],
+        identifierNot: [IdentifierParam] = [],
         date: [DateParam] = [],
         lastDate: [DateParam] = [],
         onset: [DateParam] = [],
@@ -100,6 +102,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         self.asserter             = asserter
         self.recorder             = recorder
         self.identifier           = identifier
+        self.identifierNot        = identifierNot
         self.date                 = date
         self.lastDate             = lastDate
         self.onset                = onset
