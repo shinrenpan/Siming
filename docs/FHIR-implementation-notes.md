@@ -36,6 +36,25 @@ Per-resource search parameter implementation details and known gaps.
 | MedicationAdministration | `date` (effective-time), `status`, `code`, `_lastUpdated`, `_id` |
 | All resources | `_lastUpdated`, `_id` |
 
+### Meta search parameters (`_tag`, `_security`, `_profile`)
+
+Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infrastructure in `MetaSearchParams.swift`.
+
+| Param | FHIR field | Index | `:not` |
+|---|---|---|---|
+| `_tag` | `meta.tag[]: Coding` | idx_token (`param_name='_tag'`) | ✓ `_tag:not` |
+| `_security` | `meta.security[]: Coding` | idx_token (`param_name='_security'`) | ✓ `_security:not` |
+| `_profile` | `meta.profile[]: canonical` | idx_string (`param_name='_profile'`, exact URI) | — |
+
+- **Write path**: `appendMetaParams(&params, meta: resource.meta)` called in each store's `write()` after the resource-specific extractor. Note: stores that strip `resource.meta` before extraction must capture `originalMeta` first.
+- **Search path**: `metaFilterCTEs(resourceType:, meta:, bind:)` appends filter CTEs and NOT IN conditions into the standard SQL builder.
+- **Strict mode**: `unknownParams()` globally accepts `_tag`, `_security`, `_profile` — no per-route change needed.
+- `_tag` / `_security` token format: `system|code`, `|code`, `code` (same as standard token params).
+
+### `identifier:not` across all resources
+
+Supported on **all 23 resources** (FHIR R4 §3.2.1). Each `XxxSearchQuery` has `identifierNot: [IdentifierParam]`. Implemented as a `NOT IN` subquery against `idx_token` with `param_name='identifier'`. Three formats: `system|code`, `|code` (null system), `code` (any system).
+
 ### Chained search and `_has`
 
 Fully implemented for all 23 resources. Child param types mapped in `chainChildParamType` in `ChainedParam.swift`. Includes: `effective-time`, `reason-given`, `reason-not-given`, `reason-code`.
