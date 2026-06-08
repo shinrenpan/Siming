@@ -235,13 +235,6 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 
 **Weld test:** "Could profile validation / OAuth / R5 / `_history` be added without rewriting this?" If not, stop and restructure.
 
-## Deferred — do not build now
-
-- Inferno / Touchstone compliance → north star only, not on roadmap.
-- SMART on FHIR / OAuth → much later.
-- R5 → generator preserves the path, not built.
-- terminology, transaction bundle, subscription → stage 3+.
-
 ## Observability
 
 **`GET /metrics`** — Prometheus text format: `http_requests_total{method,path,status}` counter + `http_request_duration_seconds{method,path}` histogram. Path normalised (`/Patient/:id`) to prevent label cardinality explosion.
