@@ -87,6 +87,113 @@ func encounterHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: participant / practitioner (both index same field) ────────
+    case "Encounter.participant.individual":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for part in enc.participant ?? [] {
+                guard let refStr = part.individual?.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── token: reason-code ────────────────────────────────────────────────────
+    case "Encounter.reasonCode":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for cc in enc.reasonCode ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── reference: part-of ────────────────────────────────────────────────────
+    case "Encounter.partOf":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            guard let refStr = enc.partOf?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: service-provider ───────────────────────────────────────────
+    case "Encounter.serviceProvider":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            guard let refStr = enc.serviceProvider?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: based-on ──────────────────────────────────────────────────
+    case "Encounter.basedOn":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for ref in enc.basedOn ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: location ───────────────────────────────────────────────────
+    case "Encounter.location.location":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for loc in enc.location ?? [] {
+                guard let refStr = loc.location.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: diagnosis ──────────────────────────────────────────────────
+    case "Encounter.diagnosis.condition":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for diag in enc.diagnosis ?? [] {
+                guard let refStr = diag.condition.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
     // ── date: period (Encounter.period → start/end) ───────────────────────────
     case "Encounter.period":
         return """

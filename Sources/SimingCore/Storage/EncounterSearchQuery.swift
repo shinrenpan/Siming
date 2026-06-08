@@ -13,6 +13,15 @@ public struct EncounterSearchQuery: Sendable {
     public var typeNot: [TokenParam]        // type:not modifier
     public var date: [DateParam]            // Encounter.period range filter (stored as param_name='date')
     public var identifier: [IdentifierParam]
+    public var participant: String?         // Encounter.participant.individual reference
+    public var practitioner: String?        // Encounter.participant.individual (Practitioner only)
+    public var reasonCode: [TokenParam]     // Encounter.reasonCode token OR
+    public var reasonCodeNot: [TokenParam]  // reason-code:not modifier
+    public var partOf: String?              // Encounter.partOf reference
+    public var serviceProvider: String?     // Encounter.serviceProvider reference
+    public var basedOn: String?             // Encounter.basedOn reference
+    public var location: String?            // Encounter.location.location reference
+    public var diagnosis: String?           // Encounter.diagnosis.condition reference
     public var id: [String]                 // _id filter (OR)
     public var lastUpdated: [DateParam]     // _lastUpdated range filter
     public var missing: [String: Bool]      // param:missing=true/false
@@ -36,6 +45,15 @@ public struct EncounterSearchQuery: Sendable {
         typeNot: [TokenParam] = [],
         date: [DateParam] = [],
         identifier: [IdentifierParam] = [],
+        participant: String? = nil,
+        practitioner: String? = nil,
+        reasonCode: [TokenParam] = [],
+        reasonCodeNot: [TokenParam] = [],
+        partOf: String? = nil,
+        serviceProvider: String? = nil,
+        basedOn: String? = nil,
+        location: String? = nil,
+        diagnosis: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -46,24 +64,33 @@ public struct EncounterSearchQuery: Sendable {
         sort: SortOrder = .lastUpdatedDescending,
         cursor: SearchCursor? = nil
     ) {
-        self.subject        = subject
-        self.status         = status
-        self.statusNot      = statusNot
-        self.encounterClass = encounterClass
-        self.classNot       = classNot
-        self.type           = type
-        self.typeNot        = typeNot
-        self.date           = date
-        self.identifier     = identifier
-        self.id             = id
-        self.lastUpdated    = lastUpdated
-        self.missing        = missing
-        self.chains         = chains
-        self.has            = has
-        self.totalMode      = totalMode
-        self.count          = count
-        self.sort           = sort
-        self.cursor         = cursor
+        self.subject         = subject
+        self.status          = status
+        self.statusNot       = statusNot
+        self.encounterClass  = encounterClass
+        self.classNot        = classNot
+        self.type            = type
+        self.typeNot         = typeNot
+        self.date            = date
+        self.identifier      = identifier
+        self.participant     = participant
+        self.practitioner    = practitioner
+        self.reasonCode      = reasonCode
+        self.reasonCodeNot   = reasonCodeNot
+        self.partOf          = partOf
+        self.serviceProvider = serviceProvider
+        self.basedOn         = basedOn
+        self.location        = location
+        self.diagnosis       = diagnosis
+        self.id              = id
+        self.lastUpdated     = lastUpdated
+        self.missing         = missing
+        self.chains          = chains
+        self.has             = has
+        self.totalMode       = totalMode
+        self.count           = count
+        self.sort            = sort
+        self.cursor          = cursor
     }
 
     public typealias TokenParam      = ObservationSearchQuery.TokenParam

@@ -6,12 +6,18 @@ import XCTest
 final class EncounterStoreTests: XCTestCase {
     var store: EncounterStore!
     var patientStore: PatientStore!
+    var practitionerStore: PractitionerStore!
+    var organizationStore: OrganizationStore!
+    var locationStore: LocationStore!
 
     override func setUp() async throws {
         try await super.setUp()
         try await requireDatabase()
-        store        = try await TestDatabase.shared.makeEncounterStore()
-        patientStore = try await TestDatabase.shared.makePatientStore()
+        store             = try await TestDatabase.shared.makeEncounterStore()
+        patientStore      = try await TestDatabase.shared.makePatientStore()
+        practitionerStore = try await TestDatabase.shared.makePractitionerStore()
+        organizationStore = try await TestDatabase.shared.makeOrganizationStore()
+        locationStore     = try await TestDatabase.shared.makeLocationStore()
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -96,6 +102,117 @@ final class EncounterStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
         let enc = try JSONDecoder().decode(ModelsR4.Encounter.self, from: result.entries[0].jsonWithMeta)
         XCTAssertEqual(enc.status.value?.rawValue, "planned")
+    }
+
+    // ── Search: participant ───────────────────────────────────────────────────
+
+    func testSearch_byParticipant_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncParticPt")).id
+        let prac = try await practitionerStore.create(makePractitioner(family: "EncParticPrac")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, participantId: prac))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            participant: "Practitioner/\(prac)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: practitioner ──────────────────────────────────────────────────
+
+    func testSearch_byPractitioner_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncPracPt")).id
+        let prac = try await practitionerStore.create(makePractitioner(family: "EncPracPrac")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, practitionerId: prac))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            practitioner: "Practitioner/\(prac)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-code ───────────────────────────────────────────────────
+
+    func testSearch_byReasonCode_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncRsnPt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, reasonCode: "385093006"))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            reasonCode: [.init(system: nil, code: "385093006")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: part-of ───────────────────────────────────────────────────────
+
+    func testSearch_byPartOf_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncPartOfPt")).id
+        let parent = try await store.create(makeEncounter(subjectId: pid))
+        _ = try await store.create(makeEncounter(subjectId: pid, partOfId: parent.id))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            partOf: "Encounter/\(parent.id)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: service-provider ──────────────────────────────────────────────
+
+    func testSearch_byServiceProvider_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncSvcPt")).id
+        let org = try await organizationStore.create(makeOrganization(name: "EncSvcOrg")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, serviceProviderId: org))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            serviceProvider: "Organization/\(org)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: based-on ──────────────────────────────────────────────────────
+
+    func testSearch_byBasedOn_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncBasedOnPt")).id
+        let srId = "sr-abc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, basedOnId: srId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            basedOn: "ServiceRequest/\(srId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: location ──────────────────────────────────────────────────────
+
+    func testSearch_byLocation_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncLocPt")).id
+        let loc = try await locationStore.create(makeLocation(name: "EncTestLoc")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, locationId: loc))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            location: "Location/\(loc)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: diagnosis ─────────────────────────────────────────────────────
+
+    func testSearch_byDiagnosis_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncDiagPt")).id
+        let condId = "cond-diag-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, diagnosisId: condId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            diagnosis: "Condition/\(condId)"
+        ))
+        XCTAssertEqual(result.total, 1)
     }
 
     // ── History ───────────────────────────────────────────────────────────────

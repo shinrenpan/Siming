@@ -366,6 +366,166 @@ public struct EncounterStore: Sendable {
             }
         }
 
+        // participant — idx_reference
+        if let participant = query.participant {
+            let parts = participant.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_participant", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'participant'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(participant)
+                filterCTEs.append(("f_participant", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'participant'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // practitioner — idx_reference (same field, param_name='practitioner')
+        if let practitioner = query.practitioner {
+            let parts = practitioner.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_practitioner", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'practitioner'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(practitioner)
+                filterCTEs.append(("f_practitioner", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'practitioner'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // reason-code — token OR
+        if !query.reasonCode.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.reasonCode {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_reason_code", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Encounter' AND param_name = 'reason-code'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // part-of — idx_reference
+        if let partOf = query.partOf {
+            let parts = partOf.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_part_of", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'part-of'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(partOf)
+                filterCTEs.append(("f_part_of", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'part-of'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // service-provider — idx_reference
+        if let sp = query.serviceProvider {
+            let parts = sp.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_service_provider", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'service-provider'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(sp)
+                filterCTEs.append(("f_service_provider", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'service-provider'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // based-on — idx_reference
+        if let basedOn = query.basedOn {
+            let parts = basedOn.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_based_on", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'based-on'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(basedOn)
+                filterCTEs.append(("f_based_on", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'based-on'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // location — idx_reference
+        if let location = query.location {
+            let parts = location.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_location", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'location'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(location)
+                filterCTEs.append(("f_location", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'location'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // diagnosis — idx_reference
+        if let diagnosis = query.diagnosis {
+            let parts = diagnosis.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_diagnosis", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'diagnosis'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(diagnosis)
+                filterCTEs.append(("f_diagnosis", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Encounter' AND param_name = 'diagnosis'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
         // date — idx_date range (Encounter.period → param_name='date')
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
@@ -445,6 +605,21 @@ public struct EncounterStore: Sendable {
                 }
             }
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type' AND (\(orClauses.joined(separator: " OR "))))")
+        }
+
+        if !query.reasonCodeNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.reasonCodeNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         for paramName in query.missing.keys.sorted() {
@@ -671,6 +846,90 @@ public struct EncounterStore: Sendable {
                     "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR ")))"))
             }
         }
+        if let participant = query.participant {
+            let parts = participant.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_participant", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'participant' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(participant)
+                filterCTEs.append(("f_participant", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'participant' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let practitioner = query.practitioner {
+            let parts = practitioner.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_practitioner", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'practitioner' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(practitioner)
+                filterCTEs.append(("f_practitioner", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'practitioner' AND ref_id = \(refIdP)"))
+            }
+        }
+        if !query.reasonCode.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.reasonCode {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_reason_code", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if let partOf = query.partOf {
+            let parts = partOf.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_part_of", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'part-of' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(partOf)
+                filterCTEs.append(("f_part_of", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'part-of' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let sp = query.serviceProvider {
+            let parts = sp.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_service_provider", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'service-provider' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(sp)
+                filterCTEs.append(("f_service_provider", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'service-provider' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let basedOn = query.basedOn {
+            let parts = basedOn.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_based_on", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'based-on' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(basedOn)
+                filterCTEs.append(("f_based_on", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'based-on' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let location = query.location {
+            let parts = location.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_location", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'location' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(location)
+                filterCTEs.append(("f_location", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'location' AND ref_id = \(refIdP)"))
+            }
+        }
+        if let diagnosis = query.diagnosis {
+            let parts = diagnosis.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_diagnosis", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'diagnosis' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(diagnosis)
+                filterCTEs.append(("f_diagnosis", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'diagnosis' AND ref_id = \(refIdP)"))
+            }
+        }
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
@@ -742,6 +1001,20 @@ public struct EncounterStore: Sendable {
             }
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type' AND (\(orClauses.joined(separator: " OR "))))")
         }
+        if !query.reasonCodeNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.reasonCodeNot {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code' AND (\(orClauses.joined(separator: " OR "))))")
+        }
         for paramName in query.missing.keys.sorted() {
             if let sub = encounterMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
@@ -791,13 +1064,21 @@ public struct EncounterStore: Sendable {
 
     private func encounterMissingSubquery(param: String) -> String? {
         switch param {
-        case "subject", "patient": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name IN ('subject', 'patient')"
-        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'status'"
-        case "class":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'class'"
-        case "type":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type'"
-        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier'"
-        case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Encounter' AND param_name = 'date'"
-        default:                   return nil
+        case "subject", "patient":  return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name IN ('subject', 'patient')"
+        case "status":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'status'"
+        case "class":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'class'"
+        case "type":                return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type'"
+        case "identifier":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier'"
+        case "date":                return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Encounter' AND param_name = 'date'"
+        case "participant":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'participant'"
+        case "practitioner":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'practitioner'"
+        case "reason-code":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code'"
+        case "part-of":             return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'part-of'"
+        case "service-provider":    return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'service-provider'"
+        case "based-on":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'based-on'"
+        case "location":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'location'"
+        case "diagnosis":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Encounter' AND param_name = 'diagnosis'"
+        default:                    return nil
         }
     }
 }

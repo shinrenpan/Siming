@@ -238,12 +238,48 @@ func makeObservation(
     return try JSONDecoder().decode(ModelsR4.Observation.self, from: Data(json.utf8))
 }
 
-func makeEncounter(subjectId: String, status: String = "finished") throws -> ModelsR4.Encounter {
-    let json = #"""
+func makeEncounter(
+    subjectId: String,
+    status: String = "finished",
+    participantId: String? = nil,
+    practitionerId: String? = nil,
+    reasonCode: String? = nil,
+    partOfId: String? = nil,
+    serviceProviderId: String? = nil,
+    basedOnId: String? = nil,
+    locationId: String? = nil,
+    diagnosisId: String? = nil
+) throws -> ModelsR4.Encounter {
+    var json = #"""
     {"resourceType":"Encounter","status":"\#(status)",
      "class":{"system":"http://terminology.hl7.org/CodeSystem/v3-ActCode","code":"AMB"},
-     "subject":{"reference":"Patient/\#(subjectId)"}}
+     "subject":{"reference":"Patient/\#(subjectId)"}
     """#
+    if let pid = participantId {
+        json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+    }
+    if let pid = practitionerId, participantId == nil {
+        json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+    }
+    if let rc = reasonCode {
+        json += #","reasonCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(rc)"}]}]"#
+    }
+    if let pid = partOfId {
+        json += #","partOf":{"reference":"Encounter/\#(pid)"}"#
+    }
+    if let oid = serviceProviderId {
+        json += #","serviceProvider":{"reference":"Organization/\#(oid)"}"#
+    }
+    if let bid = basedOnId {
+        json += #","basedOn":[{"reference":"ServiceRequest/\#(bid)"}]"#
+    }
+    if let lid = locationId {
+        json += #","location":[{"location":{"reference":"Location/\#(lid)"}}]"#
+    }
+    if let did = diagnosisId {
+        json += #","diagnosis":[{"condition":{"reference":"Condition/\#(did)"},"use":{"coding":[{"code":"CC"}]}}]"#
+    }
+    json += "}"
     return try JSONDecoder().decode(ModelsR4.Encounter.self, from: Data(json.utf8))
 }
 

@@ -13,7 +13,10 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownEncounterParams: Set<String> = [
-    "subject", "patient", "status", "class", "type", "date", "identifier",
+    "subject", "patient", "status", "status:not", "class", "class:not", "type", "type:not",
+    "date", "identifier",
+    "participant", "practitioner", "reason-code", "reason-code:not",
+    "part-of", "service-provider", "based-on", "location", "diagnosis",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -394,6 +397,15 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let type           = first("type").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let typeNot        = first("type:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier     = first("identifier").map { EncounterSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let participant    = first("participant").map(String.init)
+    let practitioner   = first("practitioner").map(String.init)
+    let reasonCode    = first("reason-code").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let reasonCodeNot = first("reason-code:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let partOf         = first("part-of").map(String.init)
+    let serviceProvider = first("service-provider").map(String.init)
+    let basedOn        = first("based-on").map(String.init)
+    let location       = first("location").map(String.init)
+    let diagnosis      = first("diagnosis").map(String.init)
     let dates          = all("date").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
     let id             = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -404,7 +416,9 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let cursor         = first("_cursor").flatMap { EncounterSearchQuery.SearchCursor.decode(String($0)) }
     let totalMode      = EncounterSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
-    for p in ["subject", "patient", "status", "class", "type", "date", "identifier"] {
+    for p in ["subject", "patient", "status", "class", "type", "date", "identifier",
+              "participant", "practitioner", "reason-code", "part-of",
+              "service-provider", "based-on", "location", "diagnosis"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -415,6 +429,10 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
         subject: subject, status: status, statusNot: statusNot,
         encounterClass: encounterClass, classNot: classNot,
         type: type, typeNot: typeNot, date: dates, identifier: identifier,
+        participant: participant, practitioner: practitioner,
+        reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
+        partOf: partOf, serviceProvider: serviceProvider,
+        basedOn: basedOn, location: location, diagnosis: diagnosis,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

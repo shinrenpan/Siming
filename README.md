@@ -90,9 +90,9 @@ Server listens on `http://localhost:8080`.
 
 **Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `_id`, `_lastUpdated`
 
-**Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `_id`, `_lastUpdated`
+**Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `participant`, `practitioner`, `reason-code`, `part-of`, `service-provider`, `based-on`, `location`, `diagnosis`, `_id`, `_lastUpdated`
 
-**Condition** — `subject`, `patient`, `clinical-status`, `verification-status`, `category`, `severity`, `code`, `body-site`, `encounter`, `onset-date`, `abatement-date`, `recorded-date`, `identifier`, `_id`, `_lastUpdated`
+**Condition** — `subject`, `patient`, `clinical-status`, `verification-status`, `category`, `code`, `encounter`, `onset-date`, `abatement-date`, `recorded-date`, `identifier`, `_id`, `_lastUpdated`
 
 **MedicationRequest** — `subject`, `patient`, `status`, `intent`, `medication`, `code`, `priority`, `authored-on`, `identifier`, `_id`, `_lastUpdated`
 
