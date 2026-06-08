@@ -259,6 +259,54 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
         """
     }
 
+    // combo-value-concept: obs.value as CodeableConcept | obs.component[].value as CodeableConcept → idx_token
+    if code == "combo-value-concept" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            if case .codeableConcept(let cc) = obs.value {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+                }
+            }
+            for comp in obs.component ?? [] {
+                guard case .codeableConcept(let cc) = comp.value else { continue }
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+                }
+            }
+        }
+        """
+    }
+
+    // combo-value-quantity: obs.value as Quantity | obs.component[].value as Quantity → idx_quantity
+    if code == "combo-value-quantity" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            if case .quantity(let q) = obs.value,
+               let decimalVal = q.value?.value?.decimal {
+                let sys  = q.system?.value?.url.absoluteString
+                let unit = q.code?.value?.string
+                p.quantities.append(.init(paramName: "combo-value-quantity", system: sys, code: unit,
+                                          value: Decimal(string: decimalVal.description) ?? 0))
+            }
+            for comp in obs.component ?? [] {
+                guard case .quantity(let q) = comp.value,
+                      let decimalVal = q.value?.value?.decimal else { continue }
+                let sys  = q.system?.value?.url.absoluteString
+                let unit = q.code?.value?.string
+                p.quantities.append(.init(paramName: "combo-value-quantity", system: sys, code: unit,
+                                          value: Decimal(string: decimalVal.description) ?? 0))
+            }
+        }
+        """
+    }
+
     // part-of: obs.partOf[] → idx_reference
     if code == "part-of" {
         return """

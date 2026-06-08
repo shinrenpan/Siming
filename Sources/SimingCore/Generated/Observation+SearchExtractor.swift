@@ -179,22 +179,40 @@ private func extract_Observation_combo_data_absent_reason(_ p: inout SearchParam
 
 // combo-value-concept [token] — Observation.value
 private func extract_Observation_combo_value_concept(_ p: inout SearchParams, _ obs: Observation) {
-    guard case .quantity(let q) = obs.value else { return }
-    guard let decimalVal = q.value?.value?.decimal else { return }
-    let sys  = q.system?.value?.url.absoluteString
-    let unit = q.code?.value?.string
-    p.quantities.append(.init(paramName: "combo-value-concept", system: sys, code: unit,
-                              value: Decimal(string: decimalVal.description) ?? 0))
+    if case .codeableConcept(let cc) = obs.value {
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+        }
+    }
+    for comp in obs.component ?? [] {
+        guard case .codeableConcept(let cc) = comp.value else { continue }
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+        }
+    }
 }
 
 // combo-value-quantity [quantity] — Observation.value
 private func extract_Observation_combo_value_quantity(_ p: inout SearchParams, _ obs: Observation) {
-    guard case .quantity(let q) = obs.value else { return }
-    guard let decimalVal = q.value?.value?.decimal else { return }
-    let sys  = q.system?.value?.url.absoluteString
-    let unit = q.code?.value?.string
-    p.quantities.append(.init(paramName: "combo-value-quantity", system: sys, code: unit,
-                              value: Decimal(string: decimalVal.description) ?? 0))
+    if case .quantity(let q) = obs.value,
+       let decimalVal = q.value?.value?.decimal {
+        let sys  = q.system?.value?.url.absoluteString
+        let unit = q.code?.value?.string
+        p.quantities.append(.init(paramName: "combo-value-quantity", system: sys, code: unit,
+                                  value: Decimal(string: decimalVal.description) ?? 0))
+    }
+    for comp in obs.component ?? [] {
+        guard case .quantity(let q) = comp.value,
+              let decimalVal = q.value?.value?.decimal else { continue }
+        let sys  = q.system?.value?.url.absoluteString
+        let unit = q.code?.value?.string
+        p.quantities.append(.init(paramName: "combo-value-quantity", system: sys, code: unit,
+                                  value: Decimal(string: decimalVal.description) ?? 0))
+    }
 }
 
 // component-code [token] — Observation.component.code

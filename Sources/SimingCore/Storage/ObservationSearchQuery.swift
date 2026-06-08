@@ -29,6 +29,8 @@ public struct ObservationSearchQuery: Sendable {
     public var methodNot: [TokenParam]
     public var valueConcept: [TokenParam]
     public var valueConceptNot: [TokenParam]
+    public var comboValueConcept: [TokenParam]
+    public var comboValueConceptNot: [TokenParam]
     public var dataAbsentReason: [TokenParam]         // data-absent-reason token OR
     public var comboDataAbsentReason: [TokenParam]    // combo-data-absent-reason token OR
     public var componentDataAbsentReason: [TokenParam] // component-data-absent-reason token OR
@@ -87,6 +89,8 @@ public struct ObservationSearchQuery: Sendable {
         methodNot: [TokenParam] = [],
         valueConcept: [TokenParam] = [],
         valueConceptNot: [TokenParam] = [],
+        comboValueConcept: [TokenParam] = [],
+        comboValueConceptNot: [TokenParam] = [],
         dataAbsentReason: [TokenParam] = [],
         comboDataAbsentReason: [TokenParam] = [],
         componentDataAbsentReason: [TokenParam] = [],
@@ -139,6 +143,8 @@ public struct ObservationSearchQuery: Sendable {
         self.methodNot      = methodNot
         self.valueConcept   = valueConcept
         self.valueConceptNot = valueConceptNot
+        self.comboValueConcept    = comboValueConcept
+        self.comboValueConceptNot = comboValueConceptNot
         self.dataAbsentReason          = dataAbsentReason
         self.comboDataAbsentReason     = comboDataAbsentReason
         self.componentDataAbsentReason = componentDataAbsentReason

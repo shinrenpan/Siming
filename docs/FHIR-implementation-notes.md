@@ -62,9 +62,9 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Reference params** (idx_reference): `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`.
 
-**Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `method`, `value-concept`, `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
+**Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `method`, `value-concept`, `combo-value-concept` (both `obs.value as CodeableConcept` AND `obs.component[].value as CodeableConcept`), `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
 
-**Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (`obs.value as Quantity` — component part not yet indexed per FHIR spec gap; search wired and functional), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
+**Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (both `obs.value as Quantity` AND `obs.component[].value as Quantity`), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
 
 **Root-level composite params** (INTERSECT-per-pair, UNION across OR values; no new index table required — reuses existing idx_token/idx_quantity/idx_string/idx_date): `code-value-quantity` (code token `$` value-quantity quantity), `code-value-string` (code token `$` value-string prefix), `code-value-concept` (code token `$` value-concept token), `code-value-date` (code token `$` value-date date). Wire format: `code-value-quantity=29463-7$ge60`. Multiple values OR'd.
 
