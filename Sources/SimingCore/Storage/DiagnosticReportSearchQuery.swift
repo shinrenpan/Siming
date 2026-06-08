@@ -14,6 +14,13 @@ public struct DiagnosticReportSearchQuery: Sendable {
     public var identifier: [IdentifierParam]
     public var encounter: String?                   // encounter reference
     public var performer: String?                   // performer reference
+    public var basedOn: String?                     // DiagnosticReport.basedOn reference
+    public var conclusion: [TokenParam]             // DiagnosticReport.conclusionCode token OR
+    public var conclusionNot: [TokenParam]          // conclusion:not modifier
+    public var media: String?                       // DiagnosticReport.media[].link reference
+    public var result: String?                      // DiagnosticReport.result reference
+    public var resultsInterpreter: String?          // DiagnosticReport.resultsInterpreter reference
+    public var specimen: String?                    // DiagnosticReport.specimen reference
     public var date: [DateParam]                    // effective date range
     public var issued: [DateParam]                  // issued date range
     public var id: [String]                         // _id filter (OR)
@@ -40,6 +47,13 @@ public struct DiagnosticReportSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         encounter: String? = nil,
         performer: String? = nil,
+        basedOn: String? = nil,
+        conclusion: [TokenParam] = [],
+        conclusionNot: [TokenParam] = [],
+        media: String? = nil,
+        result: String? = nil,
+        resultsInterpreter: String? = nil,
+        specimen: String? = nil,
         date: [DateParam] = [],
         issued: [DateParam] = [],
         id: [String] = [],
@@ -60,11 +74,18 @@ public struct DiagnosticReportSearchQuery: Sendable {
         self.category    = category
         self.categoryNot = categoryNot
         self.identifier  = identifier
-        self.encounter   = encounter
-        self.performer   = performer
-        self.date        = date
-        self.issued      = issued
-        self.id          = id
+        self.encounter          = encounter
+        self.performer          = performer
+        self.basedOn            = basedOn
+        self.conclusion         = conclusion
+        self.conclusionNot      = conclusionNot
+        self.media              = media
+        self.result             = result
+        self.resultsInterpreter = resultsInterpreter
+        self.specimen           = specimen
+        self.date               = date
+        self.issued             = issued
+        self.id                 = id
         self.lastUpdated = lastUpdated
         self.missing     = missing
         self.chains      = chains

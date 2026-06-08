@@ -311,14 +311,28 @@ func makeProcedure(
     status: String = "completed",
     code: String = "73761001",
     codeSystem: String = "http://snomed.info/sct",
-    performedDate: String? = nil
+    performedDate: String? = nil,
+    basedOnId: String? = nil,
+    locationId: String? = nil,
+    partOfId: String? = nil,
+    reasonCode: String? = nil,
+    reasonReferenceId: String? = nil,
+    instantiatesCanonical: String? = nil,
+    instantiatesUri: String? = nil
 ) throws -> ModelsR4.Procedure {
     var json = #"""
     {"resourceType":"Procedure","status":"\#(status)",
      "code":{"coding":[{"system":"\#(codeSystem)","code":"\#(code)","display":"Colonoscopy"}]},
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
-    if let d = performedDate { json += #","performedDateTime":"\#(d)""# }
+    if let d = performedDate   { json += #","performedDateTime":"\#(d)""# }
+    if let b = basedOnId       { json += #","basedOn":[{"reference":"ServiceRequest/\#(b)"}]"# }
+    if let l = locationId      { json += #","location":{"reference":"Location/\#(l)"}"# }
+    if let p = partOfId        { json += #","partOf":[{"reference":"Procedure/\#(p)"}]"# }
+    if let r = reasonCode      { json += #","reasonCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(r)"}]}]"# }
+    if let rr = reasonReferenceId { json += #","reasonReference":[{"reference":"Condition/\#(rr)"}]"# }
+    if let ic = instantiatesCanonical { json += #","instantiatesCanonical":["\#(ic)"]"# }
+    if let iu = instantiatesUri       { json += #","instantiatesUri":["\#(iu)"]"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Procedure.self, from: Data(json.utf8))
 }
@@ -329,15 +343,27 @@ func makeDiagnosticReport(
     code: String = "58410-2",
     codeSystem: String = "http://loinc.org",
     effectiveDate: String? = nil,
-    issued: String? = nil
+    issued: String? = nil,
+    basedOnId: String? = nil,
+    specimenId: String? = nil,
+    resultId: String? = nil,
+    mediaId: String? = nil,
+    conclusionCode: String? = nil,
+    resultsInterpreterId: String? = nil
 ) throws -> ModelsR4.DiagnosticReport {
     var json = #"""
     {"resourceType":"DiagnosticReport","status":"\#(status)",
      "code":{"coding":[{"system":"\#(codeSystem)","code":"\#(code)","display":"CBC panel"}]},
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
-    if let d = effectiveDate { json += #","effectiveDateTime":"\#(d)""# }
-    if let i = issued { json += #","issued":"\#(i)""# }
+    if let d = effectiveDate       { json += #","effectiveDateTime":"\#(d)""# }
+    if let i = issued              { json += #","issued":"\#(i)""# }
+    if let b = basedOnId           { json += #","basedOn":[{"reference":"ServiceRequest/\#(b)"}]"# }
+    if let s = specimenId          { json += #","specimen":[{"reference":"Specimen/\#(s)"}]"# }
+    if let r = resultId            { json += #","result":[{"reference":"Observation/\#(r)"}]"# }
+    if let m = mediaId             { json += #","media":[{"link":{"reference":"Media/\#(m)"}}]"# }
+    if let c = conclusionCode      { json += #","conclusionCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(c)"}]}]"# }
+    if let ri = resultsInterpreterId { json += #","resultsInterpreter":[{"reference":"Practitioner/\#(ri)"}]"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.DiagnosticReport.self, from: Data(json.utf8))
 }

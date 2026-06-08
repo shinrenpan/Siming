@@ -14,6 +14,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownDiagnosticReportParams: Set<String> = [
     "patient", "subject", "encounter", "performer",
+    "based-on", "conclusion", "conclusion:not", "media", "result", "results-interpreter", "specimen",
     "status", "code", "category", "identifier", "date", "issued",
     "status:not", "code:not", "category:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
@@ -374,9 +375,16 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         pairs.filter { $0.key == key[...] }.map { $0.value }
     }
 
-    let subject     = first("patient") ?? first("subject")
-    let encounter   = first("encounter").map(String.init)
-    let performer   = first("performer").map(String.init)
+    let subject            = first("patient") ?? first("subject")
+    let encounter          = first("encounter").map(String.init)
+    let performer          = first("performer").map(String.init)
+    let basedOn            = first("based-on").map(String.init)
+    let conclusion         = all("conclusion").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
+    let conclusionNot      = all("conclusion:not").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
+    let media              = first("media").map(String.init)
+    let result             = first("result").map(String.init)
+    let resultsInterpreter = first("results-interpreter").map(String.init)
+    let specimen           = first("specimen").map(String.init)
     let status      = all("status").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
     let statusNot   = all("status:not").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
     let code        = all("code").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
@@ -395,7 +403,9 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
     let cursor      = first("_cursor").flatMap { DiagnosticReportSearchQuery.SearchCursor.decode(String($0)) }
     let totalMode   = DiagnosticReportSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
-    for p in ["patient", "subject", "encounter", "performer", "status", "code", "category", "identifier", "date", "issued"] {
+    for p in ["patient", "subject", "encounter", "performer",
+              "based-on", "conclusion", "media", "result", "results-interpreter", "specimen",
+              "status", "code", "category", "identifier", "date", "issued"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -408,6 +418,8 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
         identifier: identifier, encounter: encounter, performer: performer,
+        basedOn: basedOn, conclusion: conclusion, conclusionNot: conclusionNot,
+        media: media, result: result, resultsInterpreter: resultsInterpreter, specimen: specimen,
         date: date, issued: issued,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

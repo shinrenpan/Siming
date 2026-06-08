@@ -326,6 +326,23 @@ public struct DiagnosticReportStore: Sendable {
             }
         }
 
+        func refCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)")
+            } else {
+                let refIdP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND ref_id = \(refIdP)")
+            }
+        }
+
+        if let basedOn = query.basedOn { filterCTEs.append(refCTE(name: "f_based_on", paramName: "based-on", ref: basedOn)) }
+        if let media = query.media { filterCTEs.append(refCTE(name: "f_media", paramName: "media", ref: media)) }
+        if let result = query.result { filterCTEs.append(refCTE(name: "f_result", paramName: "result", ref: result)) }
+        if let ri = query.resultsInterpreter { filterCTEs.append(refCTE(name: "f_results_interp", paramName: "results-interpreter", ref: ri)) }
+        if let specimen = query.specimen { filterCTEs.append(refCTE(name: "f_specimen", paramName: "specimen", ref: specimen)) }
+
         func tokenORCTE(name: String, paramName: String, tokens: [DiagnosticReportSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -341,9 +358,10 @@ public struct DiagnosticReportStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_status",   paramName: "status",   tokens: query.status)) }
-        if !query.code.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_code",     paramName: "code",     tokens: query.code)) }
-        if !query.category.isEmpty { filterCTEs.append(tokenORCTE(name: "f_category", paramName: "category", tokens: query.category)) }
+        if !query.status.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_status",     paramName: "status",     tokens: query.status)) }
+        if !query.code.isEmpty       { filterCTEs.append(tokenORCTE(name: "f_code",       paramName: "code",       tokens: query.code)) }
+        if !query.category.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_category",   paramName: "category",   tokens: query.category)) }
+        if !query.conclusion.isEmpty { filterCTEs.append(tokenORCTE(name: "f_conclusion", paramName: "conclusion", tokens: query.conclusion)) }
 
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
@@ -424,9 +442,10 @@ public struct DiagnosticReportStore: Sendable {
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
         }
 
-        if !query.statusNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "status",   tokens: query.statusNot)) }
-        if !query.codeNot.isEmpty     { whereConditions.append(notTokenCond(paramName: "code",     tokens: query.codeNot)) }
-        if !query.categoryNot.isEmpty { whereConditions.append(notTokenCond(paramName: "category", tokens: query.categoryNot)) }
+        if !query.statusNot.isEmpty     { whereConditions.append(notTokenCond(paramName: "status",     tokens: query.statusNot)) }
+        if !query.codeNot.isEmpty       { whereConditions.append(notTokenCond(paramName: "code",       tokens: query.codeNot)) }
+        if !query.categoryNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "category",   tokens: query.categoryNot)) }
+        if !query.conclusionNot.isEmpty { whereConditions.append(notTokenCond(paramName: "conclusion", tokens: query.conclusionNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = diagnosticReportMissingSubquery(param: paramName) {
@@ -624,6 +643,23 @@ public struct DiagnosticReportStore: Sendable {
             }
         }
 
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)")
+            } else {
+                let refIdP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND ref_id = \(refIdP)")
+            }
+        }
+
+        if let basedOn = query.basedOn { filterCTEs.append(refCTECount(name: "f_based_on", paramName: "based-on", ref: basedOn)) }
+        if let media = query.media { filterCTEs.append(refCTECount(name: "f_media", paramName: "media", ref: media)) }
+        if let result = query.result { filterCTEs.append(refCTECount(name: "f_result", paramName: "result", ref: result)) }
+        if let ri = query.resultsInterpreter { filterCTEs.append(refCTECount(name: "f_results_interp", paramName: "results-interpreter", ref: ri)) }
+        if let specimen = query.specimen { filterCTEs.append(refCTECount(name: "f_specimen", paramName: "specimen", ref: specimen)) }
+
         func tokenCTE(name: String, paramName: String, tokens: [DiagnosticReportSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -638,9 +674,10 @@ public struct DiagnosticReportStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty   { filterCTEs.append(tokenCTE(name: "f_status",   paramName: "status",   tokens: query.status)) }
-        if !query.code.isEmpty     { filterCTEs.append(tokenCTE(name: "f_code",     paramName: "code",     tokens: query.code)) }
-        if !query.category.isEmpty { filterCTEs.append(tokenCTE(name: "f_category", paramName: "category", tokens: query.category)) }
+        if !query.status.isEmpty     { filterCTEs.append(tokenCTE(name: "f_status",     paramName: "status",     tokens: query.status)) }
+        if !query.code.isEmpty       { filterCTEs.append(tokenCTE(name: "f_code",       paramName: "code",       tokens: query.code)) }
+        if !query.category.isEmpty   { filterCTEs.append(tokenCTE(name: "f_category",   paramName: "category",   tokens: query.category)) }
+        if !query.conclusion.isEmpty { filterCTEs.append(tokenCTE(name: "f_conclusion", paramName: "conclusion", tokens: query.conclusion)) }
 
         func dateCTECount(prefix: String, paramName: String, dp: DiagnosticReportSearchQuery.DateParam, idx: Int) -> (String, String) {
             let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
@@ -707,16 +744,22 @@ public struct DiagnosticReportStore: Sendable {
 
     private func diagnosticReportMissingSubquery(param: String) -> String? {
         switch param {
-        case "patient", "subject": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name IN ('patient', 'subject')"
-        case "encounter":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'encounter'"
-        case "performer":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'performer'"
-        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'status'"
-        case "code":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'code'"
-        case "category":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'category'"
-        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'identifier'"
-        case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DiagnosticReport' AND param_name = 'date'"
-        case "issued":             return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DiagnosticReport' AND param_name = 'issued'"
-        default:                   return nil
+        case "patient", "subject":  return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name IN ('patient', 'subject')"
+        case "encounter":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'encounter'"
+        case "performer":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'performer'"
+        case "based-on":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'based-on'"
+        case "media":               return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'media'"
+        case "result":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'result'"
+        case "results-interpreter": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'results-interpreter'"
+        case "specimen":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DiagnosticReport' AND param_name = 'specimen'"
+        case "status":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'status'"
+        case "code":                return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'code'"
+        case "category":            return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'category'"
+        case "conclusion":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'conclusion'"
+        case "identifier":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DiagnosticReport' AND param_name = 'identifier'"
+        case "date":                return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DiagnosticReport' AND param_name = 'date'"
+        case "issued":              return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DiagnosticReport' AND param_name = 'issued'"
+        default:                    return nil
         }
     }
 }

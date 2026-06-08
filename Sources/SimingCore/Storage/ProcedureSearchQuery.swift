@@ -14,6 +14,14 @@ public struct ProcedureSearchQuery: Sendable {
     public var identifier: [IdentifierParam]
     public var encounter: String?                   // encounter reference
     public var performer: String?                   // performer reference
+    public var basedOn: String?                     // Procedure.basedOn reference
+    public var instantiatesCanonical: [String]      // Procedure.instantiatesCanonical (exact URL match)
+    public var instantiatesUri: [String]            // Procedure.instantiatesUri (exact URL match)
+    public var location: String?                    // Procedure.location reference
+    public var partOf: String?                      // Procedure.partOf reference
+    public var reasonCode: [TokenParam]             // Procedure.reasonCode token OR
+    public var reasonCodeNot: [TokenParam]          // reason-code:not modifier
+    public var reasonReference: String?             // Procedure.reasonReference reference
     public var date: [DateParam]                    // performed date range
     public var id: [String]                         // _id filter (OR)
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
@@ -39,6 +47,14 @@ public struct ProcedureSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         encounter: String? = nil,
         performer: String? = nil,
+        basedOn: String? = nil,
+        instantiatesCanonical: [String] = [],
+        instantiatesUri: [String] = [],
+        location: String? = nil,
+        partOf: String? = nil,
+        reasonCode: [TokenParam] = [],
+        reasonCodeNot: [TokenParam] = [],
+        reasonReference: String? = nil,
         date: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
@@ -58,10 +74,18 @@ public struct ProcedureSearchQuery: Sendable {
         self.category    = category
         self.categoryNot = categoryNot
         self.identifier  = identifier
-        self.encounter   = encounter
-        self.performer   = performer
-        self.date        = date
-        self.id          = id
+        self.encounter             = encounter
+        self.performer             = performer
+        self.basedOn               = basedOn
+        self.instantiatesCanonical = instantiatesCanonical
+        self.instantiatesUri       = instantiatesUri
+        self.location              = location
+        self.partOf                = partOf
+        self.reasonCode            = reasonCode
+        self.reasonCodeNot         = reasonCodeNot
+        self.reasonReference       = reasonReference
+        self.date                  = date
+        self.id                    = id
         self.lastUpdated = lastUpdated
         self.missing     = missing
         self.chains      = chains

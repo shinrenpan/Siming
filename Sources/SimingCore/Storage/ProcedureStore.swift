@@ -326,6 +326,31 @@ public struct ProcedureStore: Sendable {
             }
         }
 
+        func refCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)")
+            } else {
+                let refIdP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_id = \(refIdP)")
+            }
+        }
+
+        if let basedOn = query.basedOn { filterCTEs.append(refCTE(name: "f_based_on", paramName: "based-on", ref: basedOn)) }
+        if let loc = query.location { filterCTEs.append(refCTE(name: "f_location", paramName: "location", ref: loc)) }
+        if let partOf = query.partOf { filterCTEs.append(refCTE(name: "f_part_of", paramName: "part-of", ref: partOf)) }
+        if let rr = query.reasonReference { filterCTEs.append(refCTE(name: "f_reason_ref", paramName: "reason-reference", ref: rr)) }
+
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         func tokenORCTE(name: String, paramName: String, tokens: [ProcedureSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -341,9 +366,10 @@ public struct ProcedureStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_status",   paramName: "status",   tokens: query.status)) }
-        if !query.code.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_code",     paramName: "code",     tokens: query.code)) }
-        if !query.category.isEmpty { filterCTEs.append(tokenORCTE(name: "f_category", paramName: "category", tokens: query.category)) }
+        if !query.status.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_status",     paramName: "status",     tokens: query.status)) }
+        if !query.code.isEmpty       { filterCTEs.append(tokenORCTE(name: "f_code",       paramName: "code",       tokens: query.code)) }
+        if !query.category.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_category",   paramName: "category",   tokens: query.category)) }
+        if !query.reasonCode.isEmpty { filterCTEs.append(tokenORCTE(name: "f_reason_code", paramName: "reason-code", tokens: query.reasonCode)) }
 
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
@@ -423,9 +449,10 @@ public struct ProcedureStore: Sendable {
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
         }
 
-        if !query.statusNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "status",   tokens: query.statusNot)) }
-        if !query.codeNot.isEmpty     { whereConditions.append(notTokenCond(paramName: "code",     tokens: query.codeNot)) }
-        if !query.categoryNot.isEmpty { whereConditions.append(notTokenCond(paramName: "category", tokens: query.categoryNot)) }
+        if !query.statusNot.isEmpty     { whereConditions.append(notTokenCond(paramName: "status",     tokens: query.statusNot)) }
+        if !query.codeNot.isEmpty       { whereConditions.append(notTokenCond(paramName: "code",       tokens: query.codeNot)) }
+        if !query.categoryNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "category",   tokens: query.categoryNot)) }
+        if !query.reasonCodeNot.isEmpty { whereConditions.append(notTokenCond(paramName: "reason-code", tokens: query.reasonCodeNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = procedureMissingSubquery(param: paramName) {
@@ -623,6 +650,31 @@ public struct ProcedureStore: Sendable {
             }
         }
 
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)")
+            } else {
+                let refIdP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_id = \(refIdP)")
+            }
+        }
+
+        if let basedOn = query.basedOn { filterCTEs.append(refCTECount(name: "f_based_on", paramName: "based-on", ref: basedOn)) }
+        if let loc = query.location { filterCTEs.append(refCTECount(name: "f_location", paramName: "location", ref: loc)) }
+        if let partOf = query.partOf { filterCTEs.append(refCTECount(name: "f_part_of", paramName: "part-of", ref: partOf)) }
+        if let rr = query.reasonReference { filterCTEs.append(refCTECount(name: "f_reason_ref", paramName: "reason-reference", ref: rr)) }
+
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+        if !query.instantiatesUri.isEmpty {
+            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         func tokenCTE(name: String, paramName: String, tokens: [ProcedureSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -637,9 +689,10 @@ public struct ProcedureStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty   { filterCTEs.append(tokenCTE(name: "f_status",   paramName: "status",   tokens: query.status)) }
-        if !query.code.isEmpty     { filterCTEs.append(tokenCTE(name: "f_code",     paramName: "code",     tokens: query.code)) }
-        if !query.category.isEmpty { filterCTEs.append(tokenCTE(name: "f_category", paramName: "category", tokens: query.category)) }
+        if !query.status.isEmpty     { filterCTEs.append(tokenCTE(name: "f_status",     paramName: "status",     tokens: query.status)) }
+        if !query.code.isEmpty       { filterCTEs.append(tokenCTE(name: "f_code",       paramName: "code",       tokens: query.code)) }
+        if !query.category.isEmpty   { filterCTEs.append(tokenCTE(name: "f_category",   paramName: "category",   tokens: query.category)) }
+        if !query.reasonCode.isEmpty { filterCTEs.append(tokenCTE(name: "f_reason_code", paramName: "reason-code", tokens: query.reasonCode)) }
 
         func dateCTECount(prefix: String, paramName: String, dp: ProcedureSearchQuery.DateParam, idx: Int) -> (String, String) {
             let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
@@ -705,15 +758,22 @@ public struct ProcedureStore: Sendable {
 
     private func procedureMissingSubquery(param: String) -> String? {
         switch param {
-        case "patient", "subject": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name IN ('patient', 'subject')"
-        case "encounter":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'encounter'"
-        case "performer":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'performer'"
-        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'status'"
-        case "code":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'code'"
-        case "category":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'category'"
-        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'identifier'"
-        case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Procedure' AND param_name = 'date'"
-        default:                   return nil
+        case "patient", "subject":     return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name IN ('patient', 'subject')"
+        case "encounter":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'encounter'"
+        case "performer":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'performer'"
+        case "based-on":               return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'based-on'"
+        case "location":               return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'location'"
+        case "part-of":                return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'part-of'"
+        case "reason-reference":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'reason-reference'"
+        case "status":                 return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'status'"
+        case "code":                   return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'code'"
+        case "category":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'category'"
+        case "reason-code":            return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'reason-code'"
+        case "identifier":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'identifier'"
+        case "instantiates-canonical": return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-canonical'"
+        case "instantiates-uri":       return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-uri'"
+        case "date":                   return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Procedure' AND param_name = 'date'"
+        default:                       return nil
         }
     }
 }

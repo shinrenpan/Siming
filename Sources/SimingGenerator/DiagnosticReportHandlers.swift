@@ -155,6 +155,101 @@ func diagnosticReportHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: based-on ──────────────────────────────────────────────────
+    case "based-on":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for ref in dr.basedOn ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "based-on", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── token: conclusion ─────────────────────────────────────────────────────
+    case "conclusion":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for cc in dr.conclusionCode ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "conclusion", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── reference: media ──────────────────────────────────────────────────────
+    case "media":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for m in dr.media ?? [] {
+                guard let refStr = m.link.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "media", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: result ─────────────────────────────────────────────────────
+    case "result":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for ref in dr.result ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "result", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: results-interpreter ───────────────────────────────────────
+    case "results-interpreter":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for ref in dr.resultsInterpreter ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "results-interpreter", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: specimen ───────────────────────────────────────────────────
+    case "specimen":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+            for ref in dr.specimen ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "specimen", refType: refType, refId: refId))
+            }
+        }
+        """
+
     // ── date: issued (Instant — all components non-optional) ────────────────
     case "issued":
         return """

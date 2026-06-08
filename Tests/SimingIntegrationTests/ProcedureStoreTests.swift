@@ -187,6 +187,92 @@ final class ProcedureStoreTests: XCTestCase {
         XCTAssertEqual(result.entries[0].id, created.id)
     }
 
+    // ── Search: based-on ─────────────────────────────────────────────────────
+
+    func testSearch_byBasedOn_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcBasedOnPt")).id
+        let srId = "sr-proc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeProcedure(subjectId: pid, basedOnId: srId))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(basedOn: "ServiceRequest/\(srId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: location ──────────────────────────────────────────────────────
+
+    func testSearch_byLocation_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcLocationPt")).id
+        let locId = "loc-proc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeProcedure(subjectId: pid, locationId: locId))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(location: "Location/\(locId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: part-of ───────────────────────────────────────────────────────
+
+    func testSearch_byPartOf_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcPartOfPt")).id
+        let parentId = "proc-parent-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeProcedure(subjectId: pid, partOfId: parentId))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(partOf: "Procedure/\(parentId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-code ───────────────────────────────────────────────────
+
+    func testSearch_byReasonCode_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcReasonCodePt")).id
+        _ = try await store.create(makeProcedure(subjectId: pid, reasonCode: "109006"))
+        _ = try await store.create(makeProcedure(subjectId: pid, reasonCode: "193967004"))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(
+            reasonCode: [ProcedureSearchQuery.TokenParam(system: nil, code: "109006")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-reference ──────────────────────────────────────────────
+
+    func testSearch_byReasonReference_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcReasonRefPt")).id
+        let condId = "cond-proc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeProcedure(subjectId: pid, reasonReferenceId: condId))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(reasonReference: "Condition/\(condId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: instantiates-canonical ────────────────────────────────────────
+
+    func testSearch_byInstantiatesCanonical_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcICPt")).id
+        let canonical = "http://example.org/fhir/PlanDefinition/colonoscopy-protocol"
+        _ = try await store.create(makeProcedure(subjectId: pid, instantiatesCanonical: canonical))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(instantiatesCanonical: [canonical]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: instantiates-uri ──────────────────────────────────────────────
+
+    func testSearch_byInstantiatesUri_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ProcIUPt")).id
+        let uri = "https://example.org/protocols/colonoscopy-prep"
+        _ = try await store.create(makeProcedure(subjectId: pid, instantiatesUri: uri))
+        _ = try await store.create(makeProcedure(subjectId: pid))
+
+        let result = try await store.search(query: ProcedureSearchQuery(instantiatesUri: [uri]))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── Search: totalMode=none ────────────────────────────────────────────────
 
     func testSearch_totalModeNone_returnsNilTotal() async throws {

@@ -178,6 +178,80 @@ final class DiagnosticReportStoreTests: XCTestCase {
         XCTAssertEqual(result.entries[0].id, created.id)
     }
 
+    // ── Search: based-on ─────────────────────────────────────────────────────
+
+    func testSearch_byBasedOn_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrBasedOnPt")).id
+        let srId = "sr-dr-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, basedOnId: srId))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(basedOn: "ServiceRequest/\(srId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: specimen ──────────────────────────────────────────────────────
+
+    func testSearch_bySpecimen_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrSpecimenPt")).id
+        let spId = "sp-dr-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, specimenId: spId))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(specimen: "Specimen/\(spId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: result ────────────────────────────────────────────────────────
+
+    func testSearch_byResult_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrResultPt")).id
+        let obsId = "obs-dr-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, resultId: obsId))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(result: "Observation/\(obsId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: media ─────────────────────────────────────────────────────────
+
+    func testSearch_byMedia_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrMediaPt")).id
+        let mediaId = "media-dr-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, mediaId: mediaId))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(media: "Media/\(mediaId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: conclusion ────────────────────────────────────────────────────
+
+    func testSearch_byConclusion_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrConclusionPt")).id
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, conclusionCode: "260385009"))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, conclusionCode: "10828004"))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(
+            conclusion: [DiagnosticReportSearchQuery.TokenParam(system: nil, code: "260385009")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: results-interpreter ───────────────────────────────────────────
+
+    func testSearch_byResultsInterpreter_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DrInterpreterPt")).id
+        let practId = "pract-dr-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid, resultsInterpreterId: practId))
+        _ = try await store.create(makeDiagnosticReport(subjectId: pid))
+
+        let result = try await store.search(query: DiagnosticReportSearchQuery(resultsInterpreter: "Practitioner/\(practId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

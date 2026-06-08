@@ -117,6 +117,107 @@ func procedureHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: based-on ──────────────────────────────────────────────────
+    case "based-on":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for ref in proc.basedOn ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "based-on", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── string: instantiates-canonical ───────────────────────────────────────
+    case "instantiates-canonical":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for ic in proc.instantiatesCanonical ?? [] {
+                guard let url = ic.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+            }
+        }
+        """
+
+    // ── string: instantiates-uri ──────────────────────────────────────────────
+    case "instantiates-uri":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for iu in proc.instantiatesUri ?? [] {
+                guard let url = iu.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-uri", value: url))
+            }
+        }
+        """
+
+    // ── reference: location ───────────────────────────────────────────────────
+    case "location":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            guard let refStr = proc.location?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "location", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: part-of ────────────────────────────────────────────────────
+    case "part-of":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for ref in proc.partOf ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "part-of", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── token: reason-code ────────────────────────────────────────────────────
+    case "reason-code":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for cc in proc.reasonCode ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── reference: reason-reference ───────────────────────────────────────────
+    case "reason-reference":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ proc: Procedure) {
+            for ref in proc.reasonReference ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "reason-reference", refType: refType, refId: refId))
+            }
+        }
+        """
+
     // ── date: performed (choice type: dateTime or Period) ────────────────────
     case "date":
         return """

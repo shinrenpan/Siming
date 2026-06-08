@@ -98,9 +98,9 @@ Server listens on `http://localhost:8080`.
 
 **AllergyIntolerance** — `patient`, `clinical-status`, `verification-status`, `type`, `category`, `criticality`, `code`, `identifier`, `date`, `manifestation`, `severity`, `route`, `last-date`, `onset`, `_id`, `_lastUpdated`
 
-**Procedure** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `date`, `_id`, `_lastUpdated`
+**Procedure** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `based-on`, `instantiates-canonical`, `instantiates-uri`, `location`, `part-of`, `reason-code`, `reason-reference`, `date`, `_id`, `_lastUpdated`
 
-**DiagnosticReport** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `date`, `issued`, `_id`, `_lastUpdated`
+**DiagnosticReport** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `based-on`, `conclusion`, `media`, `result`, `results-interpreter`, `specimen`, `date`, `issued`, `_id`, `_lastUpdated`
 
 **Immunization** — `patient`, `status`, `vaccine-code`, `identifier`, `date`, `performer`, `lot-number`, `_id`, `_lastUpdated`
 

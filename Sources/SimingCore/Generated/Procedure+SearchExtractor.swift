@@ -30,8 +30,17 @@ public func extractProcedureSearchParams(_ proc: Procedure) -> SearchParams {
     return p
 }
 
-// TODO: unhandled — based-on [reference] Procedure.basedOn
-private func extract_Procedure_based_on(_ p: inout SearchParams, _ proc: Procedure) {}
+// based-on [reference] — Procedure.basedOn
+private func extract_Procedure_based_on(_ p: inout SearchParams, _ proc: Procedure) {
+    for ref in proc.basedOn ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "based-on", refType: refType, refId: refId))
+    }
+}
 
 // category [token] — Procedure.category
 private func extract_Procedure_category(_ p: inout SearchParams, _ proc: Procedure) {
@@ -104,17 +113,43 @@ private func extract_Procedure_identifier(_ p: inout SearchParams, _ proc: Proce
     }
 }
 
-// TODO: unhandled — instantiates-canonical [reference] Procedure.instantiatesCanonical
-private func extract_Procedure_instantiates_canonical(_ p: inout SearchParams, _ proc: Procedure) {}
+// instantiates-canonical [reference] — Procedure.instantiatesCanonical
+private func extract_Procedure_instantiates_canonical(_ p: inout SearchParams, _ proc: Procedure) {
+    for ic in proc.instantiatesCanonical ?? [] {
+        guard let url = ic.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+    }
+}
 
-// TODO: unhandled — instantiates-uri [uri] Procedure.instantiatesUri
-private func extract_Procedure_instantiates_uri(_ p: inout SearchParams, _ proc: Procedure) {}
+// instantiates-uri [uri] — Procedure.instantiatesUri
+private func extract_Procedure_instantiates_uri(_ p: inout SearchParams, _ proc: Procedure) {
+    for iu in proc.instantiatesUri ?? [] {
+        guard let url = iu.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-uri", value: url))
+    }
+}
 
-// TODO: unhandled — location [reference] Procedure.location
-private func extract_Procedure_location(_ p: inout SearchParams, _ proc: Procedure) {}
+// location [reference] — Procedure.location
+private func extract_Procedure_location(_ p: inout SearchParams, _ proc: Procedure) {
+    guard let refStr = proc.location?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "location", refType: refType, refId: refId))
+}
 
-// TODO: unhandled — part-of [reference] Procedure.partOf
-private func extract_Procedure_part_of(_ p: inout SearchParams, _ proc: Procedure) {}
+// part-of [reference] — Procedure.partOf
+private func extract_Procedure_part_of(_ p: inout SearchParams, _ proc: Procedure) {
+    for ref in proc.partOf ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "part-of", refType: refType, refId: refId))
+    }
+}
 
 // patient [reference] — Procedure.subject
 private func extract_Procedure_patient(_ p: inout SearchParams, _ proc: Procedure) {
@@ -138,11 +173,28 @@ private func extract_Procedure_performer(_ p: inout SearchParams, _ proc: Proced
     }
 }
 
-// TODO: unhandled — reason-code [token] Procedure.reasonCode
-private func extract_Procedure_reason_code(_ p: inout SearchParams, _ proc: Procedure) {}
+// reason-code [token] — Procedure.reasonCode
+private func extract_Procedure_reason_code(_ p: inout SearchParams, _ proc: Procedure) {
+    for cc in proc.reasonCode ?? [] {
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+        }
+    }
+}
 
-// TODO: unhandled — reason-reference [reference] Procedure.reasonReference
-private func extract_Procedure_reason_reference(_ p: inout SearchParams, _ proc: Procedure) {}
+// reason-reference [reference] — Procedure.reasonReference
+private func extract_Procedure_reason_reference(_ p: inout SearchParams, _ proc: Procedure) {
+    for ref in proc.reasonReference ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "reason-reference", refType: refType, refId: refId))
+    }
+}
 
 // status [token] — Procedure.status
 private func extract_Procedure_status(_ p: inout SearchParams, _ proc: Procedure) {

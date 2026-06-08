@@ -30,8 +30,17 @@ public func extractDiagnosticReportSearchParams(_ dr: DiagnosticReport) -> Searc
     return p
 }
 
-// TODO: unhandled — based-on [reference] DiagnosticReport.basedOn
-private func extract_DiagnosticReport_based_on(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// based-on [reference] — DiagnosticReport.basedOn
+private func extract_DiagnosticReport_based_on(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for ref in dr.basedOn ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "based-on", refType: refType, refId: refId))
+    }
+}
 
 // category [token] — DiagnosticReport.category
 private func extract_DiagnosticReport_category(_ p: inout SearchParams, _ dr: DiagnosticReport) {
@@ -53,8 +62,16 @@ private func extract_DiagnosticReport_code(_ p: inout SearchParams, _ dr: Diagno
     }
 }
 
-// TODO: unhandled — conclusion [token] DiagnosticReport.conclusionCode
-private func extract_DiagnosticReport_conclusion(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// conclusion [token] — DiagnosticReport.conclusionCode
+private func extract_DiagnosticReport_conclusion(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for cc in dr.conclusionCode ?? [] {
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "conclusion", system: s, code: c))
+        }
+    }
+}
 
 // date [date] — DiagnosticReport.effective
 private func extract_DiagnosticReport_date(_ p: inout SearchParams, _ dr: DiagnosticReport) {
@@ -118,8 +135,17 @@ private func extract_DiagnosticReport_issued(_ p: inout SearchParams, _ dr: Diag
     p.dates.append(.init(paramName: "issued", dateStart: d, dateEnd: d))
 }
 
-// TODO: unhandled — media [reference] DiagnosticReport.media.link
-private func extract_DiagnosticReport_media(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// media [reference] — DiagnosticReport.media.link
+private func extract_DiagnosticReport_media(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for m in dr.media ?? [] {
+        guard let refStr = m.link.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "media", refType: refType, refId: refId))
+    }
+}
 
 // patient [reference] — DiagnosticReport.subject
 private func extract_DiagnosticReport_patient(_ p: inout SearchParams, _ dr: DiagnosticReport) {
@@ -143,14 +169,41 @@ private func extract_DiagnosticReport_performer(_ p: inout SearchParams, _ dr: D
     }
 }
 
-// TODO: unhandled — result [reference] DiagnosticReport.result
-private func extract_DiagnosticReport_result(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// result [reference] — DiagnosticReport.result
+private func extract_DiagnosticReport_result(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for ref in dr.result ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "result", refType: refType, refId: refId))
+    }
+}
 
-// TODO: unhandled — results-interpreter [reference] DiagnosticReport.resultsInterpreter
-private func extract_DiagnosticReport_results_interpreter(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// results-interpreter [reference] — DiagnosticReport.resultsInterpreter
+private func extract_DiagnosticReport_results_interpreter(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for ref in dr.resultsInterpreter ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "results-interpreter", refType: refType, refId: refId))
+    }
+}
 
-// TODO: unhandled — specimen [reference] DiagnosticReport.specimen
-private func extract_DiagnosticReport_specimen(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+// specimen [reference] — DiagnosticReport.specimen
+private func extract_DiagnosticReport_specimen(_ p: inout SearchParams, _ dr: DiagnosticReport) {
+    for ref in dr.specimen ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "specimen", refType: refType, refId: refId))
+    }
+}
 
 // status [token] — DiagnosticReport.status
 private func extract_DiagnosticReport_status(_ p: inout SearchParams, _ dr: DiagnosticReport) {

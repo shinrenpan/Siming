@@ -14,6 +14,8 @@ private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownProcedureParams: Set<String> = [
     "patient", "subject", "encounter", "performer",
+    "based-on", "instantiates-canonical", "instantiates-uri",
+    "location", "part-of", "reason-code", "reason-code:not", "reason-reference",
     "status", "code", "category", "identifier", "date",
     "status:not", "code:not", "category:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
@@ -374,9 +376,17 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         pairs.filter { $0.key == key[...] }.map { $0.value }
     }
 
-    let subject     = first("patient") ?? first("subject")
-    let encounter   = first("encounter").map(String.init)
-    let performer   = first("performer").map(String.init)
+    let subject              = first("patient") ?? first("subject")
+    let encounter            = first("encounter").map(String.init)
+    let performer            = first("performer").map(String.init)
+    let basedOn              = first("based-on").map(String.init)
+    let instantiatesCanonical = all("instantiates-canonical").map(String.init)
+    let instantiatesUri      = all("instantiates-uri").map(String.init)
+    let location             = first("location").map(String.init)
+    let partOf               = first("part-of").map(String.init)
+    let reasonCode           = all("reason-code").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
+    let reasonCodeNot        = all("reason-code:not").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
+    let reasonReference      = first("reason-reference").map(String.init)
     let status      = all("status").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
     let statusNot   = all("status:not").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
     let code        = all("code").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
@@ -394,7 +404,10 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
     let cursor      = first("_cursor").flatMap { ProcedureSearchQuery.SearchCursor.decode(String($0)) }
     let totalMode   = ProcedureSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
-    for p in ["patient", "subject", "encounter", "performer", "status", "code", "category", "identifier", "date"] {
+    for p in ["patient", "subject", "encounter", "performer",
+              "based-on", "instantiates-canonical", "instantiates-uri",
+              "location", "part-of", "reason-code", "reason-reference",
+              "status", "code", "category", "identifier", "date"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -407,6 +420,9 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
         identifier: identifier, encounter: encounter, performer: performer,
+        basedOn: basedOn, instantiatesCanonical: instantiatesCanonical,
+        instantiatesUri: instantiatesUri, location: location, partOf: partOf,
+        reasonCode: reasonCode, reasonCodeNot: reasonCodeNot, reasonReference: reasonReference,
         date: date, id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
