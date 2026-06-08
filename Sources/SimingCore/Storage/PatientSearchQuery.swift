@@ -18,6 +18,8 @@ public struct PatientSearchQuery: Sendable {
     public var identifier: [IdentifierParam]
     public var id: [String]               // _id: filter by resource id (OR)
     public var birthdate: [BirthdateParam]
+    public var deceased: Bool?            // deceased token: true=deceased, false=not deceased
+    public var deathDate: [BirthdateParam]   // death-date: deceasedDateTime range
     public var lastUpdated: [BirthdateParam]  // _lastUpdated: filter on last write time
     public var missing: [String: Bool]    // param:missing=true/false
     public var chains: [ChainedParam]    // chained search: refParam.childParam=value
@@ -45,6 +47,8 @@ public struct PatientSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         id: [String] = [],
         birthdate: [BirthdateParam] = [],
+        deceased: Bool? = nil,
+        deathDate: [BirthdateParam] = [],
         lastUpdated: [BirthdateParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
@@ -71,6 +75,8 @@ public struct PatientSearchQuery: Sendable {
         self.identifier        = identifier
         self.id                = id
         self.birthdate         = birthdate
+        self.deceased          = deceased
+        self.deathDate         = deathDate
         self.lastUpdated       = lastUpdated
         self.missing           = missing
         self.chains            = chains

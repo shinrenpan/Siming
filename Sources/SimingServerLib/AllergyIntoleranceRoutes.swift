@@ -16,6 +16,7 @@ let knownAllergyIntoleranceParams: Set<String> = [
     "patient", "clinical-status", "verification-status",
     "type", "category", "criticality", "code", "identifier", "date",
     "manifestation", "severity", "route", "last-date", "onset",
+    "asserter", "recorder",
     "clinical-status:not", "verification-status:not", "type:not", "category:not",
     "criticality:not", "code:not", "manifestation:not", "severity:not", "route:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
@@ -399,6 +400,8 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
     let severityNot         = all("severity:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
     let route               = all("route").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
     let routeNot            = all("route:not").flatMap { AllergyIntoleranceSearchQuery.TokenParam.parseList(String($0)) }
+    let asserter            = first("asserter").map(String.init)
+    let recorder            = first("recorder").map(String.init)
     let identifier          = first("identifier").map { AllergyIntoleranceSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let date                = all("date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
     let lastDate            = all("last-date").compactMap { AllergyIntoleranceSearchQuery.DateParam.parse(String($0)) }
@@ -413,7 +416,8 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
     let totalMode           = AllergyIntoleranceSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["patient", "clinical-status", "verification-status",
-              "type", "category", "criticality", "code", "identifier", "date"] {
+              "type", "category", "criticality", "code", "identifier", "date",
+              "asserter", "recorder"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -431,6 +435,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
         manifestation: manifestation, manifestationNot: manifestationNot,
         severity: severity, severityNot: severityNot,
         route: route, routeNot: routeNot,
+        asserter: asserter, recorder: recorder,
         identifier: identifier,
         date: date, lastDate: lastDate, onset: onset,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,

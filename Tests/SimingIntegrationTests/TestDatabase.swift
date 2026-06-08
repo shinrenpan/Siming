@@ -163,7 +163,9 @@ func makePatient(
     gender: String? = nil,
     birthYear: Int? = nil,
     birthMonth: Int? = nil,
-    birthDay: Int? = nil
+    birthDay: Int? = nil,
+    deceasedBoolean: Bool? = nil,
+    deceasedDateTime: String? = nil
 ) throws -> ModelsR4.Patient {
     var json = #"{"resourceType":"Patient","name":[{"family":"\#(family)","given":["\#(given)"]}]"#
     if let g = gender { json += #","gender":"\#(g)""# }
@@ -178,6 +180,8 @@ func makePatient(
             json += #","birthDate":"\#(y)""#
         }
     }
+    if let db = deceasedBoolean   { json += #","deceasedBoolean":\#(db)"# }
+    if let dd = deceasedDateTime  { json += #","deceasedDateTime":"\#(dd)""# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Patient.self, from: Data(json.utf8))
 }
@@ -374,7 +378,16 @@ func makeImmunization(
     vaccineCode: String = "207",
     vaccineSystem: String = "http://hl7.org/fhir/sid/cvx",
     occurrenceDate: String = "2021-01-15",
-    lotNumber: String? = nil
+    lotNumber: String? = nil,
+    locationId: String? = nil,
+    manufacturerId: String? = nil,
+    reactionDetailId: String? = nil,
+    reactionDate: String? = nil,
+    reasonCode: String? = nil,
+    reasonReferenceId: String? = nil,
+    series: String? = nil,
+    statusReasonCode: String? = nil,
+    targetDiseaseCode: String? = nil
 ) throws -> ModelsR4.Immunization {
     var json = #"""
     {"resourceType":"Immunization","status":"\#(status)",
@@ -382,7 +395,21 @@ func makeImmunization(
      "patient":{"reference":"Patient/\#(patientId)"},
      "occurrenceDateTime":"\#(occurrenceDate)"
     """#
-    if let ln = lotNumber { json += #","lotNumber":"\#(ln)""# }
+    if let ln = lotNumber         { json += #","lotNumber":"\#(ln)""# }
+    if let loc = locationId       { json += #","location":{"reference":"Location/\#(loc)"}"# }
+    if let mfr = manufacturerId   { json += #","manufacturer":{"reference":"Organization/\#(mfr)"}"# }
+    if let rd = reactionDetailId, let rxDate = reactionDate {
+        json += #","reaction":[{"date":"\#(rxDate)","detail":{"reference":"Observation/\#(rd)"}}]"#
+    } else if let rd = reactionDetailId {
+        json += #","reaction":[{"detail":{"reference":"Observation/\#(rd)"}}]"#
+    } else if let rxDate = reactionDate {
+        json += #","reaction":[{"date":"\#(rxDate)"}]"#
+    }
+    if let rc = reasonCode        { json += #","reasonCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(rc)"}]}]"# }
+    if let rr = reasonReferenceId { json += #","reasonReference":[{"reference":"Condition/\#(rr)"}]"# }
+    if let s = series             { json += #","protocolApplied":[{"series":"\#(s)","doseNumberPositiveInt":1}]"# }
+    else if let td = targetDiseaseCode { json += #","protocolApplied":[{"targetDisease":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(td)"}]}],"doseNumberPositiveInt":1}]"# }
+    if let sr = statusReasonCode  { json += #","statusReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ActReason","code":"\#(sr)"}]}"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Immunization.self, from: Data(json.utf8))
 }
@@ -731,7 +758,13 @@ func makeFamilyMemberHistory(
     return try JSONDecoder().decode(ModelsR4.FamilyMemberHistory.self, from: Data(json.utf8))
 }
 
-func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active", recordedDate: String? = nil) throws -> ModelsR4.AllergyIntolerance {
+func makeAllergyIntolerance(
+    patientId: String,
+    clinicalStatus: String = "active",
+    recordedDate: String? = nil,
+    asserterId: String? = nil,
+    recorderId: String? = nil
+) throws -> ModelsR4.AllergyIntolerance {
     var json = #"""
     {"resourceType":"AllergyIntolerance",
      "clinicalStatus":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical","code":"\#(clinicalStatus)"}]},
@@ -739,7 +772,9 @@ func makeAllergyIntolerance(patientId: String, clinicalStatus: String = "active"
      "code":{"coding":[{"system":"http://www.nlm.nih.gov/research/umls/rxnorm","code":"7982","display":"Penicillin"}]},
      "patient":{"reference":"Patient/\#(patientId)"}
     """#
-    if let d = recordedDate { json += #","recordedDate":"\#(d)""# }
+    if let d = recordedDate  { json += #","recordedDate":"\#(d)""# }
+    if let a = asserterId    { json += #","asserter":{"reference":"Practitioner/\#(a)"}"# }
+    if let r = recorderId    { json += #","recorder":{"reference":"Practitioner/\#(r)"}"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.AllergyIntolerance.self, from: Data(json.utf8))
 }

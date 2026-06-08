@@ -86,7 +86,7 @@ Server listens on `http://localhost:8080`.
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
-**Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `_id`, `_lastUpdated`
+**Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `death-date`, `_id`, `_lastUpdated`
 
 **Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `_id`, `_lastUpdated`
 
@@ -96,13 +96,13 @@ Server listens on `http://localhost:8080`.
 
 **MedicationRequest** — `subject`, `patient`, `status`, `intent`, `medication`, `code`, `priority`, `authored-on`, `identifier`, `_id`, `_lastUpdated`
 
-**AllergyIntolerance** — `patient`, `clinical-status`, `verification-status`, `type`, `category`, `criticality`, `code`, `identifier`, `date`, `manifestation`, `severity`, `route`, `last-date`, `onset`, `_id`, `_lastUpdated`
+**AllergyIntolerance** — `patient`, `clinical-status`, `verification-status`, `type`, `category`, `criticality`, `code`, `identifier`, `date`, `manifestation`, `severity`, `route`, `last-date`, `onset`, `asserter`, `recorder`, `_id`, `_lastUpdated`
 
 **Procedure** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `based-on`, `instantiates-canonical`, `instantiates-uri`, `location`, `part-of`, `reason-code`, `reason-reference`, `date`, `_id`, `_lastUpdated`
 
 **DiagnosticReport** — `subject`, `patient`, `status`, `code`, `category`, `identifier`, `encounter`, `performer`, `based-on`, `conclusion`, `media`, `result`, `results-interpreter`, `specimen`, `date`, `issued`, `_id`, `_lastUpdated`
 
-**Immunization** — `patient`, `status`, `vaccine-code`, `identifier`, `date`, `performer`, `lot-number`, `_id`, `_lastUpdated`
+**Immunization** — `patient`, `status`, `vaccine-code`, `identifier`, `date`, `performer`, `location`, `manufacturer`, `reaction`, `reaction-date`, `reason-code`, `reason-reference`, `series`, `status-reason`, `target-disease`, `lot-number`, `_id`, `_lastUpdated`
 
 **Practitioner** — `name`, `family`, `given`, `phonetic`, `identifier`, `active`, `gender`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `communication`, `_id`, `_lastUpdated`
 

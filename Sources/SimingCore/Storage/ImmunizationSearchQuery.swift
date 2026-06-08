@@ -11,6 +11,18 @@ public struct ImmunizationSearchQuery: Sendable {
     public var vaccineCodeNot: [TokenParam]         // vaccine-code:not modifier
     public var identifier: [IdentifierParam]
     public var performer: String?                   // performer reference
+    public var location: String?                    // Immunization.location reference
+    public var manufacturer: String?                // Immunization.manufacturer reference
+    public var reaction: String?                    // Immunization.reaction.detail reference
+    public var reactionDate: [DateParam]            // Immunization.reaction.date range
+    public var reasonCode: [TokenParam]             // Immunization.reasonCode token OR
+    public var reasonCodeNot: [TokenParam]          // reason-code:not modifier
+    public var reasonReference: String?             // Immunization.reasonReference reference
+    public var series: String?                      // Immunization.protocolApplied.series string
+    public var statusReason: [TokenParam]           // Immunization.statusReason token OR
+    public var statusReasonNot: [TokenParam]        // status-reason:not modifier
+    public var targetDisease: [TokenParam]          // Immunization.protocolApplied.targetDisease token OR
+    public var targetDiseaseNot: [TokenParam]       // target-disease:not modifier
     public var lotNumber: String?                   // lot-number string search
     public var date: [DateParam]                    // occurrence date range
     public var id: [String]                         // _id filter (OR)
@@ -34,6 +46,18 @@ public struct ImmunizationSearchQuery: Sendable {
         vaccineCodeNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
         performer: String? = nil,
+        location: String? = nil,
+        manufacturer: String? = nil,
+        reaction: String? = nil,
+        reactionDate: [DateParam] = [],
+        reasonCode: [TokenParam] = [],
+        reasonCodeNot: [TokenParam] = [],
+        reasonReference: String? = nil,
+        series: String? = nil,
+        statusReason: [TokenParam] = [],
+        statusReasonNot: [TokenParam] = [],
+        targetDisease: [TokenParam] = [],
+        targetDiseaseNot: [TokenParam] = [],
         lotNumber: String? = nil,
         date: [DateParam] = [],
         id: [String] = [],
@@ -46,24 +70,36 @@ public struct ImmunizationSearchQuery: Sendable {
         sort: SortOrder = .lastUpdatedDescending,
         cursor: SearchCursor? = nil
     ) {
-        self.subject       = subject
-        self.status        = status
-        self.statusNot     = statusNot
-        self.vaccineCode   = vaccineCode
-        self.vaccineCodeNot = vaccineCodeNot
-        self.identifier    = identifier
-        self.performer     = performer
-        self.lotNumber     = lotNumber
-        self.date          = date
-        self.id            = id
-        self.lastUpdated   = lastUpdated
-        self.missing       = missing
-        self.chains        = chains
-        self.has           = has
-        self.totalMode     = totalMode
-        self.count         = count
-        self.sort          = sort
-        self.cursor        = cursor
+        self.subject         = subject
+        self.status          = status
+        self.statusNot       = statusNot
+        self.vaccineCode     = vaccineCode
+        self.vaccineCodeNot  = vaccineCodeNot
+        self.identifier      = identifier
+        self.performer       = performer
+        self.location        = location
+        self.manufacturer    = manufacturer
+        self.reaction        = reaction
+        self.reactionDate    = reactionDate
+        self.reasonCode      = reasonCode
+        self.reasonCodeNot   = reasonCodeNot
+        self.reasonReference = reasonReference
+        self.series          = series
+        self.statusReason    = statusReason
+        self.statusReasonNot = statusReasonNot
+        self.targetDisease   = targetDisease
+        self.targetDiseaseNot = targetDiseaseNot
+        self.lotNumber       = lotNumber
+        self.date            = date
+        self.id              = id
+        self.lastUpdated     = lastUpdated
+        self.missing         = missing
+        self.chains          = chains
+        self.has             = has
+        self.totalMode       = totalMode
+        self.count           = count
+        self.sort            = sort
+        self.cursor          = cursor
     }
 
     public typealias TokenParam      = ObservationSearchQuery.TokenParam

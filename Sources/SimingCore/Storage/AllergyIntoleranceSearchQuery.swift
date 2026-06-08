@@ -23,6 +23,8 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var severityNot: [TokenParam]                // severity:not modifier
     public var route: [TokenParam]                      // reaction.exposureRoute token OR
     public var routeNot: [TokenParam]                   // route:not modifier
+    public var asserter: String?                         // AllergyIntolerance.asserter reference
+    public var recorder: String?                         // AllergyIntolerance.recorder reference
     public var identifier: [IdentifierParam]
     public var date: [DateParam]                        // recordedDate range filter
     public var lastDate: [DateParam]                    // lastOccurrence range filter
@@ -60,6 +62,8 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         severityNot: [TokenParam] = [],
         route: [TokenParam] = [],
         routeNot: [TokenParam] = [],
+        asserter: String? = nil,
+        recorder: String? = nil,
         identifier: [IdentifierParam] = [],
         date: [DateParam] = [],
         lastDate: [DateParam] = [],
@@ -93,6 +97,8 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         self.severityNot          = severityNot
         self.route                = route
         self.routeNot             = routeNot
+        self.asserter             = asserter
+        self.recorder             = recorder
         self.identifier           = identifier
         self.date                 = date
         self.lastDate             = lastDate

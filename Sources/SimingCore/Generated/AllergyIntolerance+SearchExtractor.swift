@@ -30,8 +30,15 @@ public func extractAllergyIntoleranceSearchParams(_ ai: AllergyIntolerance) -> S
     return p
 }
 
-// TODO: unhandled — asserter [reference] AllergyIntolerance.asserter
-private func extract_AllergyIntolerance_asserter(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// asserter [reference] — AllergyIntolerance.asserter
+private func extract_AllergyIntolerance_asserter(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    guard let refStr = ai.asserter?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "asserter", refType: refType, refId: refId))
+}
 
 // category [token] — AllergyIntolerance.category
 private func extract_AllergyIntolerance_category(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
@@ -138,8 +145,15 @@ private func extract_AllergyIntolerance_patient(_ p: inout SearchParams, _ ai: A
     p.references.append(.init(paramName: "patient", refType: refType, refId: refId))
 }
 
-// TODO: unhandled — recorder [reference] AllergyIntolerance.recorder
-private func extract_AllergyIntolerance_recorder(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
+// recorder [reference] — AllergyIntolerance.recorder
+private func extract_AllergyIntolerance_recorder(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+    guard let refStr = ai.recorder?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "recorder", refType: refType, refId: refId))
+}
 
 // route [token] — AllergyIntolerance.reaction.exposureRoute
 private func extract_AllergyIntolerance_route(_ p: inout SearchParams, _ ai: AllergyIntolerance) {

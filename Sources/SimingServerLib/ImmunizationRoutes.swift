@@ -13,7 +13,11 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownImmunizationParams: Set<String> = [
-    "patient", "status", "vaccine-code", "identifier", "date", "performer", "lot-number",
+    "patient", "status", "status:not", "vaccine-code", "vaccine-code:not", "identifier", "date",
+    "performer", "location", "manufacturer", "reaction", "reaction-date",
+    "reason-code", "reason-code:not", "reason-reference",
+    "series", "status-reason", "status-reason:not", "target-disease", "target-disease:not",
+    "lot-number",
     "status:not", "vaccine-code:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -379,9 +383,21 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let vaccineCode    = all("vaccine-code").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let vaccineCodeNot = all("vaccine-code:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let identifier  = first("identifier").map { ImmunizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let date        = all("date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
     let performer   = first("performer").map(String.init)
+    let location    = first("location").map(String.init)
+    let manufacturer = first("manufacturer").map(String.init)
+    let reaction    = first("reaction").map(String.init)
+    let reactionDate = all("reaction-date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
+    let reasonCode    = all("reason-code").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
+    let reasonCodeNot = all("reason-code:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
+    let reasonReference = first("reason-reference").map(String.init)
+    let series      = first("series").map(String.init)
+    let statusReason    = all("status-reason").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
+    let statusReasonNot = all("status-reason:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
+    let targetDisease    = all("target-disease").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
+    let targetDiseaseNot = all("target-disease:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let lotNumber   = first("lot-number").map(String.init)
+    let date        = all("date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
@@ -391,7 +407,10 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let cursor      = first("_cursor").flatMap { ImmunizationSearchQuery.SearchCursor.decode(String($0)) }
     let totalMode   = ImmunizationSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
-    for p in ["patient", "status", "vaccine-code", "identifier", "date", "performer", "lot-number"] {
+    for p in ["patient", "status", "vaccine-code", "identifier", "date", "performer",
+              "location", "manufacturer", "reaction", "reaction-date",
+              "reason-code", "reason-reference", "series", "status-reason", "target-disease",
+              "lot-number"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -402,8 +421,14 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
         subject: subject.map(String.init),
         status: status, statusNot: statusNot,
         vaccineCode: vaccineCode, vaccineCodeNot: vaccineCodeNot,
-        identifier: identifier, performer: performer, lotNumber: lotNumber,
-        date: date, id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
+        identifier: identifier, performer: performer,
+        location: location, manufacturer: manufacturer, reaction: reaction,
+        reactionDate: reactionDate, reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
+        reasonReference: reasonReference, series: series,
+        statusReason: statusReason, statusReasonNot: statusReasonNot,
+        targetDisease: targetDisease, targetDiseaseNot: targetDiseaseNot,
+        lotNumber: lotNumber, date: date, id: id, lastUpdated: lastUpdated,
+        missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }
 

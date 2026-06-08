@@ -3,9 +3,17 @@ import Foundation
 /// Extracts the `Patient.xxx` part from a multi-resource expression like
 /// "Patient.name | Person.name | Practitioner.name".
 func patientExpr(from expression: String) -> String? {
-    expression
-        .components(separatedBy: " | ")
-        .first(where: { $0.hasPrefix("Patient.") })
+    for part in expression.components(separatedBy: " | ") {
+        var clean = part.trimmingCharacters(in: .whitespaces)
+        if clean.hasPrefix("(") { clean = String(clean.dropFirst()) }
+        guard clean.hasPrefix("Patient.") else { continue }
+        clean = clean.components(separatedBy: " as ")[0]
+        clean = clean.components(separatedBy: ".where(")[0]
+        if let r = clean.range(of: ".exists()") { clean = String(clean[..<r.lowerBound]) }
+        clean = clean.components(separatedBy: " and ")[0]
+        return clean.trimmingCharacters(in: .whitespaces)
+    }
+    return nil
 }
 
 /// Returns the Swift function body string for a given Patient expression,
@@ -253,6 +261,40 @@ func patientHandler(spec: ParamSpec, expr: String) -> String? {
             }
         }
         """
+
+    // ── deceased / death-date (choice type: boolean or dateTime) ─────────────
+    case "Patient.deceased":
+        switch code {
+        case "death-date":
+            return """
+            \(header)
+            private func \(fn)(_ p: inout SearchParams, _ patient: Patient) {
+                guard case .dateTime(let prim) = patient.deceased, let dt = prim.value else { return }
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+                dc.timeZone = dt.timeZone
+                let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+                p.dates.append(.init(paramName: "death-date", dateStart: d, dateEnd: d))
+            }
+            """
+        case "deceased":
+            return """
+            \(header)
+            private func \(fn)(_ p: inout SearchParams, _ patient: Patient) {
+                switch patient.deceased {
+                case .boolean(let prim):
+                    guard let v = prim.value?.bool else { return }
+                    p.tokens.append(.init(paramName: "deceased", system: nil, code: v ? "true" : "false"))
+                case .dateTime:
+                    p.tokens.append(.init(paramName: "deceased", system: nil, code: "true"))
+                case nil:
+                    break
+                }
+            }
+            """
+        default: return nil
+        }
 
     default:
         return nil

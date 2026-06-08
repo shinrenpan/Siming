@@ -108,14 +108,38 @@ private func extract_Patient_birthdate(_ p: inout SearchParams, _ patient: Patie
     p.dates.append(.init(paramName: "birthdate", dateStart: date, dateEnd: date))
 }
 
-// TODO: unhandled — death-date [date] (Patient.deceased as dateTime)
-private func extract_Patient_death_date(_ p: inout SearchParams, _ patient: Patient) {}
+// death-date [date] — Patient.deceased
+private func extract_Patient_death_date(_ p: inout SearchParams, _ patient: Patient) {
+    guard case .dateTime(let prim) = patient.deceased, let dt = prim.value else { return }
+    var dc = DateComponents()
+    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+    dc.timeZone = dt.timeZone
+    let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
+    p.dates.append(.init(paramName: "death-date", dateStart: d, dateEnd: d))
+}
 
-// TODO: unhandled — deceased [token] Patient.deceased.exists() and Patient.deceased != false
-private func extract_Patient_deceased(_ p: inout SearchParams, _ patient: Patient) {}
+// deceased [token] — Patient.deceased
+private func extract_Patient_deceased(_ p: inout SearchParams, _ patient: Patient) {
+    switch patient.deceased {
+    case .boolean(let prim):
+        guard let v = prim.value?.bool else { return }
+        p.tokens.append(.init(paramName: "deceased", system: nil, code: v ? "true" : "false"))
+    case .dateTime:
+        p.tokens.append(.init(paramName: "deceased", system: nil, code: "true"))
+    case nil:
+        break
+    }
+}
 
-// TODO: unhandled — email [token] Patient.telecom.where(system='email') | Person.telecom.where(system='email') | Practitioner.telecom.where(system='email') | PractitionerRole.telecom.where(system='email') | RelatedPerson.telecom.where(system='email')
-private func extract_Patient_email(_ p: inout SearchParams, _ patient: Patient) {}
+// email [token] — Patient.telecom
+private func extract_Patient_email(_ p: inout SearchParams, _ patient: Patient) {
+    for cp in patient.telecom ?? [] {
+        let cpSystem = cp.system?.value?.rawValue
+        let cpValue  = cp.value?.value?.string ?? ""
+        p.tokens.append(.init(paramName: "email", system: cpSystem, code: cpValue))
+    }
+}
 
 // family [string] — Patient.name.family
 private func extract_Patient_family(_ p: inout SearchParams, _ patient: Patient) {
@@ -209,8 +233,14 @@ private func extract_Patient_organization(_ p: inout SearchParams, _ patient: Pa
     p.references.append(.init(paramName: "organization", refType: refType, refId: refId))
 }
 
-// TODO: unhandled — phone [token] Patient.telecom.where(system='phone') | Person.telecom.where(system='phone') | Practitioner.telecom.where(system='phone') | PractitionerRole.telecom.where(system='phone') | RelatedPerson.telecom.where(system='phone')
-private func extract_Patient_phone(_ p: inout SearchParams, _ patient: Patient) {}
+// phone [token] — Patient.telecom
+private func extract_Patient_phone(_ p: inout SearchParams, _ patient: Patient) {
+    for cp in patient.telecom ?? [] {
+        let cpSystem = cp.system?.value?.rawValue
+        let cpValue  = cp.value?.value?.string ?? ""
+        p.tokens.append(.init(paramName: "phone", system: cpSystem, code: cpValue))
+    }
+}
 
 // phonetic [string] — Patient.name
 private func extract_Patient_phonetic(_ p: inout SearchParams, _ patient: Patient) {

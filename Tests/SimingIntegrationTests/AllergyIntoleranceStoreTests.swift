@@ -115,6 +115,30 @@ final class AllergyIntoleranceStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: asserter ─────────────────────────────────────────────────────
+
+    func testSearch_byAsserter_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "AlgAsserterPt")).id
+        let practId = "pract-alg-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeAllergyIntolerance(patientId: pid, asserterId: practId))
+        _ = try await store.create(makeAllergyIntolerance(patientId: pid))
+
+        let result = try await store.search(query: AllergyIntoleranceSearchQuery(asserter: "Practitioner/\(practId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: recorder ─────────────────────────────────────────────────────
+
+    func testSearch_byRecorder_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "AlgRecorderPt")).id
+        let practId = "pract-rec-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeAllergyIntolerance(patientId: pid, recorderId: practId))
+        _ = try await store.create(makeAllergyIntolerance(patientId: pid))
+
+        let result = try await store.search(query: AllergyIntoleranceSearchQuery(recorder: "Practitioner/\(practId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

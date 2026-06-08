@@ -302,6 +302,20 @@ public struct AllergyIntoleranceStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
+        func refCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rt = bind(String(parts[0])); let ri = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND ref_type = \(rt) AND ref_id = \(ri)")
+            } else {
+                let ri = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND ref_id = \(ri)")
+            }
+        }
+
+        if let asserter = query.asserter { filterCTEs.append(refCTE(name: "f_asserter", paramName: "asserter", ref: asserter)) }
+        if let recorder = query.recorder { filterCTEs.append(refCTE(name: "f_recorder", paramName: "recorder", ref: recorder)) }
+
         if !query.clinicalStatus.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_clinical_status", paramName: "clinical-status",     tokens: query.clinicalStatus)) }
         if !query.verificationStatus.isEmpty { filterCTEs.append(tokenORCTE(name: "f_ver_status",  paramName: "verification-status", tokens: query.verificationStatus)) }
         if !query.type.isEmpty             { filterCTEs.append(tokenORCTE(name: "f_type",          paramName: "type",                 tokens: query.type)) }
@@ -579,6 +593,20 @@ public struct AllergyIntoleranceStore: Sendable {
             }
         }
 
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rt = bind(String(parts[0])); let ri = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND ref_type = \(rt) AND ref_id = \(ri)")
+            } else {
+                let ri = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = '\(paramName)' AND ref_id = \(ri)")
+            }
+        }
+
+        if let asserter = query.asserter { filterCTEs.append(refCTECount(name: "f_asserter", paramName: "asserter", ref: asserter)) }
+        if let recorder = query.recorder { filterCTEs.append(refCTECount(name: "f_recorder", paramName: "recorder", ref: recorder)) }
+
         func tokenCTE(name: String, paramName: String, tokens: [AllergyIntoleranceSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -671,6 +699,8 @@ public struct AllergyIntoleranceStore: Sendable {
     private func allergyIntoleranceMissingSubquery(param: String) -> String? {
         switch param {
         case "patient":               return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = 'patient'"
+        case "asserter":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = 'asserter'"
+        case "recorder":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'AllergyIntolerance' AND param_name = 'recorder'"
         case "clinical-status":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'clinical-status'"
         case "verification-status":   return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'verification-status'"
         case "type":                  return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'type'"

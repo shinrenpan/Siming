@@ -223,6 +223,34 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: asserter ───────────────────────────────────────────────────
+    case "asserter":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            guard let refStr = ai.asserter?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "asserter", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: recorder ───────────────────────────────────────────────────
+    case "recorder":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
+            guard let refStr = ai.recorder?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "recorder", refType: refType, refId: refId))
+        }
+        """
+
     default:
         return nil
     }

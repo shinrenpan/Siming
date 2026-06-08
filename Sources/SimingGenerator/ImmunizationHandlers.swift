@@ -121,6 +121,142 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: location ───────────────────────────────────────────────────
+    case "location":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            guard let refStr = imm.location?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "location", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: manufacturer ───────────────────────────────────────────────
+    case "manufacturer":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            guard let refStr = imm.manufacturer?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "manufacturer", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: reaction (detail) ─────────────────────────────────────────
+    case "reaction":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for rxn in imm.reaction ?? [] {
+                guard let refStr = rxn.detail?.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "reaction", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── date: reaction-date ───────────────────────────────────────────────────
+    case "reaction-date":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            let cal = Calendar(identifier: .gregorian)
+            for rxn in imm.reaction ?? [] {
+                guard let prim = rxn.date, let dt = prim.value else { continue }
+                var dc = DateComponents()
+                dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+                dc.timeZone = dt.timeZone
+                let d = cal.date(from: dc) ?? Date()
+                p.dates.append(.init(paramName: "reaction-date", dateStart: d, dateEnd: d))
+            }
+        }
+        """
+
+    // ── token: reason-code ────────────────────────────────────────────────────
+    case "reason-code":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for cc in imm.reasonCode ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── reference: reason-reference ──────────────────────────────────────────
+    case "reason-reference":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for ref in imm.reasonReference ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "reason-reference", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── string: series ────────────────────────────────────────────────────────
+    case "series":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for pa in imm.protocolApplied ?? [] {
+                if let v = pa.series?.value?.string {
+                    p.strings.append(.init(paramName: "series", value: v))
+                }
+            }
+        }
+        """
+
+    // ── token: status-reason ─────────────────────────────────────────────────
+    case "status-reason":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for coding in imm.statusReason?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "status-reason", system: s, code: c))
+            }
+        }
+        """
+
+    // ── token: target-disease ─────────────────────────────────────────────────
+    case "target-disease":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ imm: Immunization) {
+            for pa in imm.protocolApplied ?? [] {
+                for cc in pa.targetDisease ?? [] {
+                    for coding in cc.coding ?? [] {
+                        let c = coding.code?.value?.string ?? ""
+                        let s = coding.system?.value?.url.absoluteString
+                        p.tokens.append(.init(paramName: "target-disease", system: s, code: c))
+                    }
+                }
+            }
+        }
+        """
+
     default:
         return nil
     }

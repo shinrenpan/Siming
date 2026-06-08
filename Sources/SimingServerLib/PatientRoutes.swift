@@ -405,6 +405,10 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     }
     let phone         = first("phone").map(String.init)
     let email         = first("email").map(String.init)
+    let deceased: Bool? = first("deceased").flatMap { v -> Bool? in
+        switch String(v).lowercased() { case "true": return true; case "false": return false; default: return nil }
+    }
+    let deathDates = all("death-date").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
     let identifierNot = first("identifier:not").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let genderNot = all("gender:not").flatMap { v in
         String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -421,7 +425,8 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     let totalMode   = PatientSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["name","family","given","gender","active","address","address-city","address-state",
-              "address-postalcode","address-country","phone","email","identifier","birthdate"] {
+              "address-postalcode","address-country","phone","email","identifier","birthdate",
+              "deceased","death-date"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -436,7 +441,8 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         addressCountry: addressCountry, phone: phone, email: email,
         identifierNot: identifierNot, genderNot: genderNot,
         identifier: identifier, id: id,
-        birthdate: birthdates, lastUpdated: lastUpdated,
+        birthdate: birthdates, deceased: deceased, deathDate: deathDates,
+        lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
 }
 
@@ -514,7 +520,7 @@ private func parseETag(_ raw: String?) -> Int64? {
 private let knownPatientParams: Set<String> = [
     "name", "family", "given", "gender", "active",
     "address", "address-city", "address-state", "address-postalcode", "address-country",
-    "phone", "email", "identifier", "birthdate",
+    "phone", "email", "identifier", "birthdate", "deceased", "death-date",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]

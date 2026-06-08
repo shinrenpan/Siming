@@ -339,6 +339,29 @@ public struct PatientStore: Sendable {
             filterCTEs.append(("f_active", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'active' AND code = \(p)"))
         }
 
+        // deceased — boolean token
+        if let deceased = query.deceased {
+            let p = bind(deceased ? "true" : "false")
+            filterCTEs.append(("f_deceased", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'deceased' AND code = \(p)"))
+        }
+
+        // death-date — date range (only when deceased is a dateTime)
+        for (i, dp) in query.deathDate.enumerated() {
+            let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
+            }
+            filterCTEs.append(("f_death_date\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'death-date' AND \(cond)"))
+        }
+
         // phone, email — via telecom index (system-filtered)
         if let phone = query.phone {
             let p = bind(phone)
@@ -658,6 +681,25 @@ public struct PatientStore: Sendable {
             let p = bind(active ? "true" : "false")
             filterCTEs.append(("f_active", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'active' AND code = \(p)"))
         }
+        if let deceased = query.deceased {
+            let p = bind(deceased ? "true" : "false")
+            filterCTEs.append(("f_deceased", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'deceased' AND code = \(p)"))
+        }
+        for (i, dp) in query.deathDate.enumerated() {
+            let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
+            }
+            filterCTEs.append(("f_death_date\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'death-date' AND \(cond)"))
+        }
         if let phone = query.phone {
             let p = bind(phone)
             filterCTEs.append(("f_phone", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'telecom' AND system = 'phone' AND code = \(p)"))
@@ -816,10 +858,12 @@ public struct PatientStore: Sendable {
         case "address-country":    return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = 'address-country'"
         case "gender":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'gender'"
         case "active":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'active'"
+        case "deceased":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'deceased'"
         case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier'"
         case "phone":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'telecom' AND system = 'phone'"
         case "email":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'telecom' AND system = 'email'"
         case "birthdate":          return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'birthdate'"
+        case "death-date":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Patient' AND param_name = 'death-date'"
         default:                   return nil
         }
     }

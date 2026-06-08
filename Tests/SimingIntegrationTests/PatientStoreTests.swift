@@ -246,6 +246,42 @@ final class PatientStoreTests: XCTestCase {
         XCTAssertTrue(createdIds.isSubset(of: allIds), "Not all created patients appeared in pagination")
     }
 
+    // ── Search: deceased ──────────────────────────────────────────────────────
+
+    func testSearch_byDeceased_true_returnsMatchOnly() async throws {
+        _ = try await store.create(makePatient(family: "DeceasedTrue", deceasedBoolean: true))
+        _ = try await store.create(makePatient(family: "DeceasedFalse", deceasedBoolean: false))
+        _ = try await store.create(makePatient(family: "DeceasedNone"))
+
+        let result = try await store.search(query: PatientSearchQuery(deceased: true))
+        XCTAssertEqual(result.total, 1)
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
+        if case .boolean(let v) = p.deceased { XCTAssertEqual(v.value?.bool, true) } else { XCTFail("expected boolean deceased") }
+    }
+
+    func testSearch_byDeceased_false_returnsLivingOnly() async throws {
+        _ = try await store.create(makePatient(family: "AliveA", deceasedBoolean: false))
+        _ = try await store.create(makePatient(family: "AliveB"))
+        _ = try await store.create(makePatient(family: "DeceasedX", deceasedBoolean: true))
+
+        let result = try await store.search(query: PatientSearchQuery(deceased: false))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: death-date ────────────────────────────────────────────────────
+
+    func testSearch_byDeathDate_ge_returnsMatchOnly() async throws {
+        _ = try await store.create(makePatient(family: "DeathOld", deceasedDateTime: "2010-06-15"))
+        _ = try await store.create(makePatient(family: "DeathRecent", deceasedDateTime: "2023-03-20"))
+        _ = try await store.create(makePatient(family: "StillAlive"))
+
+        let param = PatientSearchQuery.BirthdateParam.parse("ge2020-01-01")!
+        let result = try await store.search(query: PatientSearchQuery(deathDate: [param]))
+        XCTAssertEqual(result.total, 1)
+        let p = try JSONDecoder().decode(ModelsR4.Patient.self, from: result.entries[0].jsonWithMeta)
+        guard case .dateTime = p.deceased else { XCTFail("expected dateTime deceased"); return }
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

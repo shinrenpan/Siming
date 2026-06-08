@@ -306,6 +306,27 @@ public struct ImmunizationStore: Sendable {
             }
         }
 
+        func refCTE(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rt = bind(String(parts[0])); let ri = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND ref_type = \(rt) AND ref_id = \(ri)")
+            } else {
+                let ri = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND ref_id = \(ri)")
+            }
+        }
+
+        if let loc = query.location        { filterCTEs.append(refCTE(name: "f_location",    paramName: "location",          ref: loc)) }
+        if let mfr = query.manufacturer   { filterCTEs.append(refCTE(name: "f_manufacturer", paramName: "manufacturer",      ref: mfr)) }
+        if let rxn = query.reaction       { filterCTEs.append(refCTE(name: "f_reaction",     paramName: "reaction",          ref: rxn)) }
+        if let rr  = query.reasonReference { filterCTEs.append(refCTE(name: "f_reason_ref",  paramName: "reason-reference",  ref: rr)) }
+
+        if let series = query.series {
+            filterCTEs.append(("f_series",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND lower(value) LIKE lower(\(bind("\(series)%")))"))
+        }
+
         func tokenORCTE(name: String, paramName: String, tokens: [ImmunizationSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -321,8 +342,12 @@ public struct ImmunizationStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty      { filterCTEs.append(tokenORCTE(name: "f_status",      paramName: "status",       tokens: query.status)) }
-        if !query.vaccineCode.isEmpty { filterCTEs.append(tokenORCTE(name: "f_vaccine_code", paramName: "vaccine-code", tokens: query.vaccineCode)) }
+        if !query.status.isEmpty         { filterCTEs.append(tokenORCTE(name: "f_status",        paramName: "status",          tokens: query.status)) }
+        if !query.vaccineCode.isEmpty    { filterCTEs.append(tokenORCTE(name: "f_vaccine_code",  paramName: "vaccine-code",    tokens: query.vaccineCode)) }
+        if !query.reasonCode.isEmpty     { filterCTEs.append(tokenORCTE(name: "f_reason_code",   paramName: "reason-code",     tokens: query.reasonCode)) }
+        if !query.statusReason.isEmpty   { filterCTEs.append(tokenORCTE(name: "f_status_reason", paramName: "status-reason",   tokens: query.statusReason)) }
+        if !query.targetDisease.isEmpty  { filterCTEs.append(tokenORCTE(name: "f_target_disease",paramName: "target-disease",  tokens: query.targetDisease)) }
+        for (i, dp) in query.reactionDate.enumerated() { filterCTEs.append(dateCTE(prefix: "f_rxn_date", paramName: "reaction-date", dp: dp, idx: i)) }
 
         // lot-number — idx_string (startsWith match by default)
         if let ln = query.lotNumber {
@@ -409,8 +434,11 @@ public struct ImmunizationStore: Sendable {
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
         }
 
-        if !query.statusNot.isEmpty      { whereConditions.append(notTokenCond(paramName: "status",       tokens: query.statusNot)) }
-        if !query.vaccineCodeNot.isEmpty { whereConditions.append(notTokenCond(paramName: "vaccine-code", tokens: query.vaccineCodeNot)) }
+        if !query.statusNot.isEmpty      { whereConditions.append(notTokenCond(paramName: "status",        tokens: query.statusNot)) }
+        if !query.vaccineCodeNot.isEmpty { whereConditions.append(notTokenCond(paramName: "vaccine-code",  tokens: query.vaccineCodeNot)) }
+        if !query.reasonCodeNot.isEmpty  { whereConditions.append(notTokenCond(paramName: "reason-code",   tokens: query.reasonCodeNot)) }
+        if !query.statusReasonNot.isEmpty { whereConditions.append(notTokenCond(paramName: "status-reason",tokens: query.statusReasonNot)) }
+        if !query.targetDiseaseNot.isEmpty { whereConditions.append(notTokenCond(paramName: "target-disease",tokens: query.targetDiseaseNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = immunizationMissingSubquery(param: paramName) {
@@ -595,6 +623,27 @@ public struct ImmunizationStore: Sendable {
             }
         }
 
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let rt = bind(String(parts[0])); let ri = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND ref_type = \(rt) AND ref_id = \(ri)")
+            } else {
+                let ri = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND ref_id = \(ri)")
+            }
+        }
+
+        if let loc = query.location        { filterCTEs.append(refCTECount(name: "f_location",    paramName: "location",         ref: loc)) }
+        if let mfr = query.manufacturer   { filterCTEs.append(refCTECount(name: "f_manufacturer", paramName: "manufacturer",     ref: mfr)) }
+        if let rxn = query.reaction       { filterCTEs.append(refCTECount(name: "f_reaction",     paramName: "reaction",         ref: rxn)) }
+        if let rr  = query.reasonReference { filterCTEs.append(refCTECount(name: "f_reason_ref",  paramName: "reason-reference", ref: rr)) }
+
+        if let series = query.series {
+            filterCTEs.append(("f_series",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series' AND lower(value) LIKE lower(\(bind("\(series)%")))"))
+        }
+
         func tokenCTE(name: String, paramName: String, tokens: [ImmunizationSearchQuery.TokenParam]) -> (String, String) {
             var orClauses: [String] = []
             for tok in tokens {
@@ -609,8 +658,12 @@ public struct ImmunizationStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
-        if !query.status.isEmpty      { filterCTEs.append(tokenCTE(name: "f_status",      paramName: "status",       tokens: query.status)) }
-        if !query.vaccineCode.isEmpty { filterCTEs.append(tokenCTE(name: "f_vaccine_code", paramName: "vaccine-code", tokens: query.vaccineCode)) }
+        if !query.status.isEmpty         { filterCTEs.append(tokenCTE(name: "f_status",         paramName: "status",          tokens: query.status)) }
+        if !query.vaccineCode.isEmpty    { filterCTEs.append(tokenCTE(name: "f_vaccine_code",    paramName: "vaccine-code",    tokens: query.vaccineCode)) }
+        if !query.reasonCode.isEmpty     { filterCTEs.append(tokenCTE(name: "f_reason_code",     paramName: "reason-code",     tokens: query.reasonCode)) }
+        if !query.statusReason.isEmpty   { filterCTEs.append(tokenCTE(name: "f_status_reason",   paramName: "status-reason",   tokens: query.statusReason)) }
+        if !query.targetDisease.isEmpty  { filterCTEs.append(tokenCTE(name: "f_target_disease",  paramName: "target-disease",  tokens: query.targetDisease)) }
+        for (i, dp) in query.reactionDate.enumerated() { filterCTEs.append(dateCTECount(prefix: "f_rxn_date", paramName: "reaction-date", dp: dp, idx: i)) }
 
         if let ln = query.lotNumber {
             let pBind = bind("\(ln)%")
@@ -682,14 +735,23 @@ public struct ImmunizationStore: Sendable {
 
     private func immunizationMissingSubquery(param: String) -> String? {
         switch param {
-        case "patient":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'patient'"
-        case "performer":     return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'performer'"
-        case "status":        return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'status'"
-        case "vaccine-code":  return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'vaccine-code'"
-        case "identifier":    return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'identifier'"
-        case "lot-number":    return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number'"
-        case "date":          return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Immunization' AND param_name = 'date'"
-        default:              return nil
+        case "patient":            return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'patient'"
+        case "performer":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'performer'"
+        case "location":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'location'"
+        case "manufacturer":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'manufacturer'"
+        case "reaction":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'reaction'"
+        case "reason-reference":   return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Immunization' AND param_name = 'reason-reference'"
+        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'status'"
+        case "vaccine-code":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'vaccine-code'"
+        case "reason-code":        return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'reason-code'"
+        case "status-reason":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'status-reason'"
+        case "target-disease":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'target-disease'"
+        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'identifier'"
+        case "lot-number":         return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'lot-number'"
+        case "series":             return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Immunization' AND param_name = 'series'"
+        case "date":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Immunization' AND param_name = 'date'"
+        case "reaction-date":      return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Immunization' AND param_name = 'reaction-date'"
+        default:                   return nil
         }
     }
 }

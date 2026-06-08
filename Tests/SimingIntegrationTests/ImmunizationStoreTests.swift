@@ -222,6 +222,112 @@ final class ImmunizationStoreTests: XCTestCase {
         XCTAssertNil(result.total)
     }
 
+    // ── Search: location ─────────────────────────────────────────────────────
+
+    func testSearch_byLocation_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmLocPt")).id
+        let locId = "loc-imm-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeImmunization(patientId: pid, locationId: locId))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(location: "Location/\(locId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: manufacturer ─────────────────────────────────────────────────
+
+    func testSearch_byManufacturer_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmMfrPt")).id
+        let mfrId = "mfr-imm-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeImmunization(patientId: pid, manufacturerId: mfrId))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(manufacturer: "Organization/\(mfrId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reaction ─────────────────────────────────────────────────────
+
+    func testSearch_byReaction_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmRxnPt")).id
+        let obsId = "obs-rxn-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeImmunization(patientId: pid, reactionDetailId: obsId))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(reaction: "Observation/\(obsId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reaction-date ─────────────────────────────────────────────────
+
+    func testSearch_byReactionDate_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmRxnDatePt")).id
+        _ = try await store.create(makeImmunization(patientId: pid, reactionDate: "2021-03-10"))
+        _ = try await store.create(makeImmunization(patientId: pid, reactionDate: "2019-07-05"))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let param = ImmunizationSearchQuery.DateParam.parse("ge2020-01-01")!
+        let result = try await store.search(query: ImmunizationSearchQuery(reactionDate: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-code ───────────────────────────────────────────────────
+
+    func testSearch_byReasonCode_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmReasonCodePt")).id
+        _ = try await store.create(makeImmunization(patientId: pid, reasonCode: "429060002"))
+        _ = try await store.create(makeImmunization(patientId: pid, reasonCode: "281040007"))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(
+            reasonCode: [ImmunizationSearchQuery.TokenParam(system: nil, code: "429060002")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-reference ──────────────────────────────────────────────
+
+    func testSearch_byReasonReference_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmReasonRefPt")).id
+        let condId = "cond-imm-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeImmunization(patientId: pid, reasonReferenceId: condId))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(reasonReference: "Condition/\(condId)"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: series ────────────────────────────────────────────────────────
+
+    func testSearch_bySeries_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmSeriesPt")).id
+        _ = try await store.create(makeImmunization(patientId: pid, series: "Dose1"))
+        _ = try await store.create(makeImmunization(patientId: pid, series: "Dose2"))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(series: "Dose1"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: status-reason ─────────────────────────────────────────────────
+
+    func testSearch_byStatusReason_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmStatusReasonPt")).id
+        _ = try await store.create(makeImmunization(patientId: pid, status: "not-done", statusReasonCode: "IMMUNE"))
+        _ = try await store.create(makeImmunization(patientId: pid, status: "not-done", statusReasonCode: "MEDPREC"))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(
+            statusReason: [ImmunizationSearchQuery.TokenParam(system: nil, code: "IMMUNE")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: target-disease ────────────────────────────────────────────────
+
+    func testSearch_byTargetDisease_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ImmTargetDiseasePt")).id
+        _ = try await store.create(makeImmunization(patientId: pid, targetDiseaseCode: "840539006"))
+        _ = try await store.create(makeImmunization(patientId: pid, targetDiseaseCode: "6142004"))
+        _ = try await store.create(makeImmunization(patientId: pid))
+        let result = try await store.search(query: ImmunizationSearchQuery(
+            targetDisease: [ImmunizationSearchQuery.TokenParam(system: nil, code: "840539006")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {
