@@ -39,6 +39,7 @@ public struct CarePlanSearchQuery: Sendable {
 
     // system params
     public var id: [String]
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]

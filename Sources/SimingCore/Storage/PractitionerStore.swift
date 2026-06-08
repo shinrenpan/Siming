@@ -244,7 +244,8 @@ public struct PractitionerStore: Sendable {
 
         let jsonData   = try JSONEncoder().encode(prac)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractPractitionerSearchParams(prac)
+        var searchParams = extractPractitionerSearchParams(prac)
+        appendMetaParams(&searchParams, meta: practitioner.meta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -464,6 +465,11 @@ public struct PractitionerStore: Sendable {
             }
         }
 
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Practitioner", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
         fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
@@ -676,6 +682,11 @@ public struct PractitionerStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Practitioner", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

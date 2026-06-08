@@ -244,7 +244,8 @@ public struct OrganizationStore: Sendable {
 
         let jsonData   = try JSONEncoder().encode(org)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractOrganizationSearchParams(org)
+        var searchParams = extractOrganizationSearchParams(org)
+        appendMetaParams(&searchParams, meta: organization.meta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -468,6 +469,11 @@ public struct OrganizationStore: Sendable {
             }
         }
 
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Organization", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
         fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
@@ -690,6 +696,11 @@ public struct OrganizationStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Organization", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

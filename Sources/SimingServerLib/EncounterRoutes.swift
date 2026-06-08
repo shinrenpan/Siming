@@ -442,7 +442,7 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return EncounterSearchQuery(
+    var query = EncounterSearchQuery(
         subject: subject, status: status, statusNot: statusNot,
         encounterClass: encounterClass, classNot: classNot,
         type: type, typeNot: typeNot, date: dates, identifier: identifier, identifierNot: identifierNot,
@@ -458,6 +458,8 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
         length: length,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

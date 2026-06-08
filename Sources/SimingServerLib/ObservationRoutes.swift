@@ -472,7 +472,7 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return ObservationSearchQuery(
+    var query = ObservationSearchQuery(
         subject: subject, code: code, codeNot: codeNot, date: dates,
         status: status, statusNot: statusNot,
         category: category, categoryNot: categoryNot,
@@ -498,6 +498,8 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
         valueDate: valueDate, valueString: valueString,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

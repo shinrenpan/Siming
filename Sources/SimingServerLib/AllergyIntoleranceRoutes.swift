@@ -426,7 +426,7 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return AllergyIntoleranceSearchQuery(
+    var query = AllergyIntoleranceSearchQuery(
         subject: subject,
         clinicalStatus: clinicalStatus, clinicalStatusNot: clinicalStatusNot,
         verificationStatus: verificationStatus, verificationStatusNot: verificationStatusNot,
@@ -442,6 +442,8 @@ func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, v
         date: date, lastDate: lastDate, onset: onset,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

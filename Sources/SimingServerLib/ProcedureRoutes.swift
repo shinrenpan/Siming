@@ -416,7 +416,7 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return ProcedureSearchQuery(
+    var query = ProcedureSearchQuery(
         subject: subject.map(String.init),
         status: status, statusNot: statusNot,
         code: code, codeNot: codeNot,
@@ -427,6 +427,8 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot, reasonReference: reasonReference,
         date: date, id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

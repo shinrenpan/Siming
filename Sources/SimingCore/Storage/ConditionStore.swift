@@ -241,11 +241,13 @@ public struct ConditionStore: Sendable {
 
         var cond = condition
         cond.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = cond.meta
         cond.meta = nil
 
         let jsonData   = try JSONEncoder().encode(cond)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractConditionSearchParams(cond)
+        var searchParams = extractConditionSearchParams(cond)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -810,6 +812,12 @@ public struct ConditionStore: Sendable {
             }
         }
 
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Condition", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -1211,6 +1219,12 @@ public struct ConditionStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Condition", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

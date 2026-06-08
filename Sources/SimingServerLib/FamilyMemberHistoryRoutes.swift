@@ -398,7 +398,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return FamilyMemberHistorySearchQuery(
+    var query = FamilyMemberHistorySearchQuery(
         patient: patient,
         status: status, statusNot: statusNot,
         relationship: relationship, relationshipNot: relationshipNot,
@@ -411,6 +411,8 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

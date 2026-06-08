@@ -244,7 +244,8 @@ public struct LocationStore: Sendable {
 
         let jsonData   = try JSONEncoder().encode(loc)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractLocationSearchParams(loc)
+        var searchParams = extractLocationSearchParams(loc)
+        appendMetaParams(&searchParams, meta: location.meta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -496,6 +497,11 @@ public struct LocationStore: Sendable {
             }
         }
 
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Location", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
         fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
@@ -744,6 +750,11 @@ public struct LocationStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Location", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

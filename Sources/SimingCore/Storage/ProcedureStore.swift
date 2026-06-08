@@ -240,11 +240,13 @@ public struct ProcedureStore: Sendable {
 
         var proc = procedure
         proc.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = proc.meta
         proc.meta = nil
 
         let jsonData   = try JSONEncoder().encode(proc)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractProcedureSearchParams(proc)
+        var searchParams = extractProcedureSearchParams(proc)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -513,6 +515,12 @@ public struct ProcedureStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Procedure", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -793,6 +801,12 @@ public struct ProcedureStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Procedure", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

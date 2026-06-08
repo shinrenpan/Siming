@@ -31,6 +31,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var lastDate: [DateParam]                    // lastOccurrence range filter
     public var onset: [DateParam]                       // reaction.onset range filter
     public var id: [String]                             // _id filter (OR)
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]                 // _lastUpdated range filter
     public var missing: [String: Bool]                  // param:missing=true/false
     public var chains: [ChainedParam]                   // chained search: patient.name=Wang, etc.

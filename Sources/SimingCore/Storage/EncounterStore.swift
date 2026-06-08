@@ -241,11 +241,13 @@ public struct EncounterStore: Sendable {
 
         var enc = encounter
         enc.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = enc.meta
         enc.meta = nil
 
         let jsonData   = try JSONEncoder().encode(enc)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractEncounterSearchParams(enc)
+        var searchParams = extractEncounterSearchParams(enc)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -877,6 +879,12 @@ public struct EncounterStore: Sendable {
             }
         }
 
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Encounter", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -1328,6 +1336,12 @@ public struct EncounterStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Encounter", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

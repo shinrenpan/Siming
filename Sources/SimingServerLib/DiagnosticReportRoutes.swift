@@ -414,7 +414,7 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return DiagnosticReportSearchQuery(
+    var query = DiagnosticReportSearchQuery(
         subject: subject.map(String.init),
         status: status, statusNot: statusNot,
         code: code, codeNot: codeNot,
@@ -425,6 +425,8 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         date: date, issued: issued,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

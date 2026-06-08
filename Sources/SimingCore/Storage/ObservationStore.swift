@@ -250,11 +250,13 @@ public struct ObservationStore: Sendable {
 
         var obs = observation
         obs.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = obs.meta
         obs.meta = nil
 
         let jsonData   = try JSONEncoder().encode(obs)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractObservationSearchParams(obs)
+        var searchParams = extractObservationSearchParams(obs)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -910,6 +912,12 @@ public struct ObservationStore: Sendable {
             }
         }
 
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Observation", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
+
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
             fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
@@ -1538,6 +1546,12 @@ public struct ObservationStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Observation", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

@@ -438,7 +438,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     }
     let chains = parseChainParams(from: pairs)
     let has = parseHasParams(from: pairs)
-    return PatientSearchQuery(
+    var query = PatientSearchQuery(
         name: name, family: family, given: given,
         gender: gender, active: active,
         address: address, addressCity: addressCity,
@@ -451,6 +451,8 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         birthdate: birthdates, deceased: deceased, deathDate: deathDates,
         lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

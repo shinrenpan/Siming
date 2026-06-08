@@ -25,6 +25,7 @@ public struct DiagnosticReportSearchQuery: Sendable {
     public var date: [DateParam]                    // effective date range
     public var issued: [DateParam]                  // issued date range
     public var id: [String]                         // _id filter (OR)
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
     public var missing: [String: Bool]              // param:missing=true/false
     public var chains: [ChainedParam]               // chained search

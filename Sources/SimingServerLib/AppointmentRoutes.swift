@@ -414,7 +414,7 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return AppointmentSearchQuery(
+    var query = AppointmentSearchQuery(
         patient: patient, actor: actor, practitioner: practitioner, location: location,
         status: status, statusNot: statusNot,
         identifier: identifier, identifierNot: identifierNot, date: date,
@@ -428,6 +428,8 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

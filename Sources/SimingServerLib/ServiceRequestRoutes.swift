@@ -424,7 +424,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return ServiceRequestSearchQuery(
+    var query = ServiceRequestSearchQuery(
         status: status, statusNot: statusNot,
         intent: intent, intentNot: intentNot,
         priority: priority, priorityNot: priorityNot,
@@ -445,6 +445,8 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

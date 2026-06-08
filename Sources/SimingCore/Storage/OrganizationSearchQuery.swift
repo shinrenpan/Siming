@@ -23,6 +23,7 @@ public struct OrganizationSearchQuery: Sendable {
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
+    public var meta: MetaSearchParams           // _tag / _security / _profile
 
     // ── Pagination / sort ─────────────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ public struct OrganizationSearchQuery: Sendable {
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
+        meta: MetaSearchParams = MetaSearchParams(),
         totalMode: TotalMode = .accurate,
         count: Int = 20,
         sort: SortOrder = .lastUpdatedDescending,
@@ -75,6 +77,7 @@ public struct OrganizationSearchQuery: Sendable {
         self.missing           = missing
         self.chains            = chains
         self.has               = has
+        self.meta              = meta
         self.totalMode         = totalMode
         self.count             = count
         self.sort              = sort

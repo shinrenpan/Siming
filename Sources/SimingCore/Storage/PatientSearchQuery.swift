@@ -21,6 +21,7 @@ public struct PatientSearchQuery: Sendable {
     public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var genderNot: [String]               // gender:not modifier
     public var identifier: [IdentifierParam]
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var id: [String]               // _id: filter by resource id (OR)
     public var birthdate: [BirthdateParam]
     public var deceased: Bool?            // deceased token: true=deceased, false=not deceased

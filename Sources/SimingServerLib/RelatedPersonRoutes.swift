@@ -405,7 +405,7 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return RelatedPersonSearchQuery(
+    var query = RelatedPersonSearchQuery(
         active: active, activeNot: activeNot,
         gender: gender, genderNot: genderNot,
         identifier: identifier, identifierNot: identifierNot,
@@ -417,6 +417,8 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
         birthdate: birthdate, patient: patient,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

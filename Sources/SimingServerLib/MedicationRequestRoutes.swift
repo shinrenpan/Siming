@@ -421,7 +421,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
-    return MedicationRequestSearchQuery(
+    var query = MedicationRequestSearchQuery(
         subject: subject,
         status: status, statusNot: statusNot,
         intent: intent, intentNot: intentNot,
@@ -439,6 +439,8 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         medication: medication,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

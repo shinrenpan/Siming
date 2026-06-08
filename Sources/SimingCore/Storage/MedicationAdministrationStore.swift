@@ -244,7 +244,8 @@ public struct MedicationAdministrationStore: Sendable {
 
         let jsonData   = try JSONEncoder().encode(ma)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractMedicationAdministrationSearchParams(ma)
+        var searchParams = extractMedicationAdministrationSearchParams(ma)
+        appendMetaParams(&searchParams, meta: medicationAdministration.meta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -452,6 +453,11 @@ public struct MedicationAdministrationStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "MedicationAdministration", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -707,6 +713,11 @@ public struct MedicationAdministrationStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "MedicationAdministration", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

@@ -416,7 +416,7 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return CarePlanSearchQuery(
+    var query = CarePlanSearchQuery(
         status: status, statusNot: statusNot,
         intent: intent, intentNot: intentNot,
         category: category, categoryNot: categoryNot,
@@ -433,6 +433,8 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

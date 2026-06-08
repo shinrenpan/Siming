@@ -240,11 +240,13 @@ public struct GoalStore: Sendable {
 
         var resource = goal
         resource.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = resource.meta
         resource.meta = nil
 
         let jsonData   = try JSONEncoder().encode(resource)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractGoalSearchParams(resource)
+        var searchParams = extractGoalSearchParams(resource)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -447,6 +449,12 @@ public struct GoalStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Goal", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -688,6 +696,12 @@ public struct GoalStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Goal", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

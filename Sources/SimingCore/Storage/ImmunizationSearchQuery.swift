@@ -27,6 +27,7 @@ public struct ImmunizationSearchQuery: Sendable {
     public var lotNumber: StringParam?               // lot-number string search
     public var date: [DateParam]                    // occurrence date range
     public var id: [String]                         // _id filter (OR)
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
     public var missing: [String: Bool]              // param:missing=true/false
     public var chains: [ChainedParam]               // chained search

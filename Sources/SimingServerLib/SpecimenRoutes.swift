@@ -405,7 +405,7 @@ func parseSpecimenQuery(from pairs: some Collection<(key: Substring, value: Subs
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return SpecimenSearchQuery(
+    var query = SpecimenSearchQuery(
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
         accession: accession, accessionNot: accessionNot,
@@ -419,6 +419,8 @@ func parseSpecimenQuery(from pairs: some Collection<(key: Substring, value: Subs
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

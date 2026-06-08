@@ -413,7 +413,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return LocationSearchQuery(
+    var query = LocationSearchQuery(
         name: name, identifier: identifier, identifierNot: identifierNot,
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
@@ -423,6 +423,8 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
         organization: organization, partof: partof, endpoint: endpoint,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

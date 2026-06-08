@@ -34,6 +34,7 @@ public struct ConditionSearchQuery: Sendable {
     public var onsetInfo: StringParam?               // Condition.onset as string (prefix/contains/exact)
     public var abatementString: StringParam?         // Condition.abatement as string (prefix/contains/exact)
     public var id: [String]                          // _id filter (OR)
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]              // _lastUpdated range filter
     public var missing: [String: Bool]               // param:missing=true/false
     public var chains: [ChainedParam]                // chained search: subject.name=Wang, etc.

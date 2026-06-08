@@ -244,7 +244,8 @@ public struct FamilyMemberHistoryStore: Sendable {
 
         let jsonData   = try JSONEncoder().encode(fmh)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractFamilyMemberHistorySearchParams(fmh)
+        var searchParams = extractFamilyMemberHistorySearchParams(fmh)
+        appendMetaParams(&searchParams, meta: familyMemberHistory.meta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -456,6 +457,11 @@ public struct FamilyMemberHistoryStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "FamilyMemberHistory", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -715,6 +721,11 @@ public struct FamilyMemberHistoryStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "FamilyMemberHistory", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

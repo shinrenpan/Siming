@@ -27,6 +27,7 @@ public struct MedicationRequestSearchQuery: Sendable {
     public var intendedPerformerTypeNot: [TokenParam] // intended-performertype:not modifier
     public var medication: String?                  // MedicationRequest.medication as Reference
     public var id: [String]                         // _id filter (OR)
+    public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
     public var missing: [String: Bool]              // param:missing=true/false
     public var chains: [ChainedParam]               // chained search: subject.name=Wang, etc.

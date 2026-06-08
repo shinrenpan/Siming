@@ -422,7 +422,7 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
-    return PractitionerSearchQuery(
+    var query = PractitionerSearchQuery(
         name: name, family: family, given: given, phonetic: phonetic,
         identifier: identifier, identifierNot: identifierNot, active: active,
         gender: gender, genderNot: genderNot,
@@ -432,6 +432,8 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
         communication: communication, communicationNot: communicationNot,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+    query.meta = parseMetaSearchParams(from: pairs)
+    return query
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

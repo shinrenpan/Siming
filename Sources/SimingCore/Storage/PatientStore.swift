@@ -260,11 +260,13 @@ public struct PatientStore: Sendable {
         // Prepare the patient for storage: server owns id and meta.
         var p = patient
         p.id = FHIRPrimitive(FHIRString(id))
+        let originalMeta = p.meta
         p.meta = nil  // meta is reconstructed from the resources row on every read
 
         let jsonData = try JSONEncoder().encode(p)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractPatientSearchParams(p)
+        var searchParams = extractPatientSearchParams(p)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -570,6 +572,12 @@ public struct PatientStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Patient", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs {
@@ -943,6 +951,12 @@ public struct PatientStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Patient", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }

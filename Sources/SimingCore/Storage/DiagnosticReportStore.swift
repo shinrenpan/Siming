@@ -240,11 +240,13 @@ public struct DiagnosticReportStore: Sendable {
 
         var dr = diagnosticReport
         dr.id   = FHIRPrimitive(FHIRString(id))
+        let originalMeta = dr.meta
         dr.meta = nil
 
         let jsonData   = try JSONEncoder().encode(dr)
         let jsonString = String(data: jsonData, encoding: .utf8)!
-        let searchParams = extractDiagnosticReportSearchParams(dr)
+        var searchParams = extractDiagnosticReportSearchParams(dr)
+        appendMetaParams(&searchParams, meta: originalMeta)
 
         return try await client.withConnection { conn in
             let (versionId, lastUpdated) = try await writeResource(
@@ -506,6 +508,12 @@ public struct DiagnosticReportStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "DiagnosticReport", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
@@ -779,6 +787,12 @@ public struct DiagnosticReportStore: Sendable {
                 filterCTEs.append((name, sql))
             }
         }
+
+        // meta params: _tag, _security, _profile
+        let strBind: (String) -> String = { bind($0) }
+        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "DiagnosticReport", meta: query.meta, bind: strBind)
+        filterCTEs += metaCTEs
+        whereConditions += metaWhere
 
         var fromLines = ["FROM resources r"]
         for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
