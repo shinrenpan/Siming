@@ -185,5 +185,6 @@ private func chainDateClause(
     case .ge:  return "d.date_end >= \(bindDate(dp.dateStart))"
     case .sa:  return "d.date_start > \(bindDate(dp.dateEnd))"
     case .eb:  return "d.date_end < \(bindDate(dp.dateStart))"
+    case .ap:  return "d.date_start <= \(bindDate(dp.apExpandedEnd)) AND d.date_end >= \(bindDate(dp.apExpandedStart))"
     }
 }

@@ -317,6 +317,7 @@ public struct MedicationStatementStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             return (name, "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationStatement' AND param_name = '\(paramName)' AND \(cond)")
         }
@@ -380,6 +381,7 @@ public struct MedicationStatementStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }
@@ -589,6 +591,7 @@ public struct MedicationStatementStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             return (name, "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationStatement' AND param_name = '\(paramName)' AND \(cond)")
         }

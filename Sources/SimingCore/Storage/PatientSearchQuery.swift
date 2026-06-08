@@ -216,6 +216,7 @@ public struct PatientSearchQuery: Sendable {
             case eq, ne, lt, gt, le, ge
             case sa  // starts-after: stored period start > search range end
             case eb  // ends-before:  stored period end   < search range start
+            case ap  // approximately equal: ±10% of precision period
         }
         public let prefix: Prefix
         /// Inclusive start of the search precision range (UTC).
@@ -223,13 +224,18 @@ public struct PatientSearchQuery: Sendable {
         /// Inclusive end of the search precision range (UTC).
         public let dateEnd: Date
 
+        /// For `ap` prefix: expanded start = dateStart − 10% of precision period.
+        public var apExpandedStart: Date { dateStart.addingTimeInterval(-(dateEnd.timeIntervalSince(dateStart) * 0.1)) }
+        /// For `ap` prefix: expanded end = dateEnd + 10% of precision period.
+        public var apExpandedEnd:   Date { dateEnd.addingTimeInterval(dateEnd.timeIntervalSince(dateStart) * 0.1) }
+
         // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), "sa2024-01-01", etc.
         // Partial dates expand to a full precision range per FHIR R4 §2.4.0.1:
         //   YYYY      → [Jan 1 00:00:00, Dec 31 23:59:59]
         //   YYYY-MM   → [1st 00:00:00, last-day 23:59:59]
         //   YYYY-MM-DD → [00:00:00, 23:59:59]
         public static func parse(_ raw: String) -> BirthdateParam? {
-            let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb"]
+            let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb", "ap"]
             let (pfxStr, dateStr): (String, String)
             let candidate = String(raw.prefix(2))
             if knownPrefixes.contains(candidate) {

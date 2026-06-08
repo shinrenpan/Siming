@@ -431,6 +431,7 @@ public struct ConditionStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_onset\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -452,6 +453,7 @@ public struct ConditionStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_abatement\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -638,6 +640,7 @@ public struct ConditionStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_recorded\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -666,6 +669,7 @@ public struct ConditionStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }
@@ -996,6 +1000,7 @@ public struct ConditionStore: Sendable {
                 case .ge: cond = "date_end >= \(startP)"
                 case .sa: cond = "date_start > \(endP)"
                 case .eb: cond = "date_end < \(startP)"
+                case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
                 }
                 filterCTEs.append(("\(prefix)\(i)",
                     "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND \(cond)"))
@@ -1084,6 +1089,7 @@ public struct ConditionStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }

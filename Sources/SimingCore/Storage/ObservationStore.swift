@@ -465,9 +465,13 @@ public struct ObservationStore: Sendable {
             switch dp.prefix {
             case .eq: cond = "date_start <= \(eP) AND date_end >= \(sP)"
             case .ne: cond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
-            case .lt: cond = "date_end < \(sP)"; case .le: cond = "date_start <= \(eP)"
-            case .gt: cond = "date_start > \(eP)"; case .ge: cond = "date_end >= \(sP)"
-            case .sa: cond = "date_start > \(eP)"; case .eb: cond = "date_end < \(sP)"
+            case .lt: cond = "date_end < \(sP)"
+            case .le: cond = "date_start <= \(eP)"
+            case .gt: cond = "date_start > \(eP)"
+            case .ge: cond = "date_end >= \(sP)"
+            case .sa: cond = "date_start > \(eP)"
+            case .eb: cond = "date_end < \(sP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
         }
@@ -658,6 +662,7 @@ public struct ObservationStore: Sendable {
                 case .ge: dateCond = "date_end >= \(sP)"
                 case .sa: dateCond = "date_start > \(eP)"
                 case .eb: dateCond = "date_end < \(sP)"
+                case .ap: dateCond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
                 }
                 let valSQ = "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(dateCond)"
                 return "(\(codeSQ) INTERSECT \(valSQ))"
@@ -751,6 +756,7 @@ public struct ObservationStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_date\(i)", """
                 SELECT DISTINCT resource_id FROM idx_date
@@ -779,6 +785,7 @@ public struct ObservationStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }
@@ -1143,9 +1150,13 @@ public struct ObservationStore: Sendable {
             switch dp.prefix {
             case .eq: cond = "date_start <= \(eP) AND date_end >= \(sP)"
             case .ne: cond = "NOT (date_start <= \(eP) AND date_end >= \(sP))"
-            case .lt: cond = "date_end < \(sP)"; case .le: cond = "date_start <= \(eP)"
-            case .gt: cond = "date_start > \(eP)"; case .ge: cond = "date_end >= \(sP)"
-            case .sa: cond = "date_start > \(eP)"; case .eb: cond = "date_end < \(sP)"
+            case .lt: cond = "date_end < \(sP)"
+            case .le: cond = "date_start <= \(eP)"
+            case .gt: cond = "date_start > \(eP)"
+            case .ge: cond = "date_end >= \(sP)"
+            case .sa: cond = "date_start > \(eP)"
+            case .eb: cond = "date_end < \(sP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_vdate\(i)", "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(cond)"))
         }
@@ -1306,6 +1317,7 @@ public struct ObservationStore: Sendable {
                 case .ge: dateCond = "date_end >= \(sP)"
                 case .sa: dateCond = "date_start > \(eP)"
                 case .eb: dateCond = "date_end < \(sP)"
+                case .ap: dateCond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
                 }
                 let valSQ = "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date' AND \(dateCond)"
                 return "(\(codeSQ) INTERSECT \(valSQ))"
@@ -1376,6 +1388,7 @@ public struct ObservationStore: Sendable {
             case .ge: cond = "date_end >= \(startP)"
             case .sa: cond = "date_start > \(endP)"
             case .eb: cond = "date_end < \(startP)"
+            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
             }
             filterCTEs.append(("f_date\(i)",
                 "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'date' AND \(cond)"))
@@ -1399,6 +1412,7 @@ public struct ObservationStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }

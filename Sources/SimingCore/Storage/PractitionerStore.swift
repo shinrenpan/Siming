@@ -380,6 +380,7 @@ public struct PractitionerStore: Sendable {
             case .ge: cond = "r.last_updated >= \(startP)"
             case .sa: cond = "r.last_updated > \(endP)"
             case .eb: cond = "r.last_updated < \(startP)"
+            case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
             whereConditions.append(cond)
         }
