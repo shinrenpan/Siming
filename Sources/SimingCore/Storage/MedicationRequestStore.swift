@@ -450,6 +450,25 @@ public struct MedicationRequestStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performertype' AND (\(orClauses.joined(separator: " OR ")))"))
         }
 
+        // date (dosage timing events) — idx_date range
+        for (i, dp) in query.date.enumerated() {
+            let startP = bind(dp.dateStart)
+            let endP   = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
+            }
+            filterCTEs.append(("f_date\(i)",
+                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'date' AND \(cond)"))
+        }
+
         // authoredon — idx_date range
         for (i, dp) in query.authoredOn.enumerated() {
             let startP = bind(dp.dateStart)
@@ -726,6 +745,24 @@ public struct MedicationRequestStore: Sendable {
         if let v = query.intendedPerformer { filterCTEs.append(refCTECount(name: "f_intended_performer", paramName: "intended-performer", ref: v)) }
         if let v = query.medication        { filterCTEs.append(refCTECount(name: "f_medication",         paramName: "medication",         ref: v)) }
 
+        for (i, dp) in query.date.enumerated() {
+            let startP = bind(dp.dateStart)
+            let endP   = bind(dp.dateEnd)
+            let cond: String
+            switch dp.prefix {
+            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
+            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
+            case .lt: cond = "date_end < \(startP)"
+            case .le: cond = "date_start <= \(endP)"
+            case .gt: cond = "date_start > \(endP)"
+            case .ge: cond = "date_end >= \(startP)"
+            case .sa: cond = "date_start > \(endP)"
+            case .eb: cond = "date_end < \(startP)"
+            }
+            filterCTEs.append(("f_date\(i)",
+                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'date' AND \(cond)"))
+        }
+
         for (i, dp) in query.authoredOn.enumerated() {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
@@ -795,6 +832,7 @@ public struct MedicationRequestStore: Sendable {
         case "category":                 return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'category'"
         case "code":                     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'code'"
         case "identifier":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'identifier'"
+        case "date":                     return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'date'"
         case "authoredon":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'authoredon'"
         case "intended-dispenser":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-dispenser'"
         case "intended-performer":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performer'"

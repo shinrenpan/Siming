@@ -142,6 +142,23 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
         """
     }
 
+    // component-value-quantity: obs.component[].value as Quantity → idx_quantity
+    if code == "component-value-quantity" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for comp in obs.component ?? [] {
+                guard case .quantity(let q) = comp.value,
+                      let decimalVal = q.value?.value?.decimal else { continue }
+                let sys  = q.system?.value?.url.absoluteString
+                let unit = q.code?.value?.string
+                p.quantities.append(.init(paramName: "component-value-quantity", system: sys, code: unit,
+                                          value: Decimal(string: decimalVal.description) ?? 0))
+            }
+        }
+        """
+    }
+
     // part-of: obs.partOf[] → idx_reference
     if code == "part-of" {
         return """

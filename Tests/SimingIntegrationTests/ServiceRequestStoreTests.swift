@@ -304,6 +304,20 @@ final class ServiceRequestStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: instantiates-canonical ───────────────────────────────────────
+
+    func testSearch_byInstantiatesCanonical_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "SRInstCanPt")).id
+        let url = "http://example.com/plandefinition/\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeServiceRequest(patientId: pid, instantiatesCanonical: url))
+        _ = try await store.create(makeServiceRequest(patientId: pid))
+
+        let result = try await store.search(query: ServiceRequestSearchQuery(
+            instantiatesCanonical: [url]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── Search: order-detail ──────────────────────────────────────────────────
 
     func testSearch_byOrderDetail_returnsMatchOnly() async throws {

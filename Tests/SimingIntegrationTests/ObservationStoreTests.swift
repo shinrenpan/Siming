@@ -319,4 +319,20 @@ final class ObservationStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: component-value-quantity ─────────────────────────────────────
+
+    func testSearch_byComponentValueQuantity_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CompValQtyPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentQuantityValue: 120))
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentQuantityValue: 70))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let param = ObservationSearchQuery.QuantityParam.parse("ge100")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            componentValueQuantity: [param]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

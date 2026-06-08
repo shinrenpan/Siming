@@ -526,6 +526,35 @@ public struct ObservationStore: Sendable {
                 """))
         }
 
+        // component-value-quantity — idx_quantity with numeric comparison and optional system/code
+        if !query.componentValueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.componentValueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_comp_vquantity", """
+                SELECT DISTINCT resource_id FROM idx_quantity
+                WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
         // date — idx_date range with two-bound comparison per FHIR R4 §2.4.0.1
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
@@ -979,6 +1008,30 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_vquantity",
                 "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
         }
+        if !query.componentValueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.componentValueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_comp_vquantity",
+                "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
@@ -1125,6 +1178,7 @@ public struct ObservationStore: Sendable {
         case "combo-data-absent-reason":    return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'combo-data-absent-reason'"
         case "component-data-absent-reason": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-data-absent-reason'"
         case "component-value-concept":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-value-concept'"
+        case "component-value-quantity":    return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity'"
         default:                   return nil
         }
     }

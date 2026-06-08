@@ -221,6 +221,7 @@ func makeObservation(
     valueString: String? = nil,
     valueDateTime: String? = nil,
     componentCode: String? = nil,
+    componentQuantityValue: Double? = nil,
     dataAbsentReasonCode: String? = nil,
     componentValueConceptCode: String? = nil,
     componentDataAbsentReasonCode: String? = nil
@@ -247,7 +248,8 @@ func makeObservation(
         } else if let cdar = componentDataAbsentReasonCode {
             json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"dataAbsentReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/data-absent-reason","code":"\#(cdar)"}]}}]"#
         } else {
-            json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueQuantity":{"value":1,"unit":"mmHg"}}]"#
+            let qval = componentQuantityValue ?? 1.0
+            json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueQuantity":{"value":\#(qval),"system":"http://unitsofmeasure.org","code":"mmHg"}}]"#
         }
     } else if let cdar = componentDataAbsentReasonCode {
         json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"unknown"}]},"dataAbsentReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/data-absent-reason","code":"\#(cdar)"}]}}]"#
@@ -392,6 +394,7 @@ func makeMedicationRequest(
     status: String = "active",
     intent: String = "order",
     authoredOn: String? = nil,
+    dosageTimingEvent: String? = nil,
     intendedDispenserId: String? = nil,
     intendedPerformerId: String? = nil,
     intendedPerformerTypeCode: String? = nil,
@@ -409,6 +412,7 @@ func makeMedicationRequest(
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
     if let d = authoredOn             { json += #","authoredOn":"\#(d)""# }
+    if let evt = dosageTimingEvent    { json += #","dosageInstruction":[{"timing":{"event":["\#(evt)"]}}]"# }
     if let did = intendedDispenserId  { json += #","dispenseRequest":{"performer":{"reference":"Organization/\#(did)"}}"# }
     if let pid = intendedPerformerId  { json += #","performer":{"reference":"Practitioner/\#(pid)"}"# }
     if let tc = intendedPerformerTypeCode {
@@ -621,6 +625,7 @@ func makeServiceRequest(
     categorySystem: String = "http://snomed.info/sct",
     authoredOn: String? = nil,
     encounterRef: String? = nil,
+    instantiatesCanonical: String? = nil,
     instantiatesUri: String? = nil,
     orderDetailCode: String? = nil
 ) throws -> ModelsR4.ServiceRequest {
@@ -639,6 +644,7 @@ func makeServiceRequest(
     }
     if let a = authoredOn { json += #","authoredOn":"\#(a)""# }
     if let e = encounterRef { json += #","encounter":{"reference":"\#(e)"}"# }
+    if let ic = instantiatesCanonical { json += #","instantiatesCanonical":["\#(ic)"]"# }
     if let u = instantiatesUri { json += #","instantiatesUri":["\#(u)"]"# }
     if let od = orderDetailCode {
         json += #","orderDetail":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(od)"}]}]"#

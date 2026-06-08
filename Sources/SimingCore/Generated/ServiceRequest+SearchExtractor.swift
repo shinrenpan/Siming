@@ -112,7 +112,10 @@ private func extract_ServiceRequest_identifier(_ p: inout SearchParams, _ sr: Se
 
 // instantiates-canonical [reference] — ServiceRequest.instantiatesCanonical
 private func extract_ServiceRequest_instantiates_canonical(_ p: inout SearchParams, _ sr: ServiceRequest) {
-    // TODO: canonical reference indexing not implemented
+    for ic in sr.instantiatesCanonical ?? [] {
+        guard let url = ic.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+    }
 }
 
 // instantiates-uri [uri] — ServiceRequest.instantiatesUri

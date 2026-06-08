@@ -176,6 +176,19 @@ final class MedicationRequestStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: date (dosage timing event) ───────────────────────────────────
+
+    func testSearch_byDate_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedDatePt")).id
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, dosageTimingEvent: "2024-06-01"))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, dosageTimingEvent: "2022-01-01"))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+
+        let param = MedicationRequestSearchQuery.DateParam.parse("ge2023-01-01")!
+        let result = try await store.search(query: MedicationRequestSearchQuery(date: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

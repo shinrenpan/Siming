@@ -62,8 +62,21 @@ private func extract_MedicationRequest_code(_ p: inout SearchParams, _ mr: Medic
     }
 }
 
-// TODO: unhandled — date [date] MedicationRequest.dosageInstruction.timing.event
-private func extract_MedicationRequest_date(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+// date [date] — MedicationRequest.dosageInstruction.timing.event
+private func extract_MedicationRequest_date(_ p: inout SearchParams, _ mr: MedicationRequest) {
+    let cal = Calendar(identifier: .gregorian)
+    for dosage in mr.dosageInstruction ?? [] {
+        for evt in dosage.timing?.event ?? [] {
+            guard let dt = evt.value else { continue }
+            var dc = DateComponents()
+            dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+            dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+            dc.timeZone = dt.timeZone
+            let d = cal.date(from: dc) ?? Date()
+            p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
+        }
+    }
+}
 
 // encounter [reference] — MedicationRequest.encounter
 private func extract_MedicationRequest_encounter(_ p: inout SearchParams, _ mr: MedicationRequest) {

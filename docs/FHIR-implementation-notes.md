@@ -64,6 +64,8 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `method`, `value-concept`, `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
 
+**Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (`obs.value as Quantity` only — component part not yet indexed), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
+
 **Date params** (idx_date): `value-date` (`obs.value as DateTime`).
 
 **String params** (idx_string): `value-string` (`obs.value as string`).
@@ -104,7 +106,7 @@ All of the following are fully implemented:
 - `intended-performertype` — `mr.performerType.coding[]` via idx_token with `:not`.
 - `medication` (reference) — `mr.medication` when it is a Reference via idx_reference (distinct from `code` which indexes medication as CodeableConcept).
 
-**TODO stubs:** `date` (dosage timing).
+- `date` — `dosageInstruction[].timing.event[]` (DateTime array) via idx_date. Only `timing.event` is indexed; `timing.repeat.bounds` and other Timing sub-fields are not.
 
 ### AllergyIntolerance
 
@@ -150,6 +152,7 @@ All of the following are fully implemented:
 ### ServiceRequest
 
 - `order-detail` — `sr.orderDetail[].coding[]` via idx_token with `:not` modifier.
+- `instantiates-canonical` — `sr.instantiatesCanonical[]` via idx_string (case-insensitive URL match via `lower(value) = lower($n)`).
 - `instantiates-uri` — indexes `sr.instantiatesUri[]` via idx_string (exact URL match).
 
 ### DocumentReference

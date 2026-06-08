@@ -21,7 +21,8 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var requisition: [TokenParam]
 
     // string params
-    public var instantiatesUri: [String]     // ServiceRequest.instantiatesUri (exact URL match)
+    public var instantiatesCanonical: [String] // ServiceRequest.instantiatesCanonical (exact URL match)
+    public var instantiatesUri: [String]       // ServiceRequest.instantiatesUri (exact URL match)
 
     // order-detail token params
     public var orderDetail: [TokenParam]     // ServiceRequest.orderDetail token OR
@@ -70,6 +71,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         performerType: [TokenParam] = [],
         requisition: [TokenParam] = [],
+        instantiatesCanonical: [String] = [],
         instantiatesUri: [String] = [],
         orderDetail: [TokenParam] = [],
         orderDetailNot: [TokenParam] = [],
@@ -107,6 +109,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.identifier     = identifier
         self.performerType  = performerType
         self.requisition    = requisition
+        self.instantiatesCanonical = instantiatesCanonical
         self.instantiatesUri = instantiatesUri
         self.orderDetail    = orderDetail
         self.orderDetailNot = orderDetailNot

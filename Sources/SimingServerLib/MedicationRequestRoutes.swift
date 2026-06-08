@@ -14,7 +14,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownMedicationRequestParams: Set<String> = [
     "subject", "patient", "status", "intent", "category", "code",
-    "priority", "identifier", "authoredon", "encounter", "requester",
+    "priority", "identifier", "date", "authoredon", "encounter", "requester",
     "intended-dispenser", "intended-performer",
     "intended-performertype", "intended-performertype:not",
     "medication",
@@ -392,6 +392,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     let priority     = all("priority").flatMap { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) }
     let priorityNot  = all("priority:not").flatMap { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) }
     let identifier   = first("identifier").map { MedicationRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
+    let date         = all("date").compactMap { MedicationRequestSearchQuery.DateParam.parse(String($0)) }
     let authoredOn   = all("authoredon").compactMap { MedicationRequestSearchQuery.DateParam.parse(String($0)) }
     let encounter    = first("encounter").map(String.init)
     let requester    = first("requester").map(String.init)
@@ -410,7 +411,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     let totalMode    = MedicationRequestSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["subject", "patient", "status", "intent", "category", "code",
-              "priority", "identifier", "authoredon", "encounter", "requester",
+              "priority", "identifier", "date", "authoredon", "encounter", "requester",
               "intended-dispenser", "intended-performer", "intended-performertype", "medication"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
@@ -426,6 +427,7 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         code: code, codeNot: codeNot,
         priority: priority, priorityNot: priorityNot,
         identifier: identifier,
+        date: date,
         authoredOn: authoredOn,
         encounter: encounter, requester: requester,
         intendedDispenser: intendedDispenser,

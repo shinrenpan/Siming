@@ -16,6 +16,7 @@ public struct MedicationRequestSearchQuery: Sendable {
     public var priority: [TokenParam]               // token OR: "routine,urgent,asap,stat"
     public var priorityNot: [TokenParam]            // priority:not modifier
     public var identifier: [IdentifierParam]
+    public var date: [DateParam]                    // date (dosage timing events) range filter
     public var authoredOn: [DateParam]              // authoredon range filter
     public var encounter: String?                   // reference: "Encounter/id"
     public var requester: String?                   // reference: "Practitioner/id" etc.
@@ -50,6 +51,7 @@ public struct MedicationRequestSearchQuery: Sendable {
         priority: [TokenParam] = [],
         priorityNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
+        date: [DateParam] = [],
         authoredOn: [DateParam] = [],
         encounter: String? = nil,
         requester: String? = nil,
@@ -80,6 +82,7 @@ public struct MedicationRequestSearchQuery: Sendable {
         self.priority     = priority
         self.priorityNot  = priorityNot
         self.identifier   = identifier
+        self.date         = date
         self.authoredOn   = authoredOn
         self.encounter    = encounter
         self.requester    = requester

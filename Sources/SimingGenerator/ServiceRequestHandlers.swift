@@ -244,12 +244,15 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
-    // ── reference: instantiates-canonical (TODO stub) ─────────────────────────
+    // ── string: instantiates-canonical (canonical URL → idx_string) ─────────────
     case "instantiates-canonical":
         return """
         \(header)
         private func \(fn)(_ p: inout SearchParams, _ sr: ServiceRequest) {
-            // TODO: canonical reference indexing not implemented
+            for ic in sr.instantiatesCanonical ?? [] {
+                guard let url = ic.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-canonical", value: url))
+            }
         }
         """
 

@@ -201,6 +201,26 @@ func medicationRequestHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── date: dosage timing events ────────────────────────────────────────────
+    case "date":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {
+            let cal = Calendar(identifier: .gregorian)
+            for dosage in mr.dosageInstruction ?? [] {
+                for evt in dosage.timing?.event ?? [] {
+                    guard let dt = evt.value else { continue }
+                    var dc = DateComponents()
+                    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
+                    dc.timeZone = dt.timeZone
+                    let d = cal.date(from: dc) ?? Date()
+                    p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
+                }
+            }
+        }
+        """
+
     // ── date: authoredOn ─────────────────────────────────────────────────────
     case "authoredon":
         return """

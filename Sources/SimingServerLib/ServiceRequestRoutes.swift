@@ -18,7 +18,7 @@ let knownServiceRequestParams: Set<String> = [
     "authored", "occurrence",
     "subject", "patient", "encounter", "requester", "performer",
     "based-on", "replaces", "specimen",
-    "instantiates-uri",
+    "instantiates-canonical", "instantiates-uri",
     "order-detail", "order-detail:not",
     "status:not", "intent:not", "priority:not", "code:not", "category:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
@@ -395,6 +395,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let basedOn   = first("based-on").map(String.init)
     let replaces  = first("replaces").map(String.init)
     let specimen  = first("specimen").map(String.init)
+    let instantiatesCanonical = all("instantiates-canonical").map(String.init)
     let instantiatesUri = all("instantiates-uri").map(String.init)
 
     let id          = first("_id").map {
@@ -411,7 +412,8 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
               "performer-type", "requisition", "identifier",
               "authored", "occurrence",
               "subject", "patient", "encounter", "requester", "performer",
-              "based-on", "replaces", "specimen", "instantiates-uri", "order-detail"] {
+              "based-on", "replaces", "specimen",
+              "instantiates-canonical", "instantiates-uri", "order-detail"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -430,6 +432,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
         identifier: identifier,
         performerType: performerType,
         requisition: requisition,
+        instantiatesCanonical: instantiatesCanonical,
         instantiatesUri: instantiatesUri,
         orderDetail: orderDetail, orderDetailNot: orderDetailNot,
         authored: authored, occurrence: occurrence,

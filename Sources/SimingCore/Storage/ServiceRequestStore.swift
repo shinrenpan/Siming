@@ -352,6 +352,12 @@ public struct ServiceRequestStore: Sendable {
             }
         }
 
+        // instantiates-canonical — idx_string exact match (case-insensitive URL comparison)
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         // instantiates-uri — idx_string exact match
         for (i, uri) in query.instantiatesUri.enumerated() {
             let p = bind(uri)
@@ -660,6 +666,11 @@ public struct ServiceRequestStore: Sendable {
             }
         }
 
+        if !query.instantiatesCanonical.isEmpty {
+            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
+            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         for (i, uri) in query.instantiatesUri.enumerated() {
             let p = bind(uri)
             filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
@@ -748,6 +759,7 @@ public struct ServiceRequestStore: Sendable {
         case "based-on":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'based-on'"
         case "replaces":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'replaces'"
         case "specimen":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'specimen'"
+        case "instantiates-canonical": return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-canonical'"
         case "instantiates-uri":  return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri'"
         case "order-detail":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = 'order-detail'"
         default:               return nil

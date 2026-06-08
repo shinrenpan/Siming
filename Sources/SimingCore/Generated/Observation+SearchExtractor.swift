@@ -197,8 +197,17 @@ private func extract_Observation_component_value_concept(_ p: inout SearchParams
     }
 }
 
-// TODO: unhandled — component-value-quantity [quantity] (Observation.component.value as Quantity) | (Observation.component.value as SampledData)
-private func extract_Observation_component_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
+// component-value-quantity [quantity] — Observation.component.value
+private func extract_Observation_component_value_quantity(_ p: inout SearchParams, _ obs: Observation) {
+    for comp in obs.component ?? [] {
+        guard case .quantity(let q) = comp.value,
+              let decimalVal = q.value?.value?.decimal else { continue }
+        let sys  = q.system?.value?.url.absoluteString
+        let unit = q.code?.value?.string
+        p.quantities.append(.init(paramName: "component-value-quantity", system: sys, code: unit,
+                                  value: Decimal(string: decimalVal.description) ?? 0))
+    }
+}
 
 // data-absent-reason [token] — Observation.dataAbsentReason
 private func extract_Observation_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
