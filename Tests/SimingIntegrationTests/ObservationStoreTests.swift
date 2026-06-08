@@ -415,4 +415,68 @@ final class ObservationStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: component-code-value-quantity (idx_composite tuple match) ─────
+
+    func testSearch_byComponentCodeValueQuantity_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CompCVQPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentQuantityValue: 120.0))
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentQuantityValue: 60.0))
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8462-4", componentQuantityValue: 120.0))
+
+        let composite = ObservationSearchQuery.CompositeCodeQuantity.parse("8480-6$ge100")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            componentCodeValueQuantity: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: component-code-value-concept (idx_composite tuple match) ──────
+
+    func testSearch_byComponentCodeValueConcept_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CompCVCPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentValueConceptCode: "428041000124106"))
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8480-6", componentValueConceptCode: "8517006"))
+        _ = try await store.create(makeObservation(subjectId: pid, componentCode: "8462-4", componentValueConceptCode: "428041000124106"))
+
+        let composite = ObservationSearchQuery.CompositeCodeConcept.parse("8480-6$428041000124106")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            componentCodeValueConcept: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: combo-code-value-quantity (idx_composite tuple match) ─────────
+
+    func testSearch_byComboCodeValueQuantity_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboCVQPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7", valueQuantity: 75.0))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "29463-7", valueQuantity: 40.0))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4", valueQuantity: 75.0))
+
+        let composite = ObservationSearchQuery.CompositeCodeQuantity.parse("29463-7$ge60")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            comboCodeValueQuantity: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: combo-code-value-concept (idx_composite tuple match) ──────────
+
+    func testSearch_byComboCodeValueConcept_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboCVCPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, code: "72166-2", valueConcept: "428041000124106"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "72166-2", valueConcept: "8517006"))
+        _ = try await store.create(makeObservation(subjectId: pid, code: "8867-4", valueConcept: "428041000124106"))
+
+        let composite = ObservationSearchQuery.CompositeCodeConcept.parse("72166-2$428041000124106")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            comboCodeValueConcept: [composite]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

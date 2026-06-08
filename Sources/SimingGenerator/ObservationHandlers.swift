@@ -159,6 +159,106 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
         """
     }
 
+    // component-code-value-quantity: each component (code, valueQuantity) → idx_composite
+    if code == "component-code-value-quantity" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for comp in obs.component ?? [] {
+                guard case .quantity(let q) = comp.value,
+                      let decimalVal = q.value?.value?.decimal else { continue }
+                let val  = NSDecimalNumber(decimal: decimalVal).doubleValue
+                let qSys = q.system?.value?.url.absoluteString
+                let qCod = q.code?.value?.string
+                for coding in comp.code.coding ?? [] {
+                    let c1 = coding.code?.value?.string ?? ""
+                    let s1 = coding.system?.value?.url.absoluteString
+                    p.composites.append(.init(paramName: "component-code-value-quantity",
+                        code1System: s1, code1Code: c1, code2System: qSys, code2Code: qCod, value2: val))
+                }
+            }
+        }
+        """
+    }
+
+    // component-code-value-concept: each component (code, valueConcept) → idx_composite
+    if code == "component-code-value-concept" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for comp in obs.component ?? [] {
+                guard case .codeableConcept(let cc) = comp.value else { continue }
+                for coding in comp.code.coding ?? [] {
+                    let c1 = coding.code?.value?.string ?? ""
+                    let s1 = coding.system?.value?.url.absoluteString
+                    for vc in cc.coding ?? [] {
+                        let c2 = vc.code?.value?.string ?? ""
+                        let s2 = vc.system?.value?.url.absoluteString
+                        p.composites.append(.init(paramName: "component-code-value-concept",
+                            code1System: s1, code1Code: c1, code2System: s2, code2Code: c2))
+                    }
+                }
+            }
+        }
+        """
+    }
+
+    // combo-code-value-quantity: root (obs.code, obs.valueQuantity) + each component → idx_composite
+    if code == "combo-code-value-quantity" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            func appendQuantityPair(_ code1: String, _ sys1: String?, _ q: Quantity) {
+                guard let decimalVal = q.value?.value?.decimal else { return }
+                let val  = NSDecimalNumber(decimal: decimalVal).doubleValue
+                let qSys = q.system?.value?.url.absoluteString
+                let qCod = q.code?.value?.string
+                p.composites.append(.init(paramName: "combo-code-value-quantity",
+                    code1System: sys1, code1Code: code1, code2System: qSys, code2Code: qCod, value2: val))
+            }
+            if case .quantity(let q) = obs.value {
+                for coding in obs.code.coding ?? [] {
+                    appendQuantityPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, q)
+                }
+            }
+            for comp in obs.component ?? [] {
+                guard case .quantity(let q) = comp.value else { continue }
+                for coding in comp.code.coding ?? [] {
+                    appendQuantityPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, q)
+                }
+            }
+        }
+        """
+    }
+
+    // combo-code-value-concept: root (obs.code, obs.valueConcept) + each component → idx_composite
+    if code == "combo-code-value-concept" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            func appendConceptPair(_ code1: String, _ sys1: String?, _ cc: CodeableConcept) {
+                for vc in cc.coding ?? [] {
+                    let c2 = vc.code?.value?.string ?? ""
+                    let s2 = vc.system?.value?.url.absoluteString
+                    p.composites.append(.init(paramName: "combo-code-value-concept",
+                        code1System: sys1, code1Code: code1, code2System: s2, code2Code: c2))
+                }
+            }
+            if case .codeableConcept(let cc) = obs.value {
+                for coding in obs.code.coding ?? [] {
+                    appendConceptPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, cc)
+                }
+            }
+            for comp in obs.component ?? [] {
+                guard case .codeableConcept(let cc) = comp.value else { continue }
+                for coding in comp.code.coding ?? [] {
+                    appendConceptPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, cc)
+                }
+            }
+        }
+        """
+    }
+
     // part-of: obs.partOf[] → idx_reference
     if code == "part-of" {
         return """

@@ -41,6 +41,11 @@ public struct ObservationSearchQuery: Sendable {
     public var codeValueString: [CompositeCodeString]       // code-value-string: code$value-string
     public var codeValueConcept: [CompositeCodeConcept]     // code-value-concept: code$value-concept
     public var codeValueDate: [CompositeCodeDate]           // code-value-date: code$value-date
+    // ── idx_composite-backed params (tuple match) ─────────────────────────────
+    public var componentCodeValueQuantity: [CompositeCodeQuantity]  // component-code-value-quantity
+    public var componentCodeValueConcept: [CompositeCodeConcept]    // component-code-value-concept
+    public var comboCodeValueQuantity: [CompositeCodeQuantity]      // combo-code-value-quantity
+    public var comboCodeValueConcept: [CompositeCodeConcept]        // combo-code-value-concept
     public var valueDate: [DateParam]
     public var valueString: [String]
     public var id: [String]               // _id filter (OR)
@@ -93,6 +98,10 @@ public struct ObservationSearchQuery: Sendable {
         codeValueString: [CompositeCodeString] = [],
         codeValueConcept: [CompositeCodeConcept] = [],
         codeValueDate: [CompositeCodeDate] = [],
+        componentCodeValueQuantity: [CompositeCodeQuantity] = [],
+        componentCodeValueConcept: [CompositeCodeConcept] = [],
+        comboCodeValueQuantity: [CompositeCodeQuantity] = [],
+        comboCodeValueConcept: [CompositeCodeConcept] = [],
         valueDate: [DateParam] = [],
         valueString: [String] = [],
         id: [String] = [],
@@ -141,6 +150,10 @@ public struct ObservationSearchQuery: Sendable {
         self.codeValueString   = codeValueString
         self.codeValueConcept  = codeValueConcept
         self.codeValueDate     = codeValueDate
+        self.componentCodeValueQuantity = componentCodeValueQuantity
+        self.componentCodeValueConcept  = componentCodeValueConcept
+        self.comboCodeValueQuantity     = comboCodeValueQuantity
+        self.comboCodeValueConcept      = comboCodeValueConcept
         self.valueDate      = valueDate
         self.valueString    = valueString
         self.id             = id

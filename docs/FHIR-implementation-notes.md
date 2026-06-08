@@ -68,7 +68,7 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Root-level composite params** (INTERSECT-per-pair, UNION across OR values; no new index table required — reuses existing idx_token/idx_quantity/idx_string/idx_date): `code-value-quantity` (code token `$` value-quantity quantity), `code-value-string` (code token `$` value-string prefix), `code-value-concept` (code token `$` value-concept token), `code-value-date` (code token `$` value-date date). Wire format: `code-value-quantity=29463-7$ge60`. Multiple values OR'd.
 
-**TODO stubs (component/combo composite):** `combo-code-value-concept`, `combo-code-value-quantity`, `component-code-value-concept`, `component-code-value-quantity` — require per-component tuple matching (composite index or JSON scan); deferred.
+**Component/combo composite params** (idx_composite tuple match): `component-code-value-quantity`, `component-code-value-concept`, `combo-code-value-quantity`, `combo-code-value-concept` — use `idx_composite` table (migration `0005_composite_idx.sql`). Each row stores one `(code1, value2/code2)` tuple from a single component or root element. Query: simple OR across tuple conditions — no INTERSECT needed. Wire format: `component-code-value-quantity=8480-6$ge100`. `combo-code-value-quantity` indexes both root (`obs.value as Quantity`) and each component.
 
 **Date params** (idx_date): `value-date` (`obs.value as DateTime`).
 

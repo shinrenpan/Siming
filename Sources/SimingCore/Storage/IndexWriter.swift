@@ -95,4 +95,32 @@ public func replaceIndexRows(
             PostgresQuery(unsafeSQL: "INSERT INTO idx_quantity (resource_type, resource_id, param_name, system, code, value) VALUES \(rows.joined(separator: ","))", binds: binds),
             logger: logger)
     }
+
+    if !params.composites.isEmpty {
+        var binds = PostgresBindings()
+        var n = 0
+        func b(_ v: some PostgresDynamicTypeEncodable) -> String { n += 1; binds.append(v); return "$\(n)" }
+        func bNull() -> String { n += 1; binds.appendNull(); return "$\(n)" }
+        let rt = b(resourceType); let rid = b(id)
+        let rows = params.composites.map { row -> String in
+            let pn   = b(row.paramName)
+            let c1s  = row.code1System != nil ? b(row.code1System!) : bNull()
+            let c1c  = b(row.code1Code)
+            let c2s  = row.code2System != nil ? b(row.code2System!) : bNull()
+            let c2c  = row.code2Code   != nil ? b(row.code2Code!)   : bNull()
+            let val2 = row.value2      != nil ? b(row.value2!)      : bNull()
+            let ds   = row.date2Start  != nil ? b(row.date2Start!)  : bNull()
+            let de   = row.date2End    != nil ? b(row.date2End!)    : bNull()
+            let str2 = row.string2     != nil ? b(row.string2!)     : bNull()
+            return "(\(rt), \(rid), \(pn), \(c1s), \(c1c), \(c2s), \(c2c), \(val2), \(ds), \(de), \(str2))"
+        }
+        _ = try await conn.query(
+            PostgresQuery(unsafeSQL: """
+                INSERT INTO idx_composite (resource_type, resource_id, param_name,
+                    code1_system, code1_code, code2_system, code2_code,
+                    value2, date2_start, date2_end, string2)
+                VALUES \(rows.joined(separator: ","))
+                """, binds: binds),
+            logger: logger)
+    }
 }

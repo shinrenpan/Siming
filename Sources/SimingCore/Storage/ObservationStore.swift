@@ -664,6 +664,78 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_cvd", parts.joined(separator: "\nUNION\n")))
         }
 
+        // ── idx_composite-backed params (tuple match per component/combo) ────────
+
+        func compositeQCond(_ pair: ObservationSearchQuery.CompositeCodeQuantity) -> String {
+            var parts: [String] = []
+            parts.append("code1_code = \(bind(pair.codeToken.code))")
+            if let sys = pair.codeToken.system { parts.append("code1_system = \(bind(sys))") }
+            let qp = pair.valueQuantity
+            let valCond: String
+            switch qp.prefix {
+            case .eq: valCond = "value2 = \(bind(qp.value))"
+            case .ne: valCond = "value2 != \(bind(qp.value))"
+            case .lt: valCond = "value2 < \(bind(qp.value))"
+            case .le: valCond = "value2 <= \(bind(qp.value))"
+            case .gt: valCond = "value2 > \(bind(qp.value))"
+            case .ge: valCond = "value2 >= \(bind(qp.value))"
+            case .sa: valCond = "value2 > \(bind(qp.value))"
+            case .eb: valCond = "value2 < \(bind(qp.value))"
+            case .ap:
+                let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1)
+                valCond = "value2 BETWEEN \(lo) AND \(hi)"
+            }
+            parts.append(valCond)
+            if let sys = qp.system  { parts.append("code2_system = \(bind(sys))") }
+            if let code = qp.code   { parts.append("code2_code = \(bind(code))") }
+            return "(" + parts.joined(separator: " AND ") + ")"
+        }
+
+        func compositeConceptCond(_ pair: ObservationSearchQuery.CompositeCodeConcept) -> String {
+            var parts: [String] = []
+            parts.append("code1_code = \(bind(pair.codeToken.code))")
+            if let sys = pair.codeToken.system { parts.append("code1_system = \(bind(sys))") }
+            parts.append("code2_code = \(bind(pair.valueConcept.code))")
+            if let sys = pair.valueConcept.system { parts.append("code2_system = \(bind(sys))") }
+            return "(" + parts.joined(separator: " AND ") + ")"
+        }
+
+        if !query.componentCodeValueQuantity.isEmpty {
+            let orConds = query.componentCodeValueQuantity.map { compositeQCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_comp_cvq", """
+                SELECT DISTINCT resource_id FROM idx_composite
+                WHERE resource_type = 'Observation' AND param_name = 'component-code-value-quantity'
+                  AND (\(orConds))
+                """))
+        }
+
+        if !query.componentCodeValueConcept.isEmpty {
+            let orConds = query.componentCodeValueConcept.map { compositeConceptCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_comp_cvc", """
+                SELECT DISTINCT resource_id FROM idx_composite
+                WHERE resource_type = 'Observation' AND param_name = 'component-code-value-concept'
+                  AND (\(orConds))
+                """))
+        }
+
+        if !query.comboCodeValueQuantity.isEmpty {
+            let orConds = query.comboCodeValueQuantity.map { compositeQCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_combo_cvq", """
+                SELECT DISTINCT resource_id FROM idx_composite
+                WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-quantity'
+                  AND (\(orConds))
+                """))
+        }
+
+        if !query.comboCodeValueConcept.isEmpty {
+            let orConds = query.comboCodeValueConcept.map { compositeConceptCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_combo_cvc", """
+                SELECT DISTINCT resource_id FROM idx_composite
+                WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-concept'
+                  AND (\(orConds))
+                """))
+        }
+
         // date — idx_date range with two-bound comparison per FHIR R4 §2.4.0.1
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
@@ -1238,6 +1310,56 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_cvd", parts.joined(separator: "\nUNION\n")))
         }
 
+        // idx_composite-backed params (count path)
+        func countCompositeQCond(_ pair: ObservationSearchQuery.CompositeCodeQuantity) -> String {
+            var parts: [String] = []
+            parts.append("code1_code = \(bind(pair.codeToken.code))")
+            if let sys = pair.codeToken.system { parts.append("code1_system = \(bind(sys))") }
+            let qp = pair.valueQuantity
+            let valCond: String
+            switch qp.prefix {
+            case .eq: valCond = "value2 = \(bind(qp.value))"
+            case .ne: valCond = "value2 != \(bind(qp.value))"
+            case .lt: valCond = "value2 < \(bind(qp.value))"
+            case .le: valCond = "value2 <= \(bind(qp.value))"
+            case .gt: valCond = "value2 > \(bind(qp.value))"
+            case .ge: valCond = "value2 >= \(bind(qp.value))"
+            case .sa: valCond = "value2 > \(bind(qp.value))"
+            case .eb: valCond = "value2 < \(bind(qp.value))"
+            case .ap:
+                let lo = bind(qp.value * 0.9); let hi = bind(qp.value * 1.1)
+                valCond = "value2 BETWEEN \(lo) AND \(hi)"
+            }
+            parts.append(valCond)
+            if let sys = qp.system  { parts.append("code2_system = \(bind(sys))") }
+            if let code = qp.code   { parts.append("code2_code = \(bind(code))") }
+            return "(" + parts.joined(separator: " AND ") + ")"
+        }
+        func countCompositeConceptCond(_ pair: ObservationSearchQuery.CompositeCodeConcept) -> String {
+            var parts: [String] = []
+            parts.append("code1_code = \(bind(pair.codeToken.code))")
+            if let sys = pair.codeToken.system { parts.append("code1_system = \(bind(sys))") }
+            parts.append("code2_code = \(bind(pair.valueConcept.code))")
+            if let sys = pair.valueConcept.system { parts.append("code2_system = \(bind(sys))") }
+            return "(" + parts.joined(separator: " AND ") + ")"
+        }
+        if !query.componentCodeValueQuantity.isEmpty {
+            let orConds = query.componentCodeValueQuantity.map { countCompositeQCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_comp_cvq", "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'component-code-value-quantity' AND (\(orConds))"))
+        }
+        if !query.componentCodeValueConcept.isEmpty {
+            let orConds = query.componentCodeValueConcept.map { countCompositeConceptCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_comp_cvc", "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'component-code-value-concept' AND (\(orConds))"))
+        }
+        if !query.comboCodeValueQuantity.isEmpty {
+            let orConds = query.comboCodeValueQuantity.map { countCompositeQCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_combo_cvq", "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-quantity' AND (\(orConds))"))
+        }
+        if !query.comboCodeValueConcept.isEmpty {
+            let orConds = query.comboCodeValueConcept.map { countCompositeConceptCond($0) }.joined(separator: " OR ")
+            filterCTEs.append(("f_combo_cvc", "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-concept' AND (\(orConds))"))
+        }
+
         for (i, dp) in query.date.enumerated() {
             let startP = bind(dp.dateStart)
             let endP   = bind(dp.dateEnd)
@@ -1386,6 +1508,10 @@ public struct ObservationStore: Sendable {
         case "component-value-concept":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-value-concept'"
         case "component-value-quantity":    return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity'"
         case "combo-value-quantity":        return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'combo-value-quantity'"
+        case "component-code-value-quantity": return "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'component-code-value-quantity'"
+        case "component-code-value-concept":  return "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'component-code-value-concept'"
+        case "combo-code-value-quantity":     return "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-quantity'"
+        case "combo-code-value-concept":      return "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'Observation' AND param_name = 'combo-code-value-concept'"
         default:                   return nil
         }
     }

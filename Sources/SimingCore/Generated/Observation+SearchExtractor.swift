@@ -115,11 +115,51 @@ private func extract_Observation_combo_code(_ p: inout SearchParams, _ obs: Obse
     }
 }
 
-// TODO: unhandled — combo-code-value-concept [composite] Observation | Observation.component
-private func extract_Observation_combo_code_value_concept(_ p: inout SearchParams, _ obs: Observation) {}
+// combo-code-value-concept [composite] — Observation.component
+private func extract_Observation_combo_code_value_concept(_ p: inout SearchParams, _ obs: Observation) {
+    func appendConceptPair(_ code1: String, _ sys1: String?, _ cc: CodeableConcept) {
+        for vc in cc.coding ?? [] {
+            let c2 = vc.code?.value?.string ?? ""
+            let s2 = vc.system?.value?.url.absoluteString
+            p.composites.append(.init(paramName: "combo-code-value-concept",
+                code1System: sys1, code1Code: code1, code2System: s2, code2Code: c2))
+        }
+    }
+    if case .codeableConcept(let cc) = obs.value {
+        for coding in obs.code.coding ?? [] {
+            appendConceptPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, cc)
+        }
+    }
+    for comp in obs.component ?? [] {
+        guard case .codeableConcept(let cc) = comp.value else { continue }
+        for coding in comp.code.coding ?? [] {
+            appendConceptPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, cc)
+        }
+    }
+}
 
-// TODO: unhandled — combo-code-value-quantity [composite] Observation | Observation.component
-private func extract_Observation_combo_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
+// combo-code-value-quantity [composite] — Observation.component
+private func extract_Observation_combo_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {
+    func appendQuantityPair(_ code1: String, _ sys1: String?, _ q: Quantity) {
+        guard let decimalVal = q.value?.value?.decimal else { return }
+        let val  = NSDecimalNumber(decimal: decimalVal).doubleValue
+        let qSys = q.system?.value?.url.absoluteString
+        let qCod = q.code?.value?.string
+        p.composites.append(.init(paramName: "combo-code-value-quantity",
+            code1System: sys1, code1Code: code1, code2System: qSys, code2Code: qCod, value2: val))
+    }
+    if case .quantity(let q) = obs.value {
+        for coding in obs.code.coding ?? [] {
+            appendQuantityPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, q)
+        }
+    }
+    for comp in obs.component ?? [] {
+        guard case .quantity(let q) = comp.value else { continue }
+        for coding in comp.code.coding ?? [] {
+            appendQuantityPair(coding.code?.value?.string ?? "", coding.system?.value?.url.absoluteString, q)
+        }
+    }
+}
 
 // combo-data-absent-reason [token] — Observation.dataAbsentReason
 private func extract_Observation_combo_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
@@ -168,11 +208,39 @@ private func extract_Observation_component_code(_ p: inout SearchParams, _ obs: 
     }
 }
 
-// TODO: unhandled — component-code-value-concept [composite] Observation.component
-private func extract_Observation_component_code_value_concept(_ p: inout SearchParams, _ obs: Observation) {}
+// component-code-value-concept [composite] — Observation.component
+private func extract_Observation_component_code_value_concept(_ p: inout SearchParams, _ obs: Observation) {
+    for comp in obs.component ?? [] {
+        guard case .codeableConcept(let cc) = comp.value else { continue }
+        for coding in comp.code.coding ?? [] {
+            let c1 = coding.code?.value?.string ?? ""
+            let s1 = coding.system?.value?.url.absoluteString
+            for vc in cc.coding ?? [] {
+                let c2 = vc.code?.value?.string ?? ""
+                let s2 = vc.system?.value?.url.absoluteString
+                p.composites.append(.init(paramName: "component-code-value-concept",
+                    code1System: s1, code1Code: c1, code2System: s2, code2Code: c2))
+            }
+        }
+    }
+}
 
-// TODO: unhandled — component-code-value-quantity [composite] Observation.component
-private func extract_Observation_component_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
+// component-code-value-quantity [composite] — Observation.component
+private func extract_Observation_component_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {
+    for comp in obs.component ?? [] {
+        guard case .quantity(let q) = comp.value,
+              let decimalVal = q.value?.value?.decimal else { continue }
+        let val  = NSDecimalNumber(decimal: decimalVal).doubleValue
+        let qSys = q.system?.value?.url.absoluteString
+        let qCod = q.code?.value?.string
+        for coding in comp.code.coding ?? [] {
+            let c1 = coding.code?.value?.string ?? ""
+            let s1 = coding.system?.value?.url.absoluteString
+            p.composites.append(.init(paramName: "component-code-value-quantity",
+                code1System: s1, code1Code: c1, code2System: qSys, code2Code: qCod, value2: val))
+        }
+    }
+}
 
 // component-data-absent-reason [token] — Observation.component.dataAbsentReason
 private func extract_Observation_component_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
