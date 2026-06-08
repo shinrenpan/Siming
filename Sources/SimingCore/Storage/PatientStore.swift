@@ -373,6 +373,52 @@ public struct PatientStore: Sendable {
             filterCTEs.append(("f_email", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'telecom' AND system = 'email' AND code = \(p)"))
         }
 
+        // organization — idx_reference
+        if let org = query.organization {
+            let parts = org.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_org", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'organization' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_org", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'organization' AND ref_id = \(bind(org))"))
+            }
+        }
+
+        // general-practitioner — idx_reference
+        if let gp = query.generalPractitioner {
+            let parts = gp.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_gp", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'general-practitioner' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_gp", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'general-practitioner' AND ref_id = \(bind(gp))"))
+            }
+        }
+
+        // link — idx_reference
+        if let link = query.link {
+            let parts = link.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_link", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'link' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_link", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'link' AND ref_id = \(bind(link))"))
+            }
+        }
+
+        // language — token OR (communication.language)
+        if !query.language.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.language {
+                if let sys = tok.system {
+                    orClauses.append("(system = \(bind(sys)) AND code = \(bind(tok.code)))")
+                } else {
+                    orClauses.append("code = \(bind(tok.code))")
+                }
+            }
+            filterCTEs.append(("f_lang", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         // identifier — token OR; system| = system-only match when code is empty
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
@@ -477,6 +523,17 @@ public struct PatientStore: Sendable {
         if !query.genderNot.isEmpty {
             let phs = query.genderNot.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'gender' AND code IN (\(phs)))")
+        }
+        if !query.languageNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.languageNot {
+                if let sys = tok.system {
+                    orClauses.append("(system = \(bind(sys)) AND code = \(bind(tok.code)))")
+                } else {
+                    orClauses.append("code = \(bind(tok.code))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         // :missing modifier
@@ -713,6 +770,45 @@ public struct PatientStore: Sendable {
             filterCTEs.append(("f_email", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'telecom' AND system = 'email' AND code = \(p)"))
         }
 
+        if let org = query.organization {
+            let parts = org.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_org", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'organization' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_org", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'organization' AND ref_id = \(bind(org))"))
+            }
+        }
+        if let gp = query.generalPractitioner {
+            let parts = gp.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_gp", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'general-practitioner' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_gp", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'general-practitioner' AND ref_id = \(bind(gp))"))
+            }
+        }
+        if let link = query.link {
+            let parts = link.split(separator: "/")
+            if parts.count == 2 {
+                let rtp = bind(String(parts[0])); let rip = bind(String(parts[1]))
+                filterCTEs.append(("f_link", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'link' AND ref_type = \(rtp) AND ref_id = \(rip)"))
+            } else {
+                filterCTEs.append(("f_link", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Patient' AND param_name = 'link' AND ref_id = \(bind(link))"))
+            }
+        }
+        if !query.language.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.language {
+                if let sys = tok.system {
+                    orClauses.append("(system = \(bind(sys)) AND code = \(bind(tok.code)))")
+                } else {
+                    orClauses.append("code = \(bind(tok.code))")
+                }
+            }
+            filterCTEs.append(("f_lang", "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         if !query.identifier.isEmpty {
             var orClauses: [String] = []
             for ident in query.identifier {
@@ -802,6 +898,17 @@ public struct PatientStore: Sendable {
         if !query.genderNot.isEmpty {
             let phs = query.genderNot.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'gender' AND code IN (\(phs)))")
+        }
+        if !query.languageNot.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.languageNot {
+                if let sys = tok.system {
+                    orClauses.append("(system = \(bind(sys)) AND code = \(bind(tok.code)))")
+                } else {
+                    orClauses.append("code = \(bind(tok.code))")
+                }
+            }
+            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR "))))")
         }
         for paramName in query.missing.keys.sorted() {
             if let sub = patientMissingSubquery(param: paramName) {

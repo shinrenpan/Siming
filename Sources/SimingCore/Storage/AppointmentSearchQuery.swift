@@ -25,6 +25,8 @@ public struct AppointmentSearchQuery: Sendable {
     public var partStatus: [TokenParam]              // part-status: participant.status token OR
     public var partStatusNot: [TokenParam]           // part-status:not modifier
     public var supportingInfo: String?               // supporting-info reference (supportingInformation)
+    public var basedOn: String?                      // based-on reference (ServiceRequest)
+    public var reasonReference: String?              // reason-reference reference (Condition/Procedure)
     public var id: [String]                          // _id filter (OR)
     public var lastUpdated: [DateParam]              // _lastUpdated range filter
     public var missing: [String: Bool]               // param:missing=true/false
@@ -60,6 +62,8 @@ public struct AppointmentSearchQuery: Sendable {
         partStatus: [TokenParam] = [],
         partStatusNot: [TokenParam] = [],
         supportingInfo: String? = nil,
+        basedOn: String? = nil,
+        reasonReference: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -91,6 +95,8 @@ public struct AppointmentSearchQuery: Sendable {
         self.partStatus       = partStatus
         self.partStatusNot    = partStatusNot
         self.supportingInfo   = supportingInfo
+        self.basedOn          = basedOn
+        self.reasonReference  = reasonReference
         self.id               = id
         self.lastUpdated      = lastUpdated
         self.missing          = missing

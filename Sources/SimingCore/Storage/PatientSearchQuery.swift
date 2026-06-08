@@ -13,6 +13,11 @@ public struct PatientSearchQuery: Sendable {
     public var addressCountry: StringParam?
     public var phone: String?             // telecom.system=phone, exact match
     public var email: String?             // telecom.system=email, exact match
+    public var organization: String?             // managingOrganization reference
+    public var generalPractitioner: String?      // generalPractitioner[] reference
+    public var link: String?                     // link[].other reference
+    public var language: [TokenParam]            // communication.language token OR
+    public var languageNot: [TokenParam]         // language:not modifier
     public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var genderNot: [String]               // gender:not modifier
     public var identifier: [IdentifierParam]
@@ -42,6 +47,11 @@ public struct PatientSearchQuery: Sendable {
         addressCountry: StringParam? = nil,
         phone: String? = nil,
         email: String? = nil,
+        organization: String? = nil,
+        generalPractitioner: String? = nil,
+        link: String? = nil,
+        language: [TokenParam] = [],
+        languageNot: [TokenParam] = [],
         identifierNot: [IdentifierParam] = [],
         genderNot: [String] = [],
         identifier: [IdentifierParam] = [],
@@ -68,9 +78,14 @@ public struct PatientSearchQuery: Sendable {
         self.addressState      = addressState
         self.addressPostalCode = addressPostalCode
         self.addressCountry    = addressCountry
-        self.phone             = phone
-        self.email             = email
-        self.identifierNot     = identifierNot
+        self.phone                = phone
+        self.email                = email
+        self.organization         = organization
+        self.generalPractitioner  = generalPractitioner
+        self.link                 = link
+        self.language             = language
+        self.languageNot          = languageNot
+        self.identifierNot        = identifierNot
         self.genderNot         = genderNot
         self.identifier        = identifier
         self.id                = id
@@ -86,6 +101,9 @@ public struct PatientSearchQuery: Sendable {
         self.count             = count
         self.cursor            = cursor
     }
+
+    // ── Token parameter (for language, etc.) ─────────────────────────────────
+    public typealias TokenParam = ObservationSearchQuery.TokenParam
 
     // ── String parameter ──────────────────────────────────────────────────────
     // FHIR R4 default: starts-with, case+accent insensitive.

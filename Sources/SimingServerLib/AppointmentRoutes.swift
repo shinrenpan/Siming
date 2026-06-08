@@ -14,6 +14,7 @@ private let apptPreferHeader = HTTPField.Name("Prefer")!
 
 let knownAppointmentParams: Set<String> = [
     "patient", "actor", "practitioner", "location", "supporting-info",
+    "based-on", "reason-reference",
     "status", "service-type", "appointment-type", "specialty",
     "reason-code", "service-category", "part-status", "identifier", "date",
     "status:not", "service-type:not", "appointment-type:not", "specialty:not",
@@ -385,7 +386,9 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     let actor          = first("actor").map(String.init)
     let practitioner   = first("practitioner").map(String.init)
     let location       = first("location").map(String.init)
-    let supportingInfo = first("supporting-info").map(String.init)
+    let supportingInfo   = first("supporting-info").map(String.init)
+    let basedOn          = first("based-on").map(String.init)
+    let reasonReference  = first("reason-reference").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -399,7 +402,8 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
     var missing: [String: Bool] = [:]
     for p in ["status", "service-type", "appointment-type", "specialty", "reason-code",
               "service-category", "part-status", "identifier", "date", "patient",
-              "actor", "practitioner", "location", "supporting-info"] {
+              "actor", "practitioner", "location", "supporting-info",
+              "based-on", "reason-reference"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -418,7 +422,7 @@ func parseAppointmentQuery(from pairs: some Collection<(key: Substring, value: S
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
         serviceCategory: serviceCategory, serviceCategoryNot: serviceCategoryNot,
         partStatus: partStatus, partStatusNot: partStatusNot,
-        supportingInfo: supportingInfo,
+        supportingInfo: supportingInfo, basedOn: basedOn, reasonReference: reasonReference,
         id: id, lastUpdated: lastUpdated,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)

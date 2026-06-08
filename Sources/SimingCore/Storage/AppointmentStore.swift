@@ -362,7 +362,9 @@ public struct AppointmentStore: Sendable {
         if let ref = query.actor          { filterCTEs.append(refCTE(name: "f_actor",         paramName: "actor",           ref: ref)) }
         if let ref = query.practitioner   { filterCTEs.append(refCTE(name: "f_practitioner",  paramName: "practitioner",    ref: ref)) }
         if let ref = query.location       { filterCTEs.append(refCTE(name: "f_location",      paramName: "location",        ref: ref)) }
-        if let ref = query.supportingInfo { filterCTEs.append(refCTE(name: "f_support_info",  paramName: "supporting-info", ref: ref)) }
+        if let ref = query.supportingInfo  { filterCTEs.append(refCTE(name: "f_support_info", paramName: "supporting-info",  ref: ref)) }
+        if let ref = query.basedOn         { filterCTEs.append(refCTE(name: "f_based_on",     paramName: "based-on",         ref: ref)) }
+        if let ref = query.reasonReference { filterCTEs.append(refCTE(name: "f_reason_ref",   paramName: "reason-reference", ref: ref)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -622,6 +624,8 @@ public struct AppointmentStore: Sendable {
         if let ref = query.practitioner   { filterCTEs.append(cRefCTE(name: "f_practitioner",  paramName: "practitioner",    ref: ref)) }
         if let ref = query.location       { filterCTEs.append(cRefCTE(name: "f_location",      paramName: "location",        ref: ref)) }
         if let ref = query.supportingInfo { filterCTEs.append(cRefCTE(name: "f_support_info",  paramName: "supporting-info", ref: ref)) }
+        if let ref = query.basedOn        { filterCTEs.append(cRefCTE(name: "f_based_on",     paramName: "based-on",        ref: ref)) }
+        if let ref = query.reasonReference { filterCTEs.append(cRefCTE(name: "f_reason_ref",  paramName: "reason-reference", ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'Appointment'", "r.deleted = false"]
 

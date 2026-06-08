@@ -405,6 +405,11 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     }
     let phone         = first("phone").map(String.init)
     let email         = first("email").map(String.init)
+    let organization        = first("organization").map(String.init)
+    let generalPractitioner = first("general-practitioner").map(String.init)
+    let link                = first("link").map(String.init)
+    let language    = all("language").flatMap { PatientSearchQuery.TokenParam.parseList(String($0)) }
+    let languageNot = all("language:not").flatMap { PatientSearchQuery.TokenParam.parseList(String($0)) }
     let deceased: Bool? = first("deceased").flatMap { v -> Bool? in
         switch String(v).lowercased() { case "true": return true; case "false": return false; default: return nil }
     }
@@ -426,7 +431,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     var missing: [String: Bool] = [:]
     for p in ["name","family","given","gender","active","address","address-city","address-state",
               "address-postalcode","address-country","phone","email","identifier","birthdate",
-              "deceased","death-date"] {
+              "deceased","death-date","organization","general-practitioner","link","language"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -439,6 +444,8 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         address: address, addressCity: addressCity,
         addressState: addressState, addressPostalCode: addressPostalCode,
         addressCountry: addressCountry, phone: phone, email: email,
+        organization: organization, generalPractitioner: generalPractitioner,
+        link: link, language: language, languageNot: languageNot,
         identifierNot: identifierNot, genderNot: genderNot,
         identifier: identifier, id: id,
         birthdate: birthdates, deceased: deceased, deathDate: deathDates,
@@ -521,6 +528,9 @@ private let knownPatientParams: Set<String> = [
     "name", "family", "given", "gender", "active",
     "address", "address-city", "address-state", "address-postalcode", "address-country",
     "phone", "email", "identifier", "birthdate", "deceased", "death-date",
+    "organization", "general-practitioner", "link",
+    "language", "language:not",
+    "gender:not", "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
