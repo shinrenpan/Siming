@@ -145,6 +145,62 @@ func medicationRequestHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: intended-dispenser (dispenseRequest.performer) ───────────
+    case "intended-dispenser":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {
+            guard let refStr = mr.dispenseRequest?.performer?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── reference: intended-performer ────────────────────────────────────────
+    case "intended-performer":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {
+            guard let refStr = mr.performer?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
+    // ── token: intended-performertype ─────────────────────────────────────────
+    case "intended-performertype":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {
+            for coding in mr.performerType?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+            }
+        }
+        """
+
+    // ── reference: medication (as Reference) ──────────────────────────────────
+    case "medication":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ mr: MedicationRequest) {
+            guard case .reference(let ref) = mr.medication,
+                  let refStr = ref.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+        }
+        """
+
     // ── date: authoredOn ─────────────────────────────────────────────────────
     case "authoredon":
         return """

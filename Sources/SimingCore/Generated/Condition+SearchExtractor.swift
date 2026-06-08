@@ -71,14 +71,33 @@ private func extract_Condition_abatement_date(_ p: inout SearchParams, _ cond: C
     }
 }
 
-// TODO: unhandled — abatement-string [string] Condition.abatement.as(string)
-private func extract_Condition_abatement_string(_ p: inout SearchParams, _ cond: Condition) {}
+// abatement-string [string] — Condition.abatement.as(string)
+private func extract_Condition_abatement_string(_ p: inout SearchParams, _ cond: Condition) {
+    guard let abatement = cond.abatement, case .string(let prim) = abatement,
+          let s = prim.value?.string else { return }
+    p.strings.append(.init(paramName: "abatement-string", value: s))
+}
 
-// TODO: unhandled — asserter [reference] Condition.asserter
-private func extract_Condition_asserter(_ p: inout SearchParams, _ cond: Condition) {}
+// asserter [reference] — Condition.asserter
+private func extract_Condition_asserter(_ p: inout SearchParams, _ cond: Condition) {
+    guard let refStr = cond.asserter?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "asserter", refType: refType, refId: refId))
+}
 
-// TODO: unhandled — body-site [token] Condition.bodySite
-private func extract_Condition_body_site(_ p: inout SearchParams, _ cond: Condition) {}
+// body-site [token] — Condition.bodySite
+private func extract_Condition_body_site(_ p: inout SearchParams, _ cond: Condition) {
+    for cc in cond.bodySite ?? [] {
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "body-site", system: s, code: c))
+        }
+    }
+}
 
 // category [token] — Condition.category
 private func extract_Condition_category(_ p: inout SearchParams, _ cond: Condition) {
@@ -119,11 +138,32 @@ private func extract_Condition_encounter(_ p: inout SearchParams, _ cond: Condit
     p.references.append(.init(paramName: "encounter", refType: refType, refId: refId))
 }
 
-// TODO: unhandled — evidence [token] Condition.evidence.code
-private func extract_Condition_evidence(_ p: inout SearchParams, _ cond: Condition) {}
+// evidence [token] — Condition.evidence.code
+private func extract_Condition_evidence(_ p: inout SearchParams, _ cond: Condition) {
+    for ev in cond.evidence ?? [] {
+        for cc in ev.code ?? [] {
+            for coding in cc.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "evidence", system: s, code: c))
+            }
+        }
+    }
+}
 
-// TODO: unhandled — evidence-detail [reference] Condition.evidence.detail
-private func extract_Condition_evidence_detail(_ p: inout SearchParams, _ cond: Condition) {}
+// evidence-detail [reference] — Condition.evidence.detail
+private func extract_Condition_evidence_detail(_ p: inout SearchParams, _ cond: Condition) {
+    for ev in cond.evidence ?? [] {
+        for ref in ev.detail ?? [] {
+            guard let refStr = ref.reference?.value?.string else { continue }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "evidence-detail", refType: refType, refId: refId))
+        }
+    }
+}
 
 // identifier [token] — Condition.identifier
 private func extract_Condition_identifier(_ p: inout SearchParams, _ cond: Condition) {
@@ -170,8 +210,12 @@ private func extract_Condition_onset_date(_ p: inout SearchParams, _ cond: Condi
     }
 }
 
-// TODO: unhandled — onset-info [string] Condition.onset.as(string)
-private func extract_Condition_onset_info(_ p: inout SearchParams, _ cond: Condition) {}
+// onset-info [string] — Condition.onset.as(string)
+private func extract_Condition_onset_info(_ p: inout SearchParams, _ cond: Condition) {
+    guard let onset = cond.onset, case .string(let prim) = onset,
+          let s = prim.value?.string else { return }
+    p.strings.append(.init(paramName: "onset-info", value: s))
+}
 
 // patient [reference] — Condition.subject
 private func extract_Condition_patient(_ p: inout SearchParams, _ cond: Condition) {
@@ -194,11 +238,25 @@ private func extract_Condition_recorded_date(_ p: inout SearchParams, _ cond: Co
     p.dates.append(.init(paramName: "recorded-date", dateStart: d, dateEnd: d))
 }
 
-// TODO: unhandled — severity [token] Condition.severity
-private func extract_Condition_severity(_ p: inout SearchParams, _ cond: Condition) {}
+// severity [token] — Condition.severity
+private func extract_Condition_severity(_ p: inout SearchParams, _ cond: Condition) {
+    for coding in cond.severity?.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let s = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "severity", system: s, code: c))
+    }
+}
 
-// TODO: unhandled — stage [token] Condition.stage.summary
-private func extract_Condition_stage(_ p: inout SearchParams, _ cond: Condition) {}
+// stage [token] — Condition.stage.summary
+private func extract_Condition_stage(_ p: inout SearchParams, _ cond: Condition) {
+    for stage in cond.stage ?? [] {
+        for coding in stage.summary?.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "stage", system: s, code: c))
+        }
+    }
+}
 
 // subject [reference] — Condition.subject
 private func extract_Condition_subject(_ p: inout SearchParams, _ cond: Condition) {

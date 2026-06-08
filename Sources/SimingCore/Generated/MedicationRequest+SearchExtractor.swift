@@ -84,14 +84,34 @@ private func extract_MedicationRequest_identifier(_ p: inout SearchParams, _ mr:
     }
 }
 
-// TODO: unhandled — intended-dispenser [reference] MedicationRequest.dispenseRequest.performer
-private func extract_MedicationRequest_intended_dispenser(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+// intended-dispenser [reference] — MedicationRequest.dispenseRequest.performer
+private func extract_MedicationRequest_intended_dispenser(_ p: inout SearchParams, _ mr: MedicationRequest) {
+    guard let refStr = mr.dispenseRequest?.performer?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "intended-dispenser", refType: refType, refId: refId))
+}
 
-// TODO: unhandled — intended-performer [reference] MedicationRequest.performer
-private func extract_MedicationRequest_intended_performer(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+// intended-performer [reference] — MedicationRequest.performer
+private func extract_MedicationRequest_intended_performer(_ p: inout SearchParams, _ mr: MedicationRequest) {
+    guard let refStr = mr.performer?.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "intended-performer", refType: refType, refId: refId))
+}
 
-// TODO: unhandled — intended-performertype [token] MedicationRequest.performerType
-private func extract_MedicationRequest_intended_performertype(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+// intended-performertype [token] — MedicationRequest.performerType
+private func extract_MedicationRequest_intended_performertype(_ p: inout SearchParams, _ mr: MedicationRequest) {
+    for coding in mr.performerType?.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let s = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "intended-performertype", system: s, code: c))
+    }
+}
 
 // intent [token] — MedicationRequest.intent
 private func extract_MedicationRequest_intent(_ p: inout SearchParams, _ mr: MedicationRequest) {
@@ -102,8 +122,16 @@ private func extract_MedicationRequest_intent(_ p: inout SearchParams, _ mr: Med
     }
 }
 
-// TODO: unhandled — medication [reference] (MedicationAdministration.medication as Reference) | (MedicationDispense.medication as Reference) | (MedicationRequest.medication as Reference) | (MedicationStatement.medication as Reference)
-private func extract_MedicationRequest_medication(_ p: inout SearchParams, _ mr: MedicationRequest) {}
+// medication [reference] — MedicationRequest.medication
+private func extract_MedicationRequest_medication(_ p: inout SearchParams, _ mr: MedicationRequest) {
+    guard case .reference(let ref) = mr.medication,
+          let refStr = ref.reference?.value?.string else { return }
+    let parts = refStr.split(separator: "/")
+    let (refType, refId): (String?, String) = parts.count == 2
+        ? (String(parts[0]), String(parts[1]))
+        : (nil, refStr)
+    p.references.append(.init(paramName: "medication", refType: refType, refId: refId))
+}
 
 // patient [reference] — MedicationRequest.subject
 private func extract_MedicationRequest_patient(_ p: inout SearchParams, _ mr: MedicationRequest) {

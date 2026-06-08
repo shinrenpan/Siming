@@ -17,6 +17,9 @@ let knownEncounterParams: Set<String> = [
     "date", "identifier",
     "participant", "practitioner", "reason-code", "reason-code:not",
     "part-of", "service-provider", "based-on", "location", "diagnosis",
+    "account", "appointment", "episode-of-care", "reason-reference",
+    "location-period", "participant-type", "participant-type:not",
+    "special-arrangement", "special-arrangement:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -406,6 +409,15 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let basedOn        = first("based-on").map(String.init)
     let location       = first("location").map(String.init)
     let diagnosis      = first("diagnosis").map(String.init)
+    let account        = first("account").map(String.init)
+    let appointment    = first("appointment").map(String.init)
+    let episodeOfCare  = first("episode-of-care").map(String.init)
+    let reasonReference = first("reason-reference").map(String.init)
+    let locationPeriod  = all("location-period").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
+    let participantType    = first("participant-type").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let participantTypeNot = first("participant-type:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let specialArrangement    = first("special-arrangement").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let specialArrangementNot = first("special-arrangement:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let dates          = all("date").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
     let id             = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -418,7 +430,9 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     var missing: [String: Bool] = [:]
     for p in ["subject", "patient", "status", "class", "type", "date", "identifier",
               "participant", "practitioner", "reason-code", "part-of",
-              "service-provider", "based-on", "location", "diagnosis"] {
+              "service-provider", "based-on", "location", "diagnosis",
+              "account", "appointment", "episode-of-care", "reason-reference",
+              "location-period", "participant-type", "special-arrangement"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -433,6 +447,11 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot,
         partOf: partOf, serviceProvider: serviceProvider,
         basedOn: basedOn, location: location, diagnosis: diagnosis,
+        account: account, appointment: appointment,
+        episodeOfCare: episodeOfCare, reasonReference: reasonReference,
+        locationPeriod: locationPeriod,
+        participantType: participantType, participantTypeNot: participantTypeNot,
+        specialArrangement: specialArrangement, specialArrangementNot: specialArrangementNot,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

@@ -459,6 +459,146 @@ public struct ConditionStore: Sendable {
                 """))
         }
 
+        // asserter — idx_reference
+        if let asserter = query.asserter {
+            let parts = asserter.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_asserter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'asserter'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(asserter)
+                filterCTEs.append(("f_asserter", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'asserter'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // evidence-detail — idx_reference
+        if let evDetail = query.evidenceDetail {
+            let parts = evDetail.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_evidence_detail", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'evidence-detail'
+                      AND ref_type = \(refTypeP) AND ref_id = \(refIdP)
+                    """))
+            } else {
+                let refIdP = bind(evDetail)
+                filterCTEs.append(("f_evidence_detail", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'Condition' AND param_name = 'evidence-detail'
+                      AND ref_id = \(refIdP)
+                    """))
+            }
+        }
+
+        // body-site — token OR
+        if !query.bodySite.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.bodySite {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_body_site", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Condition' AND param_name = 'body-site'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // evidence — token OR
+        if !query.evidence.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.evidence {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_evidence", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Condition' AND param_name = 'evidence'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // severity — token OR
+        if !query.severity.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.severity {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_severity", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Condition' AND param_name = 'severity'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // stage — token OR
+        if !query.stage.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.stage {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_stage", """
+                SELECT DISTINCT resource_id FROM idx_token
+                WHERE resource_type = 'Condition' AND param_name = 'stage'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
+        // onset-info — idx_string (prefix match)
+        if let onsetInfo = query.onsetInfo {
+            let p = bind(onsetInfo + "%")
+            filterCTEs.append(("f_onset_info", """
+                SELECT DISTINCT resource_id FROM idx_string
+                WHERE resource_type = 'Condition' AND param_name = 'onset-info'
+                  AND lower(value) LIKE lower(\(p))
+                """))
+        }
+
+        // abatement-string — idx_string (prefix match)
+        if let abatStr = query.abatementString {
+            let p = bind(abatStr + "%")
+            filterCTEs.append(("f_abatement_string", """
+                SELECT DISTINCT resource_id FROM idx_string
+                WHERE resource_type = 'Condition' AND param_name = 'abatement-string'
+                  AND lower(value) LIKE lower(\(p))
+                """))
+        }
+
         // recorded-date — idx_date range
         for (i, dp) in query.recordedDate.enumerated() {
             let startP = bind(dp.dateStart)
@@ -564,6 +704,20 @@ public struct ConditionStore: Sendable {
             }
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR "))))")
         }
+
+        func notTokenCond(paramName: String, tokens: [ConditionSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { orClauses.append("system = \(bind(sys))") }
+                else { let cp = bind(tok.code); var sc = ""; if let s = tok.system { sc = " AND system = \(bind(s))" }; orClauses.append("(code = \(cp)\(sc))") }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
+        if !query.bodySiteNot.isEmpty { whereConditions.append(notTokenCond(paramName: "body-site", tokens: query.bodySiteNot)) }
+        if !query.evidenceNot.isEmpty { whereConditions.append(notTokenCond(paramName: "evidence",  tokens: query.evidenceNot)) }
+        if !query.severityNot.isEmpty { whereConditions.append(notTokenCond(paramName: "severity",  tokens: query.severityNot)) }
+        if !query.stageNot.isEmpty    { whereConditions.append(notTokenCond(paramName: "stage",     tokens: query.stageNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = conditionMissingSubquery(param: paramName) {
@@ -826,6 +980,43 @@ public struct ConditionStore: Sendable {
         dateCTEs(prefix: "f_abatement", paramName: "abatement-date", dates: query.abatementDate)
         dateCTEs(prefix: "f_recorded", paramName: "recorded-date", dates: query.recordedDate)
 
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let tP = bind(String(parts[0])); let iP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND ref_type = \(tP) AND ref_id = \(iP)")
+            } else {
+                let iP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND ref_id = \(iP)")
+            }
+        }
+        if let v = query.asserter      { filterCTEs.append(refCTECount(name: "f_asserter",        paramName: "asserter",        ref: v)) }
+        if let v = query.evidenceDetail { filterCTEs.append(refCTECount(name: "f_evidence_detail", paramName: "evidence-detail", ref: v)) }
+
+        func tokenCTECount(name: String, paramName: String, tokens: [ConditionSearchQuery.TokenParam]) -> (String, String) {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { orClauses.append("system = \(bind(sys))") }
+                else { let cp = bind(tok.code); var sc = ""; if let s = tok.system { sc = " AND system = \(bind(s))" }; orClauses.append("(code = \(cp)\(sc))") }
+            }
+            return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
+        }
+        if !query.bodySite.isEmpty { filterCTEs.append(tokenCTECount(name: "f_body_site", paramName: "body-site", tokens: query.bodySite)) }
+        if !query.evidence.isEmpty { filterCTEs.append(tokenCTECount(name: "f_evidence",  paramName: "evidence",  tokens: query.evidence)) }
+        if !query.severity.isEmpty { filterCTEs.append(tokenCTECount(name: "f_severity",  paramName: "severity",  tokens: query.severity)) }
+        if !query.stage.isEmpty    { filterCTEs.append(tokenCTECount(name: "f_stage",     paramName: "stage",     tokens: query.stage)) }
+
+        if let onsetInfo = query.onsetInfo {
+            let p = bind(onsetInfo + "%")
+            filterCTEs.append(("f_onset_info",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info' AND lower(value) LIKE lower(\(p))"))
+        }
+        if let abatStr = query.abatementString {
+            let p = bind(abatStr + "%")
+            filterCTEs.append(("f_abatement_string",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string' AND lower(value) LIKE lower(\(p))"))
+        }
+
         var whereConditions = ["r.resource_type = 'Condition'", "r.deleted = false"]
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
@@ -866,6 +1057,10 @@ public struct ConditionStore: Sendable {
         if !query.verificationStatusNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "verification-status", tokens: query.verificationStatusNot)) }
         if !query.categoryNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "category", tokens: query.categoryNot)) }
         if !query.codeNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "code", tokens: query.codeNot)) }
+        if !query.bodySiteNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "body-site", tokens: query.bodySiteNot)) }
+        if !query.evidenceNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "evidence",  tokens: query.evidenceNot)) }
+        if !query.severityNot.isEmpty { whereConditions.append(notTokenCondition(paramName: "severity",  tokens: query.severityNot)) }
+        if !query.stageNot.isEmpty    { whereConditions.append(notTokenCondition(paramName: "stage",     tokens: query.stageNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = conditionMissingSubquery(param: paramName) {
@@ -925,6 +1120,14 @@ public struct ConditionStore: Sendable {
         case "onset-date":            return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Condition' AND param_name = 'onset-date'"
         case "abatement-date":        return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Condition' AND param_name = 'abatement-date'"
         case "recorded-date":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Condition' AND param_name = 'recorded-date'"
+        case "asserter":              return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = 'asserter'"
+        case "evidence-detail":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Condition' AND param_name = 'evidence-detail'"
+        case "body-site":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'body-site'"
+        case "evidence":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'evidence'"
+        case "severity":              return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'severity'"
+        case "stage":                 return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Condition' AND param_name = 'stage'"
+        case "onset-info":            return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'onset-info'"
+        case "abatement-string":      return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Condition' AND param_name = 'abatement-string'"
         default:                      return nil
         }
     }

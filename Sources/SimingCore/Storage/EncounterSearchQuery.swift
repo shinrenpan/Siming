@@ -22,6 +22,15 @@ public struct EncounterSearchQuery: Sendable {
     public var basedOn: String?             // Encounter.basedOn reference
     public var location: String?            // Encounter.location.location reference
     public var diagnosis: String?           // Encounter.diagnosis.condition reference
+    public var account: String?             // Encounter.account reference
+    public var appointment: String?         // Encounter.appointment reference
+    public var episodeOfCare: String?       // Encounter.episodeOfCare reference
+    public var reasonReference: String?     // Encounter.reasonReference reference
+    public var locationPeriod: [DateParam]  // Encounter.location.period range filter
+    public var participantType: [TokenParam]    // Encounter.participant.type token OR
+    public var participantTypeNot: [TokenParam] // participant-type:not modifier
+    public var specialArrangement: [TokenParam]    // Encounter.hospitalization.specialArrangement token OR
+    public var specialArrangementNot: [TokenParam] // special-arrangement:not modifier
     public var id: [String]                 // _id filter (OR)
     public var lastUpdated: [DateParam]     // _lastUpdated range filter
     public var missing: [String: Bool]      // param:missing=true/false
@@ -54,6 +63,15 @@ public struct EncounterSearchQuery: Sendable {
         basedOn: String? = nil,
         location: String? = nil,
         diagnosis: String? = nil,
+        account: String? = nil,
+        appointment: String? = nil,
+        episodeOfCare: String? = nil,
+        reasonReference: String? = nil,
+        locationPeriod: [DateParam] = [],
+        participantType: [TokenParam] = [],
+        participantTypeNot: [TokenParam] = [],
+        specialArrangement: [TokenParam] = [],
+        specialArrangementNot: [TokenParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -82,6 +100,15 @@ public struct EncounterSearchQuery: Sendable {
         self.basedOn         = basedOn
         self.location        = location
         self.diagnosis       = diagnosis
+        self.account         = account
+        self.appointment     = appointment
+        self.episodeOfCare   = episodeOfCare
+        self.reasonReference = reasonReference
+        self.locationPeriod  = locationPeriod
+        self.participantType    = participantType
+        self.participantTypeNot = participantTypeNot
+        self.specialArrangement    = specialArrangement
+        self.specialArrangementNot = specialArrangementNot
         self.id              = id
         self.lastUpdated     = lastUpdated
         self.missing         = missing

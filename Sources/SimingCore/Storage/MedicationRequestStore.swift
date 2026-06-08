@@ -373,6 +373,83 @@ public struct MedicationRequestStore: Sendable {
             }
         }
 
+        // intended-dispenser — idx_reference
+        if let id = query.intendedDispenser {
+            let parts = id.split(separator: "/")
+            if parts.count == 2 {
+                let tP = bind(String(parts[0])); let iP = bind(String(parts[1]))
+                filterCTEs.append(("f_intended_dispenser", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-dispenser'
+                      AND ref_type = \(tP) AND ref_id = \(iP)
+                    """))
+            } else {
+                let iP = bind(id)
+                filterCTEs.append(("f_intended_dispenser", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-dispenser'
+                      AND ref_id = \(iP)
+                    """))
+            }
+        }
+
+        // intended-performer — idx_reference
+        if let ip = query.intendedPerformer {
+            let parts = ip.split(separator: "/")
+            if parts.count == 2 {
+                let tP = bind(String(parts[0])); let iP = bind(String(parts[1]))
+                filterCTEs.append(("f_intended_performer", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performer'
+                      AND ref_type = \(tP) AND ref_id = \(iP)
+                    """))
+            } else {
+                let iP = bind(ip)
+                filterCTEs.append(("f_intended_performer", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performer'
+                      AND ref_id = \(iP)
+                    """))
+            }
+        }
+
+        // medication (as Reference) — idx_reference
+        if let med = query.medication {
+            let parts = med.split(separator: "/")
+            if parts.count == 2 {
+                let tP = bind(String(parts[0])); let iP = bind(String(parts[1]))
+                filterCTEs.append(("f_medication", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'medication'
+                      AND ref_type = \(tP) AND ref_id = \(iP)
+                    """))
+            } else {
+                let iP = bind(med)
+                filterCTEs.append(("f_medication", """
+                    SELECT DISTINCT resource_id FROM idx_reference
+                    WHERE resource_type = 'MedicationRequest' AND param_name = 'medication'
+                      AND ref_id = \(iP)
+                    """))
+            }
+        }
+
+        // intended-performertype — token OR
+        if !query.intendedPerformerType.isEmpty {
+            var orClauses: [String] = []
+            for tok in query.intendedPerformerType {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code)
+                    var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            filterCTEs.append(("f_intended_performertype",
+                "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performertype' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
+
         // authoredon — idx_date range
         for (i, dp) in query.authoredOn.enumerated() {
             let startP = bind(dp.dateStart)
@@ -437,6 +514,7 @@ public struct MedicationRequestStore: Sendable {
         if !query.categoryNot.isEmpty { whereConditions.append(notTokenCond(paramName: "category", tokens: query.categoryNot)) }
         if !query.codeNot.isEmpty     { whereConditions.append(notTokenCond(paramName: "code",     tokens: query.codeNot)) }
         if !query.priorityNot.isEmpty { whereConditions.append(notTokenCond(paramName: "priority", tokens: query.priorityNot)) }
+        if !query.intendedPerformerTypeNot.isEmpty { whereConditions.append(notTokenCond(paramName: "intended-performertype", tokens: query.intendedPerformerTypeNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = medicationRequestMissingSubquery(param: paramName) {
@@ -632,6 +710,21 @@ public struct MedicationRequestStore: Sendable {
         if !query.category.isEmpty { filterCTEs.append(tokenCTE(name: "f_category", paramName: "category", tokens: query.category)) }
         if !query.code.isEmpty     { filterCTEs.append(tokenCTE(name: "f_code",     paramName: "code",     tokens: query.code)) }
         if !query.priority.isEmpty { filterCTEs.append(tokenCTE(name: "f_priority", paramName: "priority", tokens: query.priority)) }
+        if !query.intendedPerformerType.isEmpty { filterCTEs.append(tokenCTE(name: "f_intended_performertype", paramName: "intended-performertype", tokens: query.intendedPerformerType)) }
+
+        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
+            let parts = ref.split(separator: "/")
+            if parts.count == 2 {
+                let tP = bind(String(parts[0])); let iP = bind(String(parts[1]))
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = '\(paramName)' AND ref_type = \(tP) AND ref_id = \(iP)")
+            } else {
+                let iP = bind(ref)
+                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = '\(paramName)' AND ref_id = \(iP)")
+            }
+        }
+        if let v = query.intendedDispenser { filterCTEs.append(refCTECount(name: "f_intended_dispenser", paramName: "intended-dispenser", ref: v)) }
+        if let v = query.intendedPerformer { filterCTEs.append(refCTECount(name: "f_intended_performer", paramName: "intended-performer", ref: v)) }
+        if let v = query.medication        { filterCTEs.append(refCTECount(name: "f_medication",         paramName: "medication",         ref: v)) }
 
         for (i, dp) in query.authoredOn.enumerated() {
             let startP = bind(dp.dateStart)
@@ -696,14 +789,18 @@ public struct MedicationRequestStore: Sendable {
 
     private func medicationRequestMissingSubquery(param: String) -> String? {
         switch param {
-        case "subject", "patient": return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name IN ('subject', 'patient')"
-        case "status":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'status'"
-        case "intent":             return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'intent'"
-        case "category":           return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'category'"
-        case "code":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'code'"
-        case "identifier":         return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'identifier'"
-        case "authoredon":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'authoredon'"
-        default:                   return nil
+        case "subject", "patient":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name IN ('subject', 'patient')"
+        case "status":                   return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'status'"
+        case "intent":                   return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'intent'"
+        case "category":                 return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'category'"
+        case "code":                     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'code'"
+        case "identifier":               return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'identifier'"
+        case "authoredon":               return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'MedicationRequest' AND param_name = 'authoredon'"
+        case "intended-dispenser":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-dispenser'"
+        case "intended-performer":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performer'"
+        case "intended-performertype":   return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'MedicationRequest' AND param_name = 'intended-performertype'"
+        case "medication":               return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'MedicationRequest' AND param_name = 'medication'"
+        default:                         return nil
         }
     }
 }

@@ -194,6 +194,133 @@ func encounterHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: account ────────────────────────────────────────────────────
+    case "Encounter.account":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for ref in enc.account ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: appointment ────────────────────────────────────────────────
+    case "Encounter.appointment":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for ref in enc.appointment ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: episode-of-care ────────────────────────────────────────────
+    case "Encounter.episodeOfCare":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for ref in enc.episodeOfCare ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── reference: reason-reference ───────────────────────────────────────────
+    case "Encounter.reasonReference":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for ref in enc.reasonReference ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── date: location-period ─────────────────────────────────────────────────
+    case "Encounter.location.period":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            let cal = Calendar(identifier: .gregorian)
+            for loc in enc.location ?? [] {
+                guard let period = loc.period else { continue }
+                let start: Date
+                let end: Date
+                if let prim = period.start, let dt = prim.value {
+                    var dc = DateComponents()
+                    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                    dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                    start = cal.date(from: dc) ?? Date.distantPast
+                } else {
+                    start = Date.distantPast
+                }
+                if let prim = period.end, let dt = prim.value {
+                    var dc = DateComponents()
+                    dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+                    dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                    end = cal.date(from: dc) ?? Date.distantFuture
+                } else {
+                    end = Date.distantFuture
+                }
+                p.dates.append(.init(paramName: "\(code)", dateStart: start, dateEnd: end))
+            }
+        }
+        """
+
+    // ── token: participant-type ────────────────────────────────────────────────
+    case "Encounter.participant.type":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for part in enc.participant ?? [] {
+                for cc in part.type ?? [] {
+                    for coding in cc.coding ?? [] {
+                        let c = coding.code?.value?.string ?? ""
+                        let s = coding.system?.value?.url.absoluteString
+                        p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    }
+                }
+            }
+        }
+        """
+
+    // ── token: special-arrangement ────────────────────────────────────────────
+    case "Encounter.hospitalization.specialArrangement":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ enc: Encounter) {
+            for cc in enc.hospitalization?.specialArrangement ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                }
+            }
+        }
+        """
+
     // ── date: period (Encounter.period → start/end) ───────────────────────────
     case "Encounter.period":
         return """

@@ -247,12 +247,20 @@ func makeEncounter(
     status: String = "finished",
     participantId: String? = nil,
     practitionerId: String? = nil,
+    participantTypeCode: String? = nil,
     reasonCode: String? = nil,
     partOfId: String? = nil,
     serviceProviderId: String? = nil,
     basedOnId: String? = nil,
     locationId: String? = nil,
-    diagnosisId: String? = nil
+    locationPeriodStart: String? = nil,
+    locationPeriodEnd: String? = nil,
+    diagnosisId: String? = nil,
+    accountId: String? = nil,
+    appointmentId: String? = nil,
+    episodeOfCareId: String? = nil,
+    reasonReferenceId: String? = nil,
+    specialArrangementCode: String? = nil
 ) throws -> ModelsR4.Encounter {
     var json = #"""
     {"resourceType":"Encounter","status":"\#(status)",
@@ -260,10 +268,19 @@ func makeEncounter(
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
     if let pid = participantId {
-        json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
-    }
-    if let pid = practitionerId, participantId == nil {
-        json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+        if let tc = participantTypeCode {
+            json += #","participant":[{"type":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ParticipationType","code":"\#(tc)"}]}],"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+        } else {
+            json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+        }
+    } else if let pid = practitionerId {
+        if let tc = participantTypeCode {
+            json += #","participant":[{"type":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ParticipationType","code":"\#(tc)"}]}],"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+        } else {
+            json += #","participant":[{"individual":{"reference":"Practitioner/\#(pid)"}}]"#
+        }
+    } else if let tc = participantTypeCode {
+        json += #","participant":[{"type":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-ParticipationType","code":"\#(tc)"}]}]}]"#
     }
     if let rc = reasonCode {
         json += #","reasonCode":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(rc)"}]}]"#
@@ -278,34 +295,103 @@ func makeEncounter(
         json += #","basedOn":[{"reference":"ServiceRequest/\#(bid)"}]"#
     }
     if let lid = locationId {
-        json += #","location":[{"location":{"reference":"Location/\#(lid)"}}]"#
+        if let ps = locationPeriodStart {
+            if let pe = locationPeriodEnd {
+                json += #","location":[{"location":{"reference":"Location/\#(lid)"},"period":{"start":"\#(ps)","end":"\#(pe)"}}]"#
+            } else {
+                json += #","location":[{"location":{"reference":"Location/\#(lid)"},"period":{"start":"\#(ps)"}}]"#
+            }
+        } else {
+            json += #","location":[{"location":{"reference":"Location/\#(lid)"}}]"#
+        }
+    } else if let ps = locationPeriodStart {
+        if let pe = locationPeriodEnd {
+            json += #","location":[{"location":{"reference":"Location/unknown"},"period":{"start":"\#(ps)","end":"\#(pe)"}}]"#
+        } else {
+            json += #","location":[{"location":{"reference":"Location/unknown"},"period":{"start":"\#(ps)"}}]"#
+        }
     }
     if let did = diagnosisId {
         json += #","diagnosis":[{"condition":{"reference":"Condition/\#(did)"},"use":{"coding":[{"code":"CC"}]}}]"#
+    }
+    if let aid = accountId {
+        json += #","account":[{"reference":"Account/\#(aid)"}]"#
+    }
+    if let aid = appointmentId {
+        json += #","appointment":[{"reference":"Appointment/\#(aid)"}]"#
+    }
+    if let eid = episodeOfCareId {
+        json += #","episodeOfCare":[{"reference":"EpisodeOfCare/\#(eid)"}]"#
+    }
+    if let rid = reasonReferenceId {
+        json += #","reasonReference":[{"reference":"Condition/\#(rid)"}]"#
+    }
+    if let sc = specialArrangementCode {
+        json += #","hospitalization":{"specialArrangement":[{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/v3-EncounterSpecialCourtesy","code":"\#(sc)"}]}]}"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Encounter.self, from: Data(json.utf8))
 }
 
-func makeCondition(subjectId: String, clinicalStatus: String = "active", onsetDate: String? = nil) throws -> ModelsR4.Condition {
+func makeCondition(
+    subjectId: String,
+    clinicalStatus: String = "active",
+    onsetDate: String? = nil,
+    asserterId: String? = nil,
+    bodySiteCode: String? = nil,
+    evidenceCode: String? = nil,
+    evidenceDetailId: String? = nil,
+    severityCode: String? = nil,
+    stageCode: String? = nil,
+    onsetString: String? = nil,
+    abatementString: String? = nil
+) throws -> ModelsR4.Condition {
     var json = #"""
     {"resourceType":"Condition",
      "clinicalStatus":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/condition-clinical","code":"\#(clinicalStatus)"}]},
      "code":{"coding":[{"system":"http://snomed.info/sct","code":"73211009","display":"Diabetes mellitus"}]},
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
-    if let d = onsetDate { json += #","onsetDateTime":"\#(d)""# }
+    if let d = onsetDate        { json += #","onsetDateTime":"\#(d)""# }
+    if let s = onsetString      { json += #","onsetString":"\#(s)""# }
+    if let a = abatementString  { json += #","abatementString":"\#(a)""# }
+    if let aid = asserterId     { json += #","asserter":{"reference":"Practitioner/\#(aid)"}"# }
+    if let bc = bodySiteCode    { json += #","bodySite":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(bc)"}]}]"# }
+    if let ec = evidenceCode    { json += #","evidence":[{"code":[{"coding":[{"system":"http://snomed.info/sct","code":"\#(ec)"}]}]}]"# }
+    if let eid = evidenceDetailId { json += #","evidence":[{"detail":[{"reference":"DiagnosticReport/\#(eid)"}]}]"# }
+    if let sc = severityCode    { json += #","severity":{"coding":[{"system":"http://snomed.info/sct","code":"\#(sc)"}]}"# }
+    if let stc = stageCode      { json += #","stage":[{"summary":{"coding":[{"system":"http://snomed.info/sct","code":"\#(stc)"}]}}]"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Condition.self, from: Data(json.utf8))
 }
 
-func makeMedicationRequest(subjectId: String, status: String = "active", intent: String = "order", authoredOn: String? = nil) throws -> ModelsR4.MedicationRequest {
+func makeMedicationRequest(
+    subjectId: String,
+    status: String = "active",
+    intent: String = "order",
+    authoredOn: String? = nil,
+    intendedDispenserId: String? = nil,
+    intendedPerformerId: String? = nil,
+    intendedPerformerTypeCode: String? = nil,
+    medicationReferenceId: String? = nil
+) throws -> ModelsR4.MedicationRequest {
+    let medField: String
+    if let mid = medicationReferenceId {
+        medField = #""medicationReference":{"reference":"Medication/\#(mid)"}"#
+    } else {
+        medField = #""medicationCodeableConcept":{"coding":[{"system":"http://www.nlm.nih.gov/research/umls/rxnorm","code":"1049502"}]}"#
+    }
     var json = #"""
     {"resourceType":"MedicationRequest","status":"\#(status)","intent":"\#(intent)",
-     "medicationCodeableConcept":{"coding":[{"system":"http://www.nlm.nih.gov/research/umls/rxnorm","code":"1049502"}]},
+     \#(medField),
      "subject":{"reference":"Patient/\#(subjectId)"}
     """#
-    if let d = authoredOn { json += #","authoredOn":"\#(d)""# }
+    if let d = authoredOn             { json += #","authoredOn":"\#(d)""# }
+    if let did = intendedDispenserId  { json += #","dispenseRequest":{"performer":{"reference":"Organization/\#(did)"}}"# }
+    if let pid = intendedPerformerId  { json += #","performer":{"reference":"Practitioner/\#(pid)"}"# }
+    if let tc = intendedPerformerTypeCode {
+        json += #","performerType":{"coding":[{"system":"http://snomed.info/sct","code":"\#(tc)"}]}"#
+    }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.MedicationRequest.self, from: Data(json.utf8))
 }

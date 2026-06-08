@@ -115,6 +115,130 @@ final class ConditionStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: asserter ──────────────────────────────────────────────────────
+
+    func testSearch_byAsserter_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConAsserterPt")).id
+        let pracId = "prac-asserter-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeCondition(subjectId: pid, asserterId: pracId))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            asserter: "Practitioner/\(pracId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: body-site ─────────────────────────────────────────────────────
+
+    func testSearch_byBodySite_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConBodySitePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, bodySiteCode: "368209003"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            bodySite: [.init(system: nil, code: "368209003")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byBodySiteNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConBodySiteNotPt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, bodySiteCode: "368209003"))
+        _ = try await store.create(makeCondition(subjectId: pid, bodySiteCode: "362508005"))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            bodySiteNot: [.init(system: nil, code: "368209003")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: evidence ─────────────────────────────────────────────────────
+
+    func testSearch_byEvidence_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConEvidencePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, evidenceCode: "271872005"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            evidence: [.init(system: nil, code: "271872005")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byEvidenceNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConEvidenceNotPt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, evidenceCode: "271872005"))
+        _ = try await store.create(makeCondition(subjectId: pid, evidenceCode: "404684003"))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            evidenceNot: [.init(system: nil, code: "271872005")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: evidence-detail ───────────────────────────────────────────────
+
+    func testSearch_byEvidenceDetail_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConEvDetPt")).id
+        let drId = "dr-ev-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeCondition(subjectId: pid, evidenceDetailId: drId))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            evidenceDetail: "DiagnosticReport/\(drId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: severity ──────────────────────────────────────────────────────
+
+    func testSearch_bySeverity_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConSeverityPt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, severityCode: "24484000"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            severity: [.init(system: nil, code: "24484000")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: stage ─────────────────────────────────────────────────────────
+
+    func testSearch_byStage_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConStagePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, stageCode: "1306401001"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(
+            stage: [.init(system: nil, code: "1306401001")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: onset-info ────────────────────────────────────────────────────
+
+    func testSearch_byOnsetInfo_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConOnsetInfoPt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, onsetString: "childhood"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(onsetInfo: "child"))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: abatement-string ──────────────────────────────────────────────
+
+    func testSearch_byAbatementString_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ConAbatePt")).id
+        _ = try await store.create(makeCondition(subjectId: pid, abatementString: "resolved spontaneously"))
+        _ = try await store.create(makeCondition(subjectId: pid))
+
+        let result = try await store.search(query: ConditionSearchQuery(abatementString: "resolved"))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

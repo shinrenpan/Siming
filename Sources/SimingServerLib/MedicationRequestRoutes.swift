@@ -15,6 +15,9 @@ private let preferHeader = HTTPField.Name("Prefer")!
 let knownMedicationRequestParams: Set<String> = [
     "subject", "patient", "status", "intent", "category", "code",
     "priority", "identifier", "authoredon", "encounter", "requester",
+    "intended-dispenser", "intended-performer",
+    "intended-performertype", "intended-performertype:not",
+    "medication",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -392,6 +395,11 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     let authoredOn   = all("authoredon").compactMap { MedicationRequestSearchQuery.DateParam.parse(String($0)) }
     let encounter    = first("encounter").map(String.init)
     let requester    = first("requester").map(String.init)
+    let intendedDispenser     = first("intended-dispenser").map(String.init)
+    let intendedPerformer     = first("intended-performer").map(String.init)
+    let intendedPerformerType    = first("intended-performertype").map { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let intendedPerformerTypeNot = first("intended-performertype:not").map { MedicationRequestSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let medication   = first("medication").map(String.init)
     let id           = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
@@ -402,7 +410,8 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
     let totalMode    = MedicationRequestSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["subject", "patient", "status", "intent", "category", "code",
-              "priority", "identifier", "authoredon", "encounter", "requester"] {
+              "priority", "identifier", "authoredon", "encounter", "requester",
+              "intended-dispenser", "intended-performer", "intended-performertype", "medication"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -419,6 +428,11 @@ func parseMedicationRequestQuery(from pairs: some Collection<(key: Substring, va
         identifier: identifier,
         authoredOn: authoredOn,
         encounter: encounter, requester: requester,
+        intendedDispenser: intendedDispenser,
+        intendedPerformer: intendedPerformer,
+        intendedPerformerType: intendedPerformerType,
+        intendedPerformerTypeNot: intendedPerformerTypeNot,
+        medication: medication,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

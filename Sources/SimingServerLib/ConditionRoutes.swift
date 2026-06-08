@@ -17,6 +17,10 @@ let knownConditionParams: Set<String> = [
     "category", "code", "identifier",
     "onset-date", "abatement-date", "recorded-date",
     "clinical-status:not", "verification-status:not", "category:not", "code:not",
+    "asserter", "evidence-detail",
+    "body-site", "body-site:not", "evidence", "evidence:not",
+    "severity", "severity:not", "stage", "stage:not",
+    "onset-info", "abatement-string",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -399,6 +403,18 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let onsetDate          = all("onset-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
     let abatementDate      = all("abatement-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
     let recordedDate       = all("recorded-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
+    let asserter           = first("asserter").map(String.init)
+    let evidenceDetail     = first("evidence-detail").map(String.init)
+    let bodySite           = first("body-site").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let bodySiteNot        = first("body-site:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let evidence           = first("evidence").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let evidenceNot        = first("evidence:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let severity           = first("severity").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let severityNot        = first("severity:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let stage              = first("stage").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let stageNot           = first("stage:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let onsetInfo          = first("onset-info").map(String.init)
+    let abatementString    = first("abatement-string").map(String.init)
     let id                 = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
@@ -409,7 +425,10 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let totalMode          = ConditionSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["subject", "patient", "clinical-status", "verification-status",
-              "category", "code", "identifier", "onset-date", "abatement-date", "recorded-date"] {
+              "category", "code", "identifier", "onset-date", "abatement-date", "recorded-date",
+              "asserter", "evidence-detail",
+              "body-site", "evidence", "severity", "stage",
+              "onset-info", "abatement-string"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -425,6 +444,12 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
         code: code, codeNot: codeNot,
         identifier: identifier,
         onsetDate: onsetDate, abatementDate: abatementDate, recordedDate: recordedDate,
+        asserter: asserter, evidenceDetail: evidenceDetail,
+        bodySite: bodySite, bodySiteNot: bodySiteNot,
+        evidence: evidence, evidenceNot: evidenceNot,
+        severity: severity, severityNot: severityNot,
+        stage: stage, stageNot: stageNot,
+        onsetInfo: onsetInfo, abatementString: abatementString,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

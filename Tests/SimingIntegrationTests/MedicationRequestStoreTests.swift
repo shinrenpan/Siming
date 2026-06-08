@@ -110,6 +110,72 @@ final class MedicationRequestStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: intended-dispenser ────────────────────────────────────────────
+
+    func testSearch_byIntendedDispenser_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedDispPt")).id
+        let orgId = "org-disp-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, intendedDispenserId: orgId))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+
+        let result = try await store.search(query: MedicationRequestSearchQuery(
+            intendedDispenser: "Organization/\(orgId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: intended-performer ────────────────────────────────────────────
+
+    func testSearch_byIntendedPerformer_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedPerfPt")).id
+        let pracId = "prac-perf-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, intendedPerformerId: pracId))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+
+        let result = try await store.search(query: MedicationRequestSearchQuery(
+            intendedPerformer: "Practitioner/\(pracId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: intended-performertype ────────────────────────────────────────
+
+    func testSearch_byIntendedPerformerType_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedPerfTypePt")).id
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, intendedPerformerTypeCode: "310158004"))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+
+        let result = try await store.search(query: MedicationRequestSearchQuery(
+            intendedPerformerType: [.init(system: nil, code: "310158004")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byIntendedPerformerTypeNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedPerfTypeNotPt")).id
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, intendedPerformerTypeCode: "310158004"))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, intendedPerformerTypeCode: "46255001"))
+
+        let result = try await store.search(query: MedicationRequestSearchQuery(
+            intendedPerformerTypeNot: [.init(system: nil, code: "310158004")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: medication (as reference) ─────────────────────────────────────
+
+    func testSearch_byMedicationReference_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "MedRefPt")).id
+        let medId = "med-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeMedicationRequest(subjectId: pid, medicationReferenceId: medId))
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+
+        let result = try await store.search(query: MedicationRequestSearchQuery(
+            medication: "Medication/\(medId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

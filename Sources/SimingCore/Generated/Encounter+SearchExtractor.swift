@@ -37,11 +37,29 @@ public func extractEncounterSearchParams(_ enc: Encounter) -> SearchParams {
     return p
 }
 
-// TODO: unhandled — account [reference] Encounter.account
-private func extract_Encounter_account(_ p: inout SearchParams, _ enc: Encounter) {}
+// account [reference] — Encounter.account
+private func extract_Encounter_account(_ p: inout SearchParams, _ enc: Encounter) {
+    for ref in enc.account ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "account", refType: refType, refId: refId))
+    }
+}
 
-// TODO: unhandled — appointment [reference] Encounter.appointment
-private func extract_Encounter_appointment(_ p: inout SearchParams, _ enc: Encounter) {}
+// appointment [reference] — Encounter.appointment
+private func extract_Encounter_appointment(_ p: inout SearchParams, _ enc: Encounter) {
+    for ref in enc.appointment ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "appointment", refType: refType, refId: refId))
+    }
+}
 
 // based-on [reference] — Encounter.basedOn
 private func extract_Encounter_based_on(_ p: inout SearchParams, _ enc: Encounter) {
@@ -99,8 +117,17 @@ private func extract_Encounter_diagnosis(_ p: inout SearchParams, _ enc: Encount
     }
 }
 
-// TODO: unhandled — episode-of-care [reference] Encounter.episodeOfCare
-private func extract_Encounter_episode_of_care(_ p: inout SearchParams, _ enc: Encounter) {}
+// episode-of-care [reference] — Encounter.episodeOfCare
+private func extract_Encounter_episode_of_care(_ p: inout SearchParams, _ enc: Encounter) {
+    for ref in enc.episodeOfCare ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "episode-of-care", refType: refType, refId: refId))
+    }
+}
 
 // identifier [token] — Encounter.identifier
 private func extract_Encounter_identifier(_ p: inout SearchParams, _ enc: Encounter) {
@@ -126,8 +153,32 @@ private func extract_Encounter_location(_ p: inout SearchParams, _ enc: Encounte
     }
 }
 
-// TODO: unhandled — location-period [date] Encounter.location.period
-private func extract_Encounter_location_period(_ p: inout SearchParams, _ enc: Encounter) {}
+// location-period [date] — Encounter.location.period
+private func extract_Encounter_location_period(_ p: inout SearchParams, _ enc: Encounter) {
+    let cal = Calendar(identifier: .gregorian)
+    for loc in enc.location ?? [] {
+        guard let period = loc.period else { continue }
+        let start: Date
+        let end: Date
+        if let prim = period.start, let dt = prim.value {
+            var dc = DateComponents()
+            dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+            dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+            start = cal.date(from: dc) ?? Date.distantPast
+        } else {
+            start = Date.distantPast
+        }
+        if let prim = period.end, let dt = prim.value {
+            var dc = DateComponents()
+            dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
+            dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+            end = cal.date(from: dc) ?? Date.distantFuture
+        } else {
+            end = Date.distantFuture
+        }
+        p.dates.append(.init(paramName: "location-period", dateStart: start, dateEnd: end))
+    }
+}
 
 // part-of [reference] — Encounter.partOf
 private func extract_Encounter_part_of(_ p: inout SearchParams, _ enc: Encounter) {
@@ -151,8 +202,18 @@ private func extract_Encounter_participant(_ p: inout SearchParams, _ enc: Encou
     }
 }
 
-// TODO: unhandled — participant-type [token] Encounter.participant.type
-private func extract_Encounter_participant_type(_ p: inout SearchParams, _ enc: Encounter) {}
+// participant-type [token] — Encounter.participant.type
+private func extract_Encounter_participant_type(_ p: inout SearchParams, _ enc: Encounter) {
+    for part in enc.participant ?? [] {
+        for cc in part.type ?? [] {
+            for coding in cc.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "participant-type", system: s, code: c))
+            }
+        }
+    }
+}
 
 // patient [reference] — Encounter.subject
 private func extract_Encounter_patient(_ p: inout SearchParams, _ enc: Encounter) {
@@ -187,8 +248,17 @@ private func extract_Encounter_reason_code(_ p: inout SearchParams, _ enc: Encou
     }
 }
 
-// TODO: unhandled — reason-reference [reference] Encounter.reasonReference
-private func extract_Encounter_reason_reference(_ p: inout SearchParams, _ enc: Encounter) {}
+// reason-reference [reference] — Encounter.reasonReference
+private func extract_Encounter_reason_reference(_ p: inout SearchParams, _ enc: Encounter) {
+    for ref in enc.reasonReference ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "reason-reference", refType: refType, refId: refId))
+    }
+}
 
 // service-provider [reference] — Encounter.serviceProvider
 private func extract_Encounter_service_provider(_ p: inout SearchParams, _ enc: Encounter) {
@@ -200,8 +270,16 @@ private func extract_Encounter_service_provider(_ p: inout SearchParams, _ enc: 
     p.references.append(.init(paramName: "service-provider", refType: refType, refId: refId))
 }
 
-// TODO: unhandled — special-arrangement [token] Encounter.hospitalization.specialArrangement
-private func extract_Encounter_special_arrangement(_ p: inout SearchParams, _ enc: Encounter) {}
+// special-arrangement [token] — Encounter.hospitalization.specialArrangement
+private func extract_Encounter_special_arrangement(_ p: inout SearchParams, _ enc: Encounter) {
+    for cc in enc.hospitalization?.specialArrangement ?? [] {
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "special-arrangement", system: s, code: c))
+        }
+    }
+}
 
 // status [token] — Encounter.status
 private func extract_Encounter_status(_ p: inout SearchParams, _ enc: Encounter) {

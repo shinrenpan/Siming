@@ -215,6 +215,124 @@ final class EncounterStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 1)
     }
 
+    // ── Search: account ───────────────────────────────────────────────────────
+
+    func testSearch_byAccount_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncAccPt")).id
+        let accId = "acc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, accountId: accId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            account: "Account/\(accId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: appointment ───────────────────────────────────────────────────
+
+    func testSearch_byAppointment_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncApptPt")).id
+        let apptId = "appt-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, appointmentId: apptId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            appointment: "Appointment/\(apptId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: episode-of-care ───────────────────────────────────────────────
+
+    func testSearch_byEpisodeOfCare_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncEocPt")).id
+        let eocId = "eoc-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, episodeOfCareId: eocId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            episodeOfCare: "EpisodeOfCare/\(eocId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: reason-reference ──────────────────────────────────────────────
+
+    func testSearch_byReasonReference_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncRsnRefPt")).id
+        let condId = "cond-rsn-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeEncounter(subjectId: pid, reasonReferenceId: condId))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            reasonReference: "Condition/\(condId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: location-period ───────────────────────────────────────────────
+
+    func testSearch_byLocationPeriod_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncLocPerPt")).id
+        // period 2020-01-01 to 2022-12-31 — ends before the filter date
+        _ = try await store.create(makeEncounter(subjectId: pid, locationPeriodStart: "2020-01-01", locationPeriodEnd: "2022-12-31"))
+        // period starting 2025-06-01, no end — extends beyond filter date
+        _ = try await store.create(makeEncounter(subjectId: pid, locationPeriodStart: "2025-06-01"))
+
+        let param = EncounterSearchQuery.DateParam.parse("ge2023-01-01")!
+        let result = try await store.search(query: EncounterSearchQuery(locationPeriod: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: participant-type ──────────────────────────────────────────────
+
+    func testSearch_byParticipantType_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncPTypePt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, participantTypeCode: "PART"))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            participantType: [.init(system: nil, code: "PART")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byParticipantTypeNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncPTypeNotPt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, participantTypeCode: "PART"))
+        _ = try await store.create(makeEncounter(subjectId: pid, participantTypeCode: "ADM"))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            participantTypeNot: [.init(system: nil, code: "PART")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: special-arrangement ───────────────────────────────────────────
+
+    func testSearch_bySpecialArrangement_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncSpcArrPt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, specialArrangementCode: "wheel"))
+        _ = try await store.create(makeEncounter(subjectId: pid))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            specialArrangement: [.init(system: nil, code: "wheel")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_bySpecialArrangementNot_excludesCorrectly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "EncSpcArrNotPt")).id
+        _ = try await store.create(makeEncounter(subjectId: pid, specialArrangementCode: "wheel"))
+        _ = try await store.create(makeEncounter(subjectId: pid, specialArrangementCode: "add-bed"))
+
+        let result = try await store.search(query: EncounterSearchQuery(
+            specialArrangementNot: [.init(system: nil, code: "wheel")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── History ───────────────────────────────────────────────────────────────
 
     func testHistory_tracksAllVersions() async throws {

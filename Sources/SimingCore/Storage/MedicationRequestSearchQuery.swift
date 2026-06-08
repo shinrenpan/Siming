@@ -19,6 +19,11 @@ public struct MedicationRequestSearchQuery: Sendable {
     public var authoredOn: [DateParam]              // authoredon range filter
     public var encounter: String?                   // reference: "Encounter/id"
     public var requester: String?                   // reference: "Practitioner/id" etc.
+    public var intendedDispenser: String?           // MedicationRequest.dispenseRequest.performer reference
+    public var intendedPerformer: String?           // MedicationRequest.performer reference
+    public var intendedPerformerType: [TokenParam]    // MedicationRequest.performerType token OR
+    public var intendedPerformerTypeNot: [TokenParam] // intended-performertype:not modifier
+    public var medication: String?                  // MedicationRequest.medication as Reference
     public var id: [String]                         // _id filter (OR)
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
     public var missing: [String: Bool]              // param:missing=true/false
@@ -48,6 +53,11 @@ public struct MedicationRequestSearchQuery: Sendable {
         authoredOn: [DateParam] = [],
         encounter: String? = nil,
         requester: String? = nil,
+        intendedDispenser: String? = nil,
+        intendedPerformer: String? = nil,
+        intendedPerformerType: [TokenParam] = [],
+        intendedPerformerTypeNot: [TokenParam] = [],
+        medication: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -73,6 +83,11 @@ public struct MedicationRequestSearchQuery: Sendable {
         self.authoredOn   = authoredOn
         self.encounter    = encounter
         self.requester    = requester
+        self.intendedDispenser        = intendedDispenser
+        self.intendedPerformer        = intendedPerformer
+        self.intendedPerformerType    = intendedPerformerType
+        self.intendedPerformerTypeNot = intendedPerformerTypeNot
+        self.medication   = medication
         self.id           = id
         self.lastUpdated  = lastUpdated
         self.missing      = missing

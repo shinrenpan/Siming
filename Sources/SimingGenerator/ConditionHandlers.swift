@@ -191,6 +191,120 @@ func conditionHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: asserter ──────────────────────────────────────────────────
+    case "asserter":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let refStr = cond.asserter?.reference?.value?.string else { return }
+            let parts = refStr.split(separator: "/")
+            let (refType, refId): (String?, String) = parts.count == 2
+                ? (String(parts[0]), String(parts[1]))
+                : (nil, refStr)
+            p.references.append(.init(paramName: "asserter", refType: refType, refId: refId))
+        }
+        """
+
+    // ── token: body-site ─────────────────────────────────────────────────────
+    case "body-site":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            for cc in cond.bodySite ?? [] {
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                }
+            }
+        }
+        """
+
+    // ── token: evidence (evidence.code) ─────────────────────────────────────
+    case "evidence":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            for ev in cond.evidence ?? [] {
+                for cc in ev.code ?? [] {
+                    for coding in cc.coding ?? [] {
+                        let c = coding.code?.value?.string ?? ""
+                        let s = coding.system?.value?.url.absoluteString
+                        p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    }
+                }
+            }
+        }
+        """
+
+    // ── reference: evidence-detail ───────────────────────────────────────────
+    case "evidence-detail":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            for ev in cond.evidence ?? [] {
+                for ref in ev.detail ?? [] {
+                    guard let refStr = ref.reference?.value?.string else { continue }
+                    let parts = refStr.split(separator: "/")
+                    let (refType, refId): (String?, String) = parts.count == 2
+                        ? (String(parts[0]), String(parts[1]))
+                        : (nil, refStr)
+                    p.references.append(.init(paramName: "\(code)", refType: refType, refId: refId))
+                }
+            }
+        }
+        """
+
+    // ── string: onset-info (onset as string) ─────────────────────────────────
+    case "onset-info":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let onset = cond.onset, case .string(let prim) = onset,
+                  let s = prim.value?.string else { return }
+            p.strings.append(.init(paramName: "\(code)", value: s))
+        }
+        """
+
+    // ── string: abatement-string (abatement as string) ───────────────────────
+    case "abatement-string":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            guard let abatement = cond.abatement, case .string(let prim) = abatement,
+                  let s = prim.value?.string else { return }
+            p.strings.append(.init(paramName: "\(code)", value: s))
+        }
+        """
+
+    // ── token: severity ──────────────────────────────────────────────────────
+    case "severity":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            for coding in cond.severity?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+            }
+        }
+        """
+
+    // ── token: stage (stage.summary) ─────────────────────────────────────────
+    case "stage":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ cond: Condition) {
+            for stage in cond.stage ?? [] {
+                for coding in stage.summary?.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                }
+            }
+        }
+        """
+
     // ── date: recorded-date ───────────────────────────────────────────────────
     case "recorded-date":
         return """
