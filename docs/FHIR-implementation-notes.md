@@ -92,6 +92,10 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 - `deceased` — boolean token (code `"true"`/`"false"`) stored in idx_token.
 - `death-date` — date param in idx_date; only indexed when deceased is a dateTime (not boolean).
 - `email` / `phone` — stored via telecom extractor with `param_name="telecom"` and the system value; store queries `system='phone'` or `system='email'`.
+- `organization` — `managingOrganization` reference via idx_reference; supports both `ResourceType/id` and bare `id` forms.
+- `general-practitioner` — `generalPractitioner[]` reference via idx_reference; same type-qualified matching.
+- `link` — `link[].other` reference via idx_reference.
+- `language` / `language:not` — `communication[].language` token OR/NOT via idx_token; supports `system|code`, `|code` (null system), and bare `code` forms.
 
 ### Observation
 
@@ -219,6 +223,8 @@ All of the following are fully implemented:
 
 - `patient`, `practitioner`, `location`, `actor` — all index the same `participant.actor` field but with different `param_name`; store filters by `ref_type` to distinguish (e.g., `patient=Patient/123` → `ref_type='Patient' AND ref_id='123'`).
 - `supporting-info` — searches `supportingInformation[]` references via idx_reference.
+- `based-on` — `basedOn` (ServiceRequest) reference via idx_reference.
+- `reason-reference` — `reasonReference[]` (Condition/Procedure) references via idx_reference.
 
 ### MedicationAdministration
 
