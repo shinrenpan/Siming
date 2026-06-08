@@ -29,6 +29,10 @@ public struct ObservationSearchQuery: Sendable {
     public var methodNot: [TokenParam]
     public var valueConcept: [TokenParam]
     public var valueConceptNot: [TokenParam]
+    public var dataAbsentReason: [TokenParam]         // data-absent-reason token OR
+    public var comboDataAbsentReason: [TokenParam]    // combo-data-absent-reason token OR
+    public var componentDataAbsentReason: [TokenParam] // component-data-absent-reason token OR
+    public var componentValueConcept: [TokenParam]    // component-value-concept token OR
     public var valueQuantity: [QuantityParam] // value-quantity OR list
     public var valueDate: [DateParam]
     public var valueString: [String]
@@ -71,6 +75,10 @@ public struct ObservationSearchQuery: Sendable {
         methodNot: [TokenParam] = [],
         valueConcept: [TokenParam] = [],
         valueConceptNot: [TokenParam] = [],
+        dataAbsentReason: [TokenParam] = [],
+        comboDataAbsentReason: [TokenParam] = [],
+        componentDataAbsentReason: [TokenParam] = [],
+        componentValueConcept: [TokenParam] = [],
         valueQuantity: [QuantityParam] = [],
         valueDate: [DateParam] = [],
         valueString: [String] = [],
@@ -109,6 +117,10 @@ public struct ObservationSearchQuery: Sendable {
         self.methodNot      = methodNot
         self.valueConcept   = valueConcept
         self.valueConceptNot = valueConceptNot
+        self.dataAbsentReason          = dataAbsentReason
+        self.comboDataAbsentReason     = comboDataAbsentReason
+        self.componentDataAbsentReason = componentDataAbsentReason
+        self.componentValueConcept     = componentValueConcept
         self.valueQuantity  = valueQuantity
         self.valueDate      = valueDate
         self.valueString    = valueString

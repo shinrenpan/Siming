@@ -352,6 +352,12 @@ public struct ServiceRequestStore: Sendable {
             }
         }
 
+        // instantiates-uri — idx_string exact match
+        for (i, uri) in query.instantiatesUri.enumerated() {
+            let p = bind(uri)
+            filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
+        }
+
         // date CTEs
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(dateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
@@ -634,6 +640,11 @@ public struct ServiceRequestStore: Sendable {
             }
         }
 
+        for (i, uri) in query.instantiatesUri.enumerated() {
+            let p = bind(uri)
+            filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
+        }
+
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(countDateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
         }
@@ -711,7 +722,8 @@ public struct ServiceRequestStore: Sendable {
         case "performer":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'performer'"
         case "based-on":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'based-on'"
         case "replaces":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'replaces'"
-        case "specimen":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'specimen'"
+        case "specimen":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'specimen'"
+        case "instantiates-uri":  return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri'"
         default:               return nil
         }
     }

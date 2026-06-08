@@ -40,6 +40,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var custodian: String?
     public var authenticator: String?
     public var relatesto: String?
+    public var related: String?              // DocumentReference.context.related[] reference
 
     // relatesto relation token
     public var relation: [TokenParam]
@@ -89,6 +90,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         custodian: String? = nil,
         authenticator: String? = nil,
         relatesto: String? = nil,
+        related: String? = nil,
         relation: [TokenParam] = [],
         relationNot: [TokenParam] = [],
         id: [String] = [],
@@ -130,6 +132,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.custodian        = custodian
         self.authenticator    = authenticator
         self.relatesto        = relatesto
+        self.related          = related
         self.relation         = relation
         self.relationNot      = relationNot
         self.id               = id

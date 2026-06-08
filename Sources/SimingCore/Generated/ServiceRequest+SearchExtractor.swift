@@ -114,8 +114,13 @@ private func extract_ServiceRequest_instantiates_canonical(_ p: inout SearchPara
     // TODO: canonical reference indexing not implemented
 }
 
-// TODO: unhandled — instantiates-uri [uri] ServiceRequest.instantiatesUri
-private func extract_ServiceRequest_instantiates_uri(_ p: inout SearchParams, _ sr: ServiceRequest) {}
+// instantiates-uri [uri] — ServiceRequest.instantiatesUri
+private func extract_ServiceRequest_instantiates_uri(_ p: inout SearchParams, _ sr: ServiceRequest) {
+    for prim in sr.instantiatesUri ?? [] {
+        guard let url = prim.value?.url.absoluteString else { continue }
+        p.strings.append(.init(paramName: "instantiates-uri", value: url))
+    }
+}
 
 // intent [token] — ServiceRequest.intent
 private func extract_ServiceRequest_intent(_ p: inout SearchParams, _ sr: ServiceRequest) {

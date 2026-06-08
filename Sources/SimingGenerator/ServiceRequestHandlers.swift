@@ -253,6 +253,18 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── string: instantiates-uri — ServiceRequest.instantiatesUri[] → idx_string ─
+    case "instantiates-uri":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ sr: ServiceRequest) {
+            for prim in sr.instantiatesUri ?? [] {
+                guard let url = prim.value?.url.absoluteString else { continue }
+                p.strings.append(.init(paramName: "instantiates-uri", value: url))
+            }
+        }
+        """
+
     // ── date: authored ────────────────────────────────────────────────────────
     case "authored":
         return """

@@ -47,6 +47,58 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
         """
     }
 
+    // data-absent-reason: obs.dataAbsentReason → idx_token
+    if code == "data-absent-reason" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for coding in obs.dataAbsentReason?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "data-absent-reason", system: s, code: c))
+            }
+        }
+        """
+    }
+
+    // combo-data-absent-reason: obs.dataAbsentReason | obs.component[].dataAbsentReason
+    if code == "combo-data-absent-reason" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for coding in obs.dataAbsentReason?.coding ?? [] {
+                let c = coding.code?.value?.string ?? ""
+                let s = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+            }
+            for comp in obs.component ?? [] {
+                for coding in comp.dataAbsentReason?.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+                }
+            }
+        }
+        """
+    }
+
+    // component-value-concept: obs.component[].value as CodeableConcept → idx_token
+    if code == "component-value-concept" {
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for comp in obs.component ?? [] {
+                guard case .codeableConcept(let cc) = comp.value else { continue }
+                for coding in cc.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "component-value-concept", system: s, code: c))
+                }
+            }
+        }
+        """
+    }
+
     // value-concept: obs.value as CodeableConcept → idx_token
     if code == "value-concept" {
         return """
@@ -174,6 +226,21 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
                 p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+            }
+        }
+        """
+
+    // ── token: component-data-absent-reason ──────────────────────────────────
+    case "Observation.component.dataAbsentReason":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ obs: Observation) {
+            for comp in obs.component ?? [] {
+                for coding in comp.dataAbsentReason?.coding ?? [] {
+                    let c = coding.code?.value?.string ?? ""
+                    let s = coding.system?.value?.url.absoluteString
+                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                }
             }
         }
         """

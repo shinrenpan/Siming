@@ -121,8 +121,21 @@ private func extract_Observation_combo_code_value_concept(_ p: inout SearchParam
 // TODO: unhandled — combo-code-value-quantity [composite] Observation | Observation.component
 private func extract_Observation_combo_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
 
-// TODO: unhandled — combo-data-absent-reason [token] Observation.dataAbsentReason | Observation.component.dataAbsentReason
-private func extract_Observation_combo_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {}
+// combo-data-absent-reason [token] — Observation.dataAbsentReason
+private func extract_Observation_combo_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
+    for coding in obs.dataAbsentReason?.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let s = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+    }
+    for comp in obs.component ?? [] {
+        for coding in comp.dataAbsentReason?.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+        }
+    }
+}
 
 // combo-value-concept [token] — Observation.value
 private func extract_Observation_combo_value_concept(_ p: inout SearchParams, _ obs: Observation) {
@@ -161,17 +174,40 @@ private func extract_Observation_component_code_value_concept(_ p: inout SearchP
 // TODO: unhandled — component-code-value-quantity [composite] Observation.component
 private func extract_Observation_component_code_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
 
-// TODO: unhandled — component-data-absent-reason [token] Observation.component.dataAbsentReason
-private func extract_Observation_component_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {}
+// component-data-absent-reason [token] — Observation.component.dataAbsentReason
+private func extract_Observation_component_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
+    for comp in obs.component ?? [] {
+        for coding in comp.dataAbsentReason?.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "component-data-absent-reason", system: s, code: c))
+        }
+    }
+}
 
-// TODO: unhandled — component-value-concept [token] (Observation.component.value as CodeableConcept)
-private func extract_Observation_component_value_concept(_ p: inout SearchParams, _ obs: Observation) {}
+// component-value-concept [token] — Observation.component.value
+private func extract_Observation_component_value_concept(_ p: inout SearchParams, _ obs: Observation) {
+    for comp in obs.component ?? [] {
+        guard case .codeableConcept(let cc) = comp.value else { continue }
+        for coding in cc.coding ?? [] {
+            let c = coding.code?.value?.string ?? ""
+            let s = coding.system?.value?.url.absoluteString
+            p.tokens.append(.init(paramName: "component-value-concept", system: s, code: c))
+        }
+    }
+}
 
 // TODO: unhandled — component-value-quantity [quantity] (Observation.component.value as Quantity) | (Observation.component.value as SampledData)
 private func extract_Observation_component_value_quantity(_ p: inout SearchParams, _ obs: Observation) {}
 
-// TODO: unhandled — data-absent-reason [token] Observation.dataAbsentReason
-private func extract_Observation_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {}
+// data-absent-reason [token] — Observation.dataAbsentReason
+private func extract_Observation_data_absent_reason(_ p: inout SearchParams, _ obs: Observation) {
+    for coding in obs.dataAbsentReason?.coding ?? [] {
+        let c = coding.code?.value?.string ?? ""
+        let s = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "data-absent-reason", system: s, code: c))
+    }
+}
 
 // date [date] — Observation.effective
 private func extract_Observation_date(_ p: inout SearchParams, _ obs: Observation) {

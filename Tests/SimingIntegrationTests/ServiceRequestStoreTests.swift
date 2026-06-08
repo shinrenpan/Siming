@@ -289,6 +289,20 @@ final class ServiceRequestStoreTests: XCTestCase {
         XCTAssertEqual(sr0.authoredOn?.value?.description, "2024-01-01")
         XCTAssertEqual(sr1.authoredOn?.value?.description, "2022-01-01")
     }
+
+    // ── Search: instantiates-uri ──────────────────────────────────────────────
+
+    func testSearch_byInstantiatesUri_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "SRInstUriPt")).id
+        let uri = "http://example.com/protocol/\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeServiceRequest(patientId: pid, instantiatesUri: uri))
+        _ = try await store.create(makeServiceRequest(patientId: pid))
+
+        let result = try await store.search(query: ServiceRequestSearchQuery(
+            instantiatesUri: [uri]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

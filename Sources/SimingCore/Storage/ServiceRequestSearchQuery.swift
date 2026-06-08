@@ -21,7 +21,8 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var requisition: [TokenParam]
 
     // string params
-    public var orderDetail: StringParam?  // free-text search on orderDetail
+    public var orderDetail: StringParam?     // free-text search on orderDetail
+    public var instantiatesUri: [String]     // ServiceRequest.instantiatesUri (exact URL match)
 
     // date params
     public var authored: [DateParam]
@@ -67,6 +68,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         performerType: [TokenParam] = [],
         requisition: [TokenParam] = [],
         orderDetail: StringParam? = nil,
+        instantiatesUri: [String] = [],
         authored: [DateParam] = [],
         occurrence: [DateParam] = [],
         subject: String? = nil,
@@ -102,6 +104,7 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.performerType  = performerType
         self.requisition    = requisition
         self.orderDetail    = orderDetail
+        self.instantiatesUri = instantiatesUri
         self.authored       = authored
         self.occurrence     = occurrence
         self.subject        = subject

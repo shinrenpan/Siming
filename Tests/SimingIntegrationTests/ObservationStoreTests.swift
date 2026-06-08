@@ -250,4 +250,73 @@ final class ObservationStoreTests: XCTestCase {
         let result = try await store.search(query: ObservationSearchQuery(comboCode: [tok]))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: data-absent-reason ────────────────────────────────────────────
+
+    func testSearch_byDataAbsentReason_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DARPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, dataAbsentReasonCode: "unknown"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            dataAbsentReason: [.init(system: nil, code: "unknown")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: combo-data-absent-reason ──────────────────────────────────────
+
+    func testSearch_byComboDataAbsentReason_matchesObsLevel() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboDARPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, dataAbsentReasonCode: "masked"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            comboDataAbsentReason: [.init(system: nil, code: "masked")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byComboDataAbsentReason_matchesComponentLevel() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboDARCompPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentDataAbsentReasonCode: "not-performed"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            comboDataAbsentReason: [.init(system: nil, code: "not-performed")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: component-data-absent-reason ──────────────────────────────────
+
+    func testSearch_byComponentDataAbsentReason_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CompDARPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, componentDataAbsentReasonCode: "error"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            componentDataAbsentReason: [.init(system: nil, code: "error")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    // ── Search: component-value-concept ───────────────────────────────────────
+
+    func testSearch_byComponentValueConcept_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CompValConPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid,
+            componentCode: "8480-6", componentValueConceptCode: "260385009"))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            componentValueConcept: [.init(system: nil, code: "260385009")]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

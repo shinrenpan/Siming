@@ -220,7 +220,10 @@ func makeObservation(
     valueConcept: String? = nil,
     valueString: String? = nil,
     valueDateTime: String? = nil,
-    componentCode: String? = nil
+    componentCode: String? = nil,
+    dataAbsentReasonCode: String? = nil,
+    componentValueConceptCode: String? = nil,
+    componentDataAbsentReasonCode: String? = nil
 ) throws -> ModelsR4.Observation {
     var json = #"""
     {"resourceType":"Observation","status":"\#(status)",
@@ -235,8 +238,19 @@ func makeObservation(
     if let vc = valueConcept { json += #","valueCodeableConcept":{"coding":[{"system":"http://snomed.info/sct","code":"\#(vc)"}]}"# }
     if let vs = valueString { json += #","valueString":"\#(vs)""# }
     if let vd = valueDateTime { json += #","valueDateTime":"\#(vd)""# }
+    if let dar = dataAbsentReasonCode {
+        json += #","dataAbsentReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/data-absent-reason","code":"\#(dar)"}]}"#
+    }
     if let cc = componentCode {
-        json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueQuantity":{"value":1,"unit":"mmHg"}}]"#
+        if let cvc = componentValueConceptCode {
+            json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueCodeableConcept":{"coding":[{"system":"http://snomed.info/sct","code":"\#(cvc)"}]}}]"#
+        } else if let cdar = componentDataAbsentReasonCode {
+            json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"dataAbsentReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/data-absent-reason","code":"\#(cdar)"}]}}]"#
+        } else {
+            json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"\#(cc)"}]},"valueQuantity":{"value":1,"unit":"mmHg"}}]"#
+        }
+    } else if let cdar = componentDataAbsentReasonCode {
+        json += #","component":[{"code":{"coding":[{"system":"http://loinc.org","code":"unknown"}]},"dataAbsentReason":{"coding":[{"system":"http://terminology.hl7.org/CodeSystem/data-absent-reason","code":"\#(cdar)"}]}}]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Observation.self, from: Data(json.utf8))
@@ -598,7 +612,8 @@ func makeServiceRequest(
     category: String? = nil,
     categorySystem: String = "http://snomed.info/sct",
     authoredOn: String? = nil,
-    encounterRef: String? = nil
+    encounterRef: String? = nil,
+    instantiatesUri: String? = nil
 ) throws -> ModelsR4.ServiceRequest {
     var json = #"""
     {"resourceType":"ServiceRequest",
@@ -615,6 +630,7 @@ func makeServiceRequest(
     }
     if let a = authoredOn { json += #","authoredOn":"\#(a)""# }
     if let e = encounterRef { json += #","encounter":{"reference":"\#(e)"}"# }
+    if let u = instantiatesUri { json += #","instantiatesUri":["\#(u)"]"# }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: Data(json.utf8))
 }
@@ -657,7 +673,8 @@ func makeDocumentReference(
     description: String? = nil,
     encounterId: String? = nil,
     relatesToTarget: String? = nil,
-    relatesToCode: String = "replaces"
+    relatesToCode: String = "replaces",
+    relatedRef: String? = nil
 ) throws -> ModelsR4.DocumentReference {
     var json = #"""
     {"resourceType":"DocumentReference",
@@ -673,8 +690,12 @@ func makeDocumentReference(
     }
     if let d = date { json += #","date":"\#(d)""# }
     if let desc = description { json += #","description":"\#(desc)""# }
-    if let encId = encounterId {
+    if let encId = encounterId, relatedRef == nil {
         json += #","context":{"encounter":[{"reference":"Encounter/\#(encId)"}]}"#
+    } else if let encId = encounterId, let rr = relatedRef {
+        json += #","context":{"encounter":[{"reference":"Encounter/\#(encId)"}],"related":[{"reference":"\#(rr)"}]}"#
+    } else if let rr = relatedRef {
+        json += #","context":{"related":[{"reference":"\#(rr)"}]}"#
     }
     if let target = relatesToTarget {
         json += #","relatesTo":[{"code":"\#(relatesToCode)","target":{"reference":"\#(target)"}}]"#

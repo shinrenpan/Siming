@@ -340,4 +340,18 @@ final class DocumentReferenceStoreTests: XCTestCase {
         XCTAssertNotNil(doc0.date)
         XCTAssertNotNil(doc1.date)
     }
+
+    // ── Search: related ───────────────────────────────────────────────────────
+
+    func testSearch_byRelated_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DocRelatedPt")).id
+        let relatedId = "obs-related-\(UUID().uuidString.prefix(8))"
+        _ = try await store.create(makeDocumentReference(patientId: pid, relatedRef: "Observation/\(relatedId)"))
+        _ = try await store.create(makeDocumentReference(patientId: pid))
+
+        let result = try await store.search(query: DocumentReferenceSearchQuery(
+            related: "Observation/\(relatedId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

@@ -315,6 +315,22 @@ func documentReferenceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: related (context.related[]) ────────────────────────────────
+    case "related":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for ref in d.context?.related ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "related", refType: refType, refId: refId))
+            }
+        }
+        """
+
     // ── reference: custodian ──────────────────────────────────────────────────
     case "custodian":
         return """

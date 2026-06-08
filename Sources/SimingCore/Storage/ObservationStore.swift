@@ -449,9 +449,13 @@ public struct ObservationStore: Sendable {
             }
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR ")))")
         }
-        if !query.comboCode.isEmpty    { filterCTEs.append(obsTokenORCTE(name: "f_combo_code",    paramName: "combo-code",    tokens: query.comboCode)) }
-        if !query.method.isEmpty       { filterCTEs.append(obsTokenORCTE(name: "f_method",        paramName: "method",        tokens: query.method)) }
-        if !query.valueConcept.isEmpty { filterCTEs.append(obsTokenORCTE(name: "f_value_concept", paramName: "value-concept", tokens: query.valueConcept)) }
+        if !query.comboCode.isEmpty               { filterCTEs.append(obsTokenORCTE(name: "f_combo_code",                paramName: "combo-code",                tokens: query.comboCode)) }
+        if !query.method.isEmpty                  { filterCTEs.append(obsTokenORCTE(name: "f_method",                     paramName: "method",                     tokens: query.method)) }
+        if !query.valueConcept.isEmpty            { filterCTEs.append(obsTokenORCTE(name: "f_value_concept",              paramName: "value-concept",              tokens: query.valueConcept)) }
+        if !query.dataAbsentReason.isEmpty        { filterCTEs.append(obsTokenORCTE(name: "f_data_absent",                paramName: "data-absent-reason",         tokens: query.dataAbsentReason)) }
+        if !query.comboDataAbsentReason.isEmpty   { filterCTEs.append(obsTokenORCTE(name: "f_combo_data_absent",          paramName: "combo-data-absent-reason",   tokens: query.comboDataAbsentReason)) }
+        if !query.componentDataAbsentReason.isEmpty { filterCTEs.append(obsTokenORCTE(name: "f_comp_data_absent",         paramName: "component-data-absent-reason", tokens: query.componentDataAbsentReason)) }
+        if !query.componentValueConcept.isEmpty   { filterCTEs.append(obsTokenORCTE(name: "f_comp_value_concept",         paramName: "component-value-concept",    tokens: query.componentValueConcept)) }
 
         // value-date — idx_date
         for (i, dp) in query.valueDate.enumerated() {
@@ -913,9 +917,13 @@ public struct ObservationStore: Sendable {
             }
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR ")))")
         }
-        if !query.comboCode.isEmpty    { filterCTEs.append(countObsTokenORCTE(name: "f_combo_code",    paramName: "combo-code",    tokens: query.comboCode)) }
-        if !query.method.isEmpty       { filterCTEs.append(countObsTokenORCTE(name: "f_method",        paramName: "method",        tokens: query.method)) }
-        if !query.valueConcept.isEmpty { filterCTEs.append(countObsTokenORCTE(name: "f_value_concept", paramName: "value-concept", tokens: query.valueConcept)) }
+        if !query.comboCode.isEmpty               { filterCTEs.append(countObsTokenORCTE(name: "f_combo_code",        paramName: "combo-code",                tokens: query.comboCode)) }
+        if !query.method.isEmpty                  { filterCTEs.append(countObsTokenORCTE(name: "f_method",             paramName: "method",                     tokens: query.method)) }
+        if !query.valueConcept.isEmpty            { filterCTEs.append(countObsTokenORCTE(name: "f_value_concept",      paramName: "value-concept",              tokens: query.valueConcept)) }
+        if !query.dataAbsentReason.isEmpty        { filterCTEs.append(countObsTokenORCTE(name: "f_data_absent",        paramName: "data-absent-reason",         tokens: query.dataAbsentReason)) }
+        if !query.comboDataAbsentReason.isEmpty   { filterCTEs.append(countObsTokenORCTE(name: "f_combo_data_absent",  paramName: "combo-data-absent-reason",   tokens: query.comboDataAbsentReason)) }
+        if !query.componentDataAbsentReason.isEmpty { filterCTEs.append(countObsTokenORCTE(name: "f_comp_data_absent", paramName: "component-data-absent-reason", tokens: query.componentDataAbsentReason)) }
+        if !query.componentValueConcept.isEmpty   { filterCTEs.append(countObsTokenORCTE(name: "f_comp_val_concept",   paramName: "component-value-concept",    tokens: query.componentValueConcept)) }
         for (i, dp) in query.valueDate.enumerated() {
             let sP = bind(dp.dateStart); let eP = bind(dp.dateEnd)
             let cond: String
@@ -1113,6 +1121,10 @@ public struct ObservationStore: Sendable {
         case "value-concept":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'value-concept'"
         case "value-date":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Observation' AND param_name = 'value-date'"
         case "value-string":       return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Observation' AND param_name = 'value-string'"
+        case "data-absent-reason":          return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'data-absent-reason'"
+        case "combo-data-absent-reason":    return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'combo-data-absent-reason'"
+        case "component-data-absent-reason": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-data-absent-reason'"
+        case "component-value-concept":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-value-concept'"
         default:                   return nil
         }
     }

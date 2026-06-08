@@ -379,6 +379,7 @@ public struct DocumentReferenceStore: Sendable {
         if let ref = query.custodian     { filterCTEs.append(refCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
         if let ref = query.authenticator { filterCTEs.append(refCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
         if let ref = query.relatesto     { filterCTEs.append(refCTE(name: "f_relatesto",     paramName: "relatesto",     ref: ref)) }
+        if let ref = query.related       { filterCTEs.append(refCTE(name: "f_related",       paramName: "related",       ref: ref)) }
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
@@ -651,6 +652,7 @@ public struct DocumentReferenceStore: Sendable {
         if let ref = query.custodian     { filterCTEs.append(countRefCTE(name: "f_custodian",     paramName: "custodian",     ref: ref)) }
         if let ref = query.authenticator { filterCTEs.append(countRefCTE(name: "f_authenticator", paramName: "authenticator", ref: ref)) }
         if let ref = query.relatesto     { filterCTEs.append(countRefCTE(name: "f_relatesto",     paramName: "relatesto",     ref: ref)) }
+        if let ref = query.related       { filterCTEs.append(countRefCTE(name: "f_related",       paramName: "related",       ref: ref)) }
 
         var whereConditions = ["r.resource_type = 'DocumentReference'", "r.deleted = false"]
         if !query.id.isEmpty {
@@ -716,6 +718,7 @@ public struct DocumentReferenceStore: Sendable {
         case "author":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'author'"
         case "encounter":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'encounter'"
         case "relatesto":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'relatesto'"
+        case "related":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'related'"
         case "relation":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'relation'"
         default:               return nil
         }
