@@ -34,6 +34,7 @@ public struct ObservationSearchQuery: Sendable {
     public var componentDataAbsentReason: [TokenParam] // component-data-absent-reason token OR
     public var componentValueConcept: [TokenParam]    // component-value-concept token OR
     public var componentValueQuantity: [QuantityParam] // component-value-quantity quantity OR
+    public var comboValueQuantity: [QuantityParam]     // combo-value-quantity quantity OR (obs.value only; component part not yet indexed)
     public var valueQuantity: [QuantityParam] // value-quantity OR list
     public var valueDate: [DateParam]
     public var valueString: [String]
@@ -81,6 +82,7 @@ public struct ObservationSearchQuery: Sendable {
         componentDataAbsentReason: [TokenParam] = [],
         componentValueConcept: [TokenParam] = [],
         componentValueQuantity: [QuantityParam] = [],
+        comboValueQuantity: [QuantityParam] = [],
         valueQuantity: [QuantityParam] = [],
         valueDate: [DateParam] = [],
         valueString: [String] = [],
@@ -124,6 +126,7 @@ public struct ObservationSearchQuery: Sendable {
         self.componentDataAbsentReason = componentDataAbsentReason
         self.componentValueConcept     = componentValueConcept
         self.componentValueQuantity    = componentValueQuantity
+        self.comboValueQuantity        = comboValueQuantity
         self.valueQuantity  = valueQuantity
         self.valueDate      = valueDate
         self.valueString    = valueString

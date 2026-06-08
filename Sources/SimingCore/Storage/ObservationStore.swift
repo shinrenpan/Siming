@@ -526,6 +526,35 @@ public struct ObservationStore: Sendable {
                 """))
         }
 
+        // combo-value-quantity — idx_quantity (obs.value as Quantity; component part not yet indexed)
+        if !query.comboValueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.comboValueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_combo_vquantity", """
+                SELECT DISTINCT resource_id FROM idx_quantity
+                WHERE resource_type = 'Observation' AND param_name = 'combo-value-quantity'
+                  AND (\(orClauses.joined(separator: " OR ")))
+                """))
+        }
+
         // component-value-quantity — idx_quantity with numeric comparison and optional system/code
         if !query.componentValueQuantity.isEmpty {
             var orClauses: [String] = []
@@ -1008,6 +1037,30 @@ public struct ObservationStore: Sendable {
             filterCTEs.append(("f_vquantity",
                 "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
         }
+        if !query.comboValueQuantity.isEmpty {
+            var orClauses: [String] = []
+            for qp in query.comboValueQuantity {
+                var cond: String
+                switch qp.prefix {
+                case .eq: cond = "value = \(bind(qp.value))"
+                case .ne: cond = "value != \(bind(qp.value))"
+                case .lt: cond = "value < \(bind(qp.value))"
+                case .le: cond = "value <= \(bind(qp.value))"
+                case .gt: cond = "value > \(bind(qp.value))"
+                case .ge: cond = "value >= \(bind(qp.value))"
+                case .sa: cond = "value > \(bind(qp.value))"
+                case .eb: cond = "value < \(bind(qp.value))"
+                case .ap:
+                    let low = bind(qp.value * 0.9); let high = bind(qp.value * 1.1)
+                    cond = "value BETWEEN \(low) AND \(high)"
+                }
+                if let sys = qp.system { cond += " AND system = \(bind(sys))" }
+                if let code = qp.code  { cond += " AND code = \(bind(code))" }
+                orClauses.append("(\(cond))")
+            }
+            filterCTEs.append(("f_combo_vquantity",
+                "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'combo-value-quantity' AND (\(orClauses.joined(separator: " OR ")))"))
+        }
         if !query.componentValueQuantity.isEmpty {
             var orClauses: [String] = []
             for qp in query.componentValueQuantity {
@@ -1179,6 +1232,7 @@ public struct ObservationStore: Sendable {
         case "component-data-absent-reason": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-data-absent-reason'"
         case "component-value-concept":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'component-value-concept'"
         case "component-value-quantity":    return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'component-value-quantity'"
+        case "combo-value-quantity":        return "SELECT DISTINCT resource_id FROM idx_quantity WHERE resource_type = 'Observation' AND param_name = 'combo-value-quantity'"
         default:                   return nil
         }
     }

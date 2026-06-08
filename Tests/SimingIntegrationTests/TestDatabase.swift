@@ -692,13 +692,15 @@ func makeDocumentReference(
     encounterId: String? = nil,
     relatesToTarget: String? = nil,
     relatesToCode: String = "replaces",
-    relatedRef: String? = nil
+    relatedRef: String? = nil,
+    attachmentUrl: String? = nil
 ) throws -> ModelsR4.DocumentReference {
+    let url = attachmentUrl ?? "http://example.com/doc"
     var json = #"""
     {"resourceType":"DocumentReference",
      "status":"\#(status)",
      "subject":{"reference":"Patient/\#(patientId)"},
-     "content":[{"attachment":{"contentType":"text/plain","url":"http://example.com/doc"}}]
+     "content":[{"attachment":{"contentType":"text/plain","url":"\#(url)"}}]
     """#
     if let t = docType {
         json += #","type":{"coding":[{"system":"\#(typeSystem)","code":"\#(t)"}]}"#

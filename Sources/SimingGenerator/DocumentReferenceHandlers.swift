@@ -331,6 +331,18 @@ func documentReferenceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── string: location (content[*].attachment.url — uri type) ─────────────
+    case "location":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for item in d.content {
+                guard let url = item.attachment.url?.value?.url.absoluteString, !url.isEmpty else { continue }
+                p.strings.append(.init(paramName: "location", value: url))
+            }
+        }
+        """
+
     // ── reference: custodian ──────────────────────────────────────────────────
     case "custodian":
         return """

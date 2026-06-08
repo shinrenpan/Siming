@@ -19,6 +19,7 @@ let knownDocumentReferenceParams: Set<String> = [
     "subject", "patient", "author", "encounter",
     "custodian", "authenticator",
     "relatesto", "related", "relation", "relation:not",
+    "location",
     "status:not", "type:not", "category:not", "security-label:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -389,6 +390,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let period = all("period").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
 
     let description = all("description").map(String.init)
+    let location    = all("location").map(String.init)
 
     let subject       = first("subject").map(String.init)
     let patient       = first("patient").map(String.init)
@@ -413,7 +415,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     var missing: [String: Bool] = [:]
     for p in ["status", "type", "category", "identifier", "security-label",
               "facility", "event", "contenttype", "format", "language", "setting",
-              "date", "period", "description",
+              "date", "period", "description", "location",
               "subject", "patient", "author", "encounter", "custodian", "authenticator",
               "relatesto", "related", "relation"] {
         if let v = first("\(p):missing").map(String.init) {
@@ -437,6 +439,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         setting: setting, settingNot: settingNot,
         date: date, period: period,
         description: description,
+        location: location,
         subject: subject, patient: patient,
         author: author, encounter: encounter,
         custodian: custodian, authenticator: authenticator,

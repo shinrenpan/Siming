@@ -31,6 +31,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
 
     // string params
     public var description: [String]
+    public var location: [String]     // content[*].attachment.url (uri type — exact match)
 
     // reference params
     public var subject: String?
@@ -83,6 +84,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         date: [DateParam] = [],
         period: [DateParam] = [],
         description: [String] = [],
+        location: [String] = [],
         subject: String? = nil,
         patient: String? = nil,
         author: String? = nil,
@@ -125,6 +127,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.date             = date
         self.period           = period
         self.description      = description
+        self.location         = location
         self.subject          = subject
         self.patient          = patient
         self.author           = author

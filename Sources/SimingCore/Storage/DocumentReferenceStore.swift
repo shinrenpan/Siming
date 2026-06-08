@@ -368,6 +368,12 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(("f_desc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description' AND value ILIKE \(pLike)"))
         }
 
+        // location (uri type — exact match)
+        for (i, loc) in query.location.enumerated() {
+            let locP = bind(loc)
+            filterCTEs.append(("f_loc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'location' AND value = \(locP)"))
+        }
+
         // relation token CTE
         if !query.relation.isEmpty { filterCTEs.append(tokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
 
@@ -643,6 +649,11 @@ public struct DocumentReferenceStore: Sendable {
             filterCTEs.append(countDateCTE(name: "f_period\(i)", paramName: "period", dp: dp))
         }
 
+        for (i, loc) in query.location.enumerated() {
+            let locP = bind(loc)
+            filterCTEs.append(("f_loc\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'location' AND value = \(locP)"))
+        }
+
         if !query.relation.isEmpty { filterCTEs.append(countTokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
 
         if let ref = query.subject       { filterCTEs.append(countRefCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
@@ -713,6 +724,7 @@ public struct DocumentReferenceStore: Sendable {
         case "date":           return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DocumentReference' AND param_name = 'date'"
         case "period":         return "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'DocumentReference' AND param_name = 'period'"
         case "description":    return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'description'"
+        case "location":       return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'DocumentReference' AND param_name = 'location'"
         case "subject":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'subject'"
         case "patient":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'patient'"
         case "author":         return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'author'"

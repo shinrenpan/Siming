@@ -335,4 +335,20 @@ final class ObservationStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: combo-value-quantity ──────────────────────────────────────────
+
+    func testSearch_byComboValueQuantity_ge_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "ComboVQtyPt")).id
+        _ = try await store.create(makeObservation(subjectId: pid, valueQuantity: 75.0))
+        _ = try await store.create(makeObservation(subjectId: pid, valueQuantity: 40.0))
+        _ = try await store.create(makeObservation(subjectId: pid))
+
+        let param = ObservationSearchQuery.QuantityParam.parse("ge60")!
+        let result = try await store.search(query: ObservationSearchQuery(
+            subject: "Patient/\(pid)",
+            comboValueQuantity: [param]
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

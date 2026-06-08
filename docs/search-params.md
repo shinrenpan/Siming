@@ -4,7 +4,7 @@ Supported FHIR R4 search parameters for each resource type.
 
 **Patient** — `name`, `family`, `given`, `identifier`, `gender`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `active`, `deceased`, `death-date`, `_id`, `_lastUpdated`
 
-**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `component-value-quantity`, `_id`, `_lastUpdated`
+**Observation** — `subject`, `patient`, `code`, `status`, `category`, `date`, `value-quantity`, `value-concept`, `value-date`, `value-string`, `identifier`, `encounter`, `performer`, `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`, `component-code`, `combo-code`, `method`, `data-absent-reason`, `combo-data-absent-reason`, `component-data-absent-reason`, `component-value-concept`, `component-value-quantity`, `combo-value-quantity`, `_id`, `_lastUpdated`
 
 **Encounter** — `subject`, `patient`, `status`, `class`, `type`, `date`, `identifier`, `participant`, `practitioner`, `reason-code`, `reason-reference`, `part-of`, `service-provider`, `based-on`, `location`, `location-period`, `diagnosis`, `account`, `appointment`, `episode-of-care`, `participant-type`, `special-arrangement`, `length`, `_id`, `_lastUpdated`
 
@@ -34,7 +34,7 @@ Supported FHIR R4 search parameters for each resource type.
 
 **Specimen** — `status`, `type`, `accession`, `identifier`, `bodysite`, `container`, `container-id`, `collected`, `subject`, `patient`, `collector`, `parent`, `_id`, `_lastUpdated`
 
-**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `relatesto`, `related`, `relation`, `_id`, `_lastUpdated`
+**DocumentReference** — `status`, `type`, `category`, `identifier`, `security-label`, `facility`, `event`, `description`, `date`, `period`, `contenttype`, `format`, `language`, `setting`, `location`, `subject`, `patient`, `author`, `encounter`, `custodian`, `authenticator`, `relatesto`, `related`, `relation`, `_id`, `_lastUpdated`
 
 **CarePlan** — `status`, `intent`, `category`, `identifier`, `activity-code`, `date` (period), `activity-date`, `instantiates-canonical`, `instantiates-uri`, `subject`, `patient`, `encounter`, `care-team`, `condition`, `goal`, `based-on`, `part-of`, `replaces`, `performer`, `activity-reference`, `_id`, `_lastUpdated`
 

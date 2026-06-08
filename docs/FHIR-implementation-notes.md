@@ -64,7 +64,7 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `method`, `value-concept`, `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
 
-**Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (`obs.value as Quantity` only — component part not yet indexed), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
+**Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (`obs.value as Quantity` — component part not yet indexed per FHIR spec gap; search wired and functional), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
 
 **Date params** (idx_date): `value-date` (`obs.value as DateTime`).
 
@@ -159,7 +159,8 @@ All of the following are fully implemented:
 
 - Swift field `description_fhir` maps to FHIR search param `description`.
 - Fully implemented: `contenttype`, `format`, `language`, `setting`, `custodian`, `authenticator`, `relatesto` (reference — `relatesTo[].target` via idx_reference), `relation` (token — `relatesTo[].code` with system `http://hl7.org/fhir/document-relationship-type` via idx_token), `related` (`doc.context.related[]` via idx_reference).
-- **TODO stubs:** `location` (URI-typed attachment URL — no standard idx table), `relationship` (composite of relatesto + relation — requires composite search support not yet implemented).
+- `location` — `content[].attachment.url` via idx_string (URI type — exact match `value = $n`).
+- **TODO stubs:** `relationship` (composite of relatesto + relation — requires composite search support not yet implemented).
 
 ### CarePlan
 

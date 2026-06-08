@@ -172,8 +172,13 @@ private func extract_DocumentReference_language(_ p: inout SearchParams, _ d: Do
     }
 }
 
-// TODO: unhandled — location [uri] DocumentReference.content.attachment.url
-private func extract_DocumentReference_location(_ p: inout SearchParams, _ d: DocumentReference) {}
+// location [uri] — DocumentReference.content.attachment.url
+private func extract_DocumentReference_location(_ p: inout SearchParams, _ d: DocumentReference) {
+    for item in d.content {
+        guard let url = item.attachment.url?.value?.url.absoluteString, !url.isEmpty else { continue }
+        p.strings.append(.init(paramName: "location", value: url))
+    }
+}
 
 // patient [reference] — DocumentReference.subject
 private func extract_DocumentReference_patient(_ p: inout SearchParams, _ d: DocumentReference) {

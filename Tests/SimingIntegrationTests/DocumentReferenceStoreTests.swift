@@ -354,4 +354,16 @@ final class DocumentReferenceStoreTests: XCTestCase {
         ))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: location (uri) ────────────────────────────────────────────────
+
+    func testSearch_byLocation_exactMatch_returnsMatchOnly() async throws {
+        let pid = try await patientStore.create(makePatient(family: "DocLocPt")).id
+        let url = "https://storage.example.com/reports/\(UUID().uuidString).pdf"
+        _ = try await store.create(makeDocumentReference(patientId: pid, attachmentUrl: url))
+        _ = try await store.create(makeDocumentReference(patientId: pid))
+
+        let result = try await store.search(query: DocumentReferenceSearchQuery(location: [url]))
+        XCTAssertEqual(result.total, 1)
+    }
 }
