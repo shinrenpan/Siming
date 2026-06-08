@@ -15,7 +15,7 @@ private let preferHeader = HTTPField.Name("Prefer")!
 let knownLocationParams: Set<String> = [
     "name", "identifier", "status", "type", "operational-status",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
-    "organization", "partof",
+    "organization", "partof", "endpoint",
     "status:not", "type:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -390,7 +390,8 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
 
     let identifier  = first("identifier").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let organization = first("organization").map(String.init)
-    let partof      = first("partof").map(String.init)
+    let partof       = first("partof").map(String.init)
+    let endpoint     = first("endpoint").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -402,7 +403,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let totalMode   = LocationSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
-    for p in ["name", "identifier", "status", "type", "operational-status", "address", "organization", "partof"] {
+    for p in ["name", "identifier", "status", "type", "operational-status", "address", "organization", "partof", "endpoint"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -418,7 +419,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
         operationalStatus: operationalStatus,
         address: address, addressCity: addressCity, addressState: addressState,
         addressPostalCode: addressPostalCode, addressCountry: addressCountry,
-        organization: organization, partof: partof,
+        organization: organization, partof: partof, endpoint: endpoint,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

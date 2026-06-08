@@ -13,7 +13,7 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownPractitionerParams: Set<String> = [
-    "name", "family", "given", "identifier", "active", "gender",
+    "name", "family", "given", "phonetic", "identifier", "active", "gender",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
     "phone", "email", "communication",
     "identifier:not", "gender:not", "communication:not",
@@ -375,9 +375,10 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
         pairs.filter { $0.key == key[...] }.map { $0.value }
     }
 
-    let name           = PractitionerSearchQuery.StringParam.parse(key: "name",   from: pairs)
-    let family         = PractitionerSearchQuery.StringParam.parse(key: "family", from: pairs)
-    let given          = PractitionerSearchQuery.StringParam.parse(key: "given",  from: pairs)
+    let name           = PractitionerSearchQuery.StringParam.parse(key: "name",     from: pairs)
+    let family         = PractitionerSearchQuery.StringParam.parse(key: "family",   from: pairs)
+    let given          = PractitionerSearchQuery.StringParam.parse(key: "given",    from: pairs)
+    let phonetic       = PractitionerSearchQuery.StringParam.parse(key: "phonetic", from: pairs)
     let address        = PractitionerSearchQuery.StringParam.parse(key: "address",             from: pairs)
     let addressCity    = PractitionerSearchQuery.StringParam.parse(key: "address-city",        from: pairs)
     let addressState   = PractitionerSearchQuery.StringParam.parse(key: "address-state",       from: pairs)
@@ -410,7 +411,7 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
     let totalMode   = PractitionerSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
-    for p in ["name", "family", "given", "identifier", "active", "gender",
+    for p in ["name", "family", "given", "phonetic", "identifier", "active", "gender",
               "communication", "address", "phone", "email"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
@@ -421,7 +422,7 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
     let has    = parseHasParams(from: pairs)
 
     return PractitionerSearchQuery(
-        name: name, family: family, given: given,
+        name: name, family: family, given: given, phonetic: phonetic,
         identifier: identifier, active: active,
         gender: gender, genderNot: genderNot,
         address: address, addressCity: addressCity, addressState: addressState,

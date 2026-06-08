@@ -180,8 +180,24 @@ func locationHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
-    // ── skip: near (geospatial), endpoint (reference, not yet supported) ───────
-    case "near", "endpoint":
+    // ── reference: endpoint (array) ───────────────────────────────────────────
+    case "endpoint":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ loc: Location) {
+            for ref in loc.endpoint ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "endpoint", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── skip: near (geospatial) ───────────────────────────────────────────────
+    case "near":
         return nil
 
     default:

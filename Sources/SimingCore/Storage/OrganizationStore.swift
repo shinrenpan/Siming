@@ -284,12 +284,13 @@ public struct OrganizationStore: Sendable {
 
         // String filters
         let stringFilters: [(String, String, OrganizationSearchQuery.StringParam?)] = [
-            ("f_name",    "name",             query.name),
-            ("f_addr",    "address",          query.address),
-            ("f_city",    "address-city",     query.addressCity),
-            ("f_state",   "address-state",    query.addressState),
-            ("f_postal",  "address-postalcode", query.addressPostalCode),
-            ("f_country", "address-country",  query.addressCountry),
+            ("f_name",     "name",               query.name),
+            ("f_phonetic", "phonetic",           query.phonetic),
+            ("f_addr",     "address",            query.address),
+            ("f_city",     "address-city",       query.addressCity),
+            ("f_state",    "address-state",      query.addressState),
+            ("f_postal",   "address-postalcode", query.addressPostalCode),
+            ("f_country",  "address-country",    query.addressCountry),
         ]
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
@@ -352,6 +353,20 @@ public struct OrganizationStore: Sendable {
                 let refIdP = bind(partof)
                 filterCTEs.append(("f_partof",
                     "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'partof' AND ref_id = \(refIdP)"))
+            }
+        }
+
+        // endpoint — reference filter
+        if let endpoint = query.endpoint {
+            let parts = endpoint.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'endpoint' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(endpoint)
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'endpoint' AND ref_id = \(refIdP)"))
             }
         }
 
@@ -523,12 +538,13 @@ public struct OrganizationStore: Sendable {
         var filterCTEs: [(name: String, sql: String)] = []
 
         let stringFilters: [(String, String, OrganizationSearchQuery.StringParam?)] = [
-            ("f_name",    "name",             query.name),
-            ("f_addr",    "address",          query.address),
-            ("f_city",    "address-city",     query.addressCity),
-            ("f_state",   "address-state",    query.addressState),
-            ("f_postal",  "address-postalcode", query.addressPostalCode),
-            ("f_country", "address-country",  query.addressCountry),
+            ("f_name",     "name",               query.name),
+            ("f_phonetic", "phonetic",           query.phonetic),
+            ("f_addr",     "address",            query.address),
+            ("f_city",     "address-city",       query.addressCity),
+            ("f_state",    "address-state",      query.addressState),
+            ("f_postal",   "address-postalcode", query.addressPostalCode),
+            ("f_country",  "address-country",    query.addressCountry),
         ]
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
@@ -588,6 +604,19 @@ public struct OrganizationStore: Sendable {
             }
         }
 
+        if let endpoint = query.endpoint {
+            let parts = endpoint.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'endpoint' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(endpoint)
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'endpoint' AND ref_id = \(refIdP)"))
+            }
+        }
+
         var whereConditions = ["r.resource_type = 'Organization'", "r.deleted = false"]
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
@@ -636,7 +665,9 @@ public struct OrganizationStore: Sendable {
         case "active":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Organization' AND param_name = 'active'"
         case "type":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Organization' AND param_name = 'type'"
         case "address":    return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = 'address'"
+        case "phonetic":   return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Organization' AND param_name = 'phonetic'"
         case "partof":     return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'partof'"
+        case "endpoint":   return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Organization' AND param_name = 'endpoint'"
         default:           return nil
         }
     }

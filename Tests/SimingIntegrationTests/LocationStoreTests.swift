@@ -255,4 +255,15 @@ final class LocationStoreTests: XCTestCase {
         let page2Ids = Set(page2.entries.map(\.id))
         XCTAssertTrue(page1Ids.isDisjoint(with: page2Ids))
     }
+
+    func testSearch_byEndpoint() async throws {
+        let epId = "loc-ep-xyz"
+        _ = try await store.create(makeLocation(name: "EndpointLoc", endpointId: epId))
+        _ = try await store.create(makeLocation(name: "NoEndpointLoc"))
+
+        let result = try await store.search(query: LocationSearchQuery(
+            endpoint: "Endpoint/\(epId)"
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

@@ -155,6 +155,34 @@ func organizationHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── reference: endpoint (array) ───────────────────────────────────────────
+    case "endpoint":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ org: Organization) {
+            for ref in org.endpoint ?? [] {
+                guard let refStr = ref.reference?.value?.string else { continue }
+                let parts = refStr.split(separator: "/")
+                let (refType, refId): (String?, String) = parts.count == 2
+                    ? (String(parts[0]), String(parts[1]))
+                    : (nil, refStr)
+                p.references.append(.init(paramName: "endpoint", refType: refType, refId: refId))
+            }
+        }
+        """
+
+    // ── string: phonetic (alias for name — server-side phonetic algorithm) ───
+    case "phonetic":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ org: Organization) {
+            if let v = org.name?.value?.string { p.strings.append(.init(paramName: "phonetic", value: v)) }
+            for alias in org.alias ?? [] {
+                if let v = alias.value?.string { p.strings.append(.init(paramName: "phonetic", value: v)) }
+            }
+        }
+        """
+
     default:
         return nil
     }

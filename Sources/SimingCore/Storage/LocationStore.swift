@@ -390,6 +390,20 @@ public struct LocationStore: Sendable {
             }
         }
 
+        // endpoint — reference
+        if let endpoint = query.endpoint {
+            let parts = endpoint.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'endpoint' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(endpoint)
+                filterCTEs.append(("f_endpoint",
+                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'endpoint' AND ref_id = \(refIdP)"))
+            }
+        }
+
         // ── WHERE conditions ──────────────────────────────────────────────────
 
         var whereConditions = ["r.resource_type = 'Location'", "r.deleted = false"]
@@ -646,6 +660,17 @@ public struct LocationStore: Sendable {
             }
         }
 
+        if let endpoint = query.endpoint {
+            let parts = endpoint.split(separator: "/")
+            if parts.count == 2 {
+                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
+                filterCTEs.append(("f_endpoint", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'endpoint' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
+            } else {
+                let refIdP = bind(endpoint)
+                filterCTEs.append(("f_endpoint", "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'endpoint' AND ref_id = \(refIdP)"))
+            }
+        }
+
         var whereConditions = ["r.resource_type = 'Location'", "r.deleted = false"]
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
@@ -697,6 +722,7 @@ public struct LocationStore: Sendable {
         case "address":            return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Location' AND param_name = 'address'"
         case "organization":       return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'organization'"
         case "partof":             return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'partof'"
+        case "endpoint":           return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Location' AND param_name = 'endpoint'"
         default:                   return nil
         }
     }

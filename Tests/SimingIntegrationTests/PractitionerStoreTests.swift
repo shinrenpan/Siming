@@ -221,4 +221,14 @@ final class PractitionerStoreTests: XCTestCase {
         let page2Ids = Set(page2.entries.map(\.id))
         XCTAssertTrue(page1Ids.isDisjoint(with: page2Ids))
     }
+
+    func testSearch_byPhonetic_matchesNameField() async throws {
+        _ = try await store.create(makePractitioner(family: "Tanaka"))
+        _ = try await store.create(makePractitioner(family: "Yamamoto"))
+
+        let result = try await store.search(query: PractitionerSearchQuery(
+            phonetic: .init(value: "Tanaka", modifier: .startsWith)
+        ))
+        XCTAssertEqual(result.total, 1)
+    }
 }

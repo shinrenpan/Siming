@@ -284,14 +284,15 @@ public struct PractitionerStore: Sendable {
 
         // String filters
         let stringFilters: [(String, String, PractitionerSearchQuery.StringParam?)] = [
-            ("f_name",    "name",             query.name),
-            ("f_family",  "family",           query.family),
-            ("f_given",   "given",            query.given),
-            ("f_addr",    "address",          query.address),
-            ("f_city",    "address-city",     query.addressCity),
-            ("f_state",   "address-state",    query.addressState),
-            ("f_postal",  "address-postalcode", query.addressPostalCode),
-            ("f_country", "address-country",  query.addressCountry),
+            ("f_name",     "name",               query.name),
+            ("f_family",   "family",             query.family),
+            ("f_given",    "given",              query.given),
+            ("f_phonetic", "phonetic",           query.phonetic),
+            ("f_addr",     "address",            query.address),
+            ("f_city",     "address-city",       query.addressCity),
+            ("f_state",    "address-state",      query.addressState),
+            ("f_postal",   "address-postalcode", query.addressPostalCode),
+            ("f_country",  "address-country",    query.addressCountry),
         ]
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
@@ -533,14 +534,15 @@ public struct PractitionerStore: Sendable {
         var filterCTEs: [(name: String, sql: String)] = []
 
         let stringFilters: [(String, String, PractitionerSearchQuery.StringParam?)] = [
-            ("f_name",    "name",             query.name),
-            ("f_family",  "family",           query.family),
-            ("f_given",   "given",            query.given),
-            ("f_addr",    "address",          query.address),
-            ("f_city",    "address-city",     query.addressCity),
-            ("f_state",   "address-state",    query.addressState),
-            ("f_postal",  "address-postalcode", query.addressPostalCode),
-            ("f_country", "address-country",  query.addressCountry),
+            ("f_name",     "name",               query.name),
+            ("f_family",   "family",             query.family),
+            ("f_given",    "given",              query.given),
+            ("f_phonetic", "phonetic",           query.phonetic),
+            ("f_addr",     "address",            query.address),
+            ("f_city",     "address-city",       query.addressCity),
+            ("f_state",    "address-state",      query.addressState),
+            ("f_postal",   "address-postalcode", query.addressPostalCode),
+            ("f_country",  "address-country",    query.addressCountry),
         ]
         for (cteName, paramName, param) in stringFilters {
             guard let param else { continue }
@@ -647,6 +649,7 @@ public struct PractitionerStore: Sendable {
         case "name":       return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Practitioner' AND param_name = 'name'"
         case "family":     return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Practitioner' AND param_name = 'family'"
         case "given":      return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Practitioner' AND param_name = 'given'"
+        case "phonetic":   return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Practitioner' AND param_name = 'phonetic'"
         case "identifier": return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Practitioner' AND param_name = 'identifier'"
         case "active":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Practitioner' AND param_name = 'active'"
         case "gender":     return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Practitioner' AND param_name = 'gender'"

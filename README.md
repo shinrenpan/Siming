@@ -104,13 +104,13 @@ Server listens on `http://localhost:8080`.
 
 **Immunization** — `patient`, `status`, `vaccine-code`, `identifier`, `date`, `performer`, `lot-number`, `_id`, `_lastUpdated`
 
-**Practitioner** — `name`, `family`, `given`, `identifier`, `active`, `gender`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `communication`, `_id`, `_lastUpdated`
+**Practitioner** — `name`, `family`, `given`, `phonetic`, `identifier`, `active`, `gender`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `phone`, `email`, `communication`, `_id`, `_lastUpdated`
 
-**Organization** — `name`, `identifier`, `active`, `type`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `partof`, `_id`, `_lastUpdated`
+**Organization** — `name`, `phonetic`, `identifier`, `active`, `type`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `partof`, `endpoint`, `_id`, `_lastUpdated`
 
 **Medication** — `code`, `status`, `form`, `identifier`, `lot-number`, `ingredient-code`, `manufacturer`, `ingredient`, `expiration-date`, `_id`, `_lastUpdated`
 
-**Location** — `name`, `identifier`, `status`, `type`, `operational-status`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `organization`, `partof`, `_id`, `_lastUpdated` (`near` geospatial not supported)
+**Location** — `name`, `identifier`, `status`, `type`, `operational-status`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `organization`, `partof`, `endpoint`, `_id`, `_lastUpdated` (`near` geospatial not supported)
 
 **RelatedPerson** — `name`, `phonetic` (alias for `name`), `identifier`, `active`, `gender`, `relationship`, `birthdate`, `address`, `address-city`, `address-state`, `address-country`, `address-postalcode`, `address-use`, `phone`, `email`, `telecom`, `patient`, `_id`, `_lastUpdated`
 

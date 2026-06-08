@@ -13,9 +13,9 @@ private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
 let knownOrganizationParams: Set<String> = [
-    "name", "identifier", "active", "type",
+    "name", "phonetic", "identifier", "active", "type",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
-    "partof",
+    "partof", "endpoint",
     "type:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -375,8 +375,9 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
         pairs.filter { $0.key == key[...] }.map { $0.value }
     }
 
-    let name           = OrganizationSearchQuery.StringParam.parse(key: "name",    from: pairs)
-    let address        = OrganizationSearchQuery.StringParam.parse(key: "address", from: pairs)
+    let name           = OrganizationSearchQuery.StringParam.parse(key: "name",     from: pairs)
+    let phonetic       = OrganizationSearchQuery.StringParam.parse(key: "phonetic", from: pairs)
+    let address        = OrganizationSearchQuery.StringParam.parse(key: "address",  from: pairs)
     let addressCity    = OrganizationSearchQuery.StringParam.parse(key: "address-city",        from: pairs)
     let addressState   = OrganizationSearchQuery.StringParam.parse(key: "address-state",       from: pairs)
     let addressPostalCode = OrganizationSearchQuery.StringParam.parse(key: "address-postalcode", from: pairs)
@@ -392,6 +393,7 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
 
     let identifier = first("identifier").map { OrganizationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let partof     = first("partof").map(String.init)
+    let endpoint   = first("endpoint").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -403,7 +405,7 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
     let totalMode   = OrganizationSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
-    for p in ["name", "identifier", "active", "type", "address", "partof"] {
+    for p in ["name", "phonetic", "identifier", "active", "type", "address", "partof", "endpoint"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -413,11 +415,11 @@ func parseOrganizationQuery(from pairs: some Collection<(key: Substring, value: 
     let has    = parseHasParams(from: pairs)
 
     return OrganizationSearchQuery(
-        name: name, identifier: identifier, active: active,
+        name: name, phonetic: phonetic, identifier: identifier, active: active,
         type: type, typeNot: typeNot,
         address: address, addressCity: addressCity, addressState: addressState,
         addressPostalCode: addressPostalCode, addressCountry: addressCountry,
-        partof: partof,
+        partof: partof, endpoint: endpoint,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
 }

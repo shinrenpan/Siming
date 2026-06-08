@@ -7,6 +7,7 @@ public struct PractitionerSearchQuery: Sendable {
     public var name: StringParam?
     public var family: StringParam?
     public var given: StringParam?
+    public var phonetic: StringParam?
     public var identifier: [IdentifierParam]
     public var active: Bool?
     public var gender: [String]
@@ -37,6 +38,7 @@ public struct PractitionerSearchQuery: Sendable {
         name: StringParam? = nil,
         family: StringParam? = nil,
         given: StringParam? = nil,
+        phonetic: StringParam? = nil,
         identifier: [IdentifierParam] = [],
         active: Bool? = nil,
         gender: [String] = [],
@@ -63,6 +65,7 @@ public struct PractitionerSearchQuery: Sendable {
         self.name              = name
         self.family            = family
         self.given             = given
+        self.phonetic          = phonetic
         self.identifier        = identifier
         self.active            = active
         self.gender            = gender

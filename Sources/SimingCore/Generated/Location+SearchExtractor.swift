@@ -78,8 +78,17 @@ private func extract_Location_address_use(_ p: inout SearchParams, _ loc: Locati
     }
 }
 
-// TODO: unhandled — endpoint [reference] Location.endpoint
-private func extract_Location_endpoint(_ p: inout SearchParams, _ loc: Location) {}
+// endpoint [reference] — Location.endpoint
+private func extract_Location_endpoint(_ p: inout SearchParams, _ loc: Location) {
+    for ref in loc.endpoint ?? [] {
+        guard let refStr = ref.reference?.value?.string else { continue }
+        let parts = refStr.split(separator: "/")
+        let (refType, refId): (String?, String) = parts.count == 2
+            ? (String(parts[0]), String(parts[1]))
+            : (nil, refStr)
+        p.references.append(.init(paramName: "endpoint", refType: refType, refId: refId))
+    }
+}
 
 // identifier [token] — Location.identifier
 private func extract_Location_identifier(_ p: inout SearchParams, _ loc: Location) {

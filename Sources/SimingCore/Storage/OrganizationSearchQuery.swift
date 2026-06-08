@@ -5,6 +5,7 @@ public struct OrganizationSearchQuery: Sendable {
     // ── Filters ───────────────────────────────────────────────────────────────
 
     public var name: StringParam?
+    public var phonetic: StringParam?
     public var identifier: [IdentifierParam]
     public var active: Bool?
     public var type: [TokenParam]
@@ -15,6 +16,7 @@ public struct OrganizationSearchQuery: Sendable {
     public var addressPostalCode: StringParam?
     public var addressCountry: StringParam?
     public var partof: String?
+    public var endpoint: String?
     public var id: [String]
     public var lastUpdated: [DateParam]
     public var missing: [String: Bool]
@@ -30,6 +32,7 @@ public struct OrganizationSearchQuery: Sendable {
 
     public init(
         name: StringParam? = nil,
+        phonetic: StringParam? = nil,
         identifier: [IdentifierParam] = [],
         active: Bool? = nil,
         type: [TokenParam] = [],
@@ -40,6 +43,7 @@ public struct OrganizationSearchQuery: Sendable {
         addressPostalCode: StringParam? = nil,
         addressCountry: StringParam? = nil,
         partof: String? = nil,
+        endpoint: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         missing: [String: Bool] = [:],
@@ -51,6 +55,7 @@ public struct OrganizationSearchQuery: Sendable {
         cursor: SearchCursor? = nil
     ) {
         self.name              = name
+        self.phonetic          = phonetic
         self.identifier        = identifier
         self.active            = active
         self.type              = type
@@ -61,6 +66,7 @@ public struct OrganizationSearchQuery: Sendable {
         self.addressPostalCode = addressPostalCode
         self.addressCountry    = addressCountry
         self.partof            = partof
+        self.endpoint          = endpoint
         self.id                = id
         self.lastUpdated       = lastUpdated
         self.missing           = missing

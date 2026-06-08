@@ -347,7 +347,8 @@ func makeOrganization(
     type: String? = nil,
     typeSystem: String = "http://terminology.hl7.org/CodeSystem/organization-type",
     identifier: String? = nil,
-    identifierSystem: String = "http://hl7.org/fhir/sid/us-npi"
+    identifierSystem: String = "http://hl7.org/fhir/sid/us-npi",
+    endpointId: String? = nil
 ) throws -> ModelsR4.Organization {
     var json = #"{"resourceType":"Organization","name":"\#(name)","active":\#(active)"#
     if let t = type {
@@ -355,6 +356,9 @@ func makeOrganization(
     }
     if let id = identifier {
         json += #","identifier":[{"system":"\#(identifierSystem)","value":"\#(id)"}]"#
+    }
+    if let ep = endpointId {
+        json += #","endpoint":[{"reference":"Endpoint/\#(ep)"}]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Organization.self, from: Data(json.utf8))
@@ -366,7 +370,8 @@ func makeLocation(
     type: String? = nil,
     typeSystem: String = "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
     city: String? = nil,
-    managingOrganizationId: String? = nil
+    managingOrganizationId: String? = nil,
+    endpointId: String? = nil
 ) throws -> ModelsR4.Location {
     var json = #"{"resourceType":"Location","name":"\#(name)","status":"\#(status)""#
     if let t = type {
@@ -377,6 +382,9 @@ func makeLocation(
     }
     if let orgId = managingOrganizationId {
         json += #","managingOrganization":{"reference":"Organization/\#(orgId)"}"#
+    }
+    if let ep = endpointId {
+        json += #","endpoint":[{"reference":"Endpoint/\#(ep)"}]"#
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Location.self, from: Data(json.utf8))
