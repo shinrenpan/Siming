@@ -164,7 +164,7 @@ All of the following are fully implemented:
 - Swift field `description_fhir` maps to FHIR search param `description`.
 - Fully implemented: `contenttype`, `format`, `language`, `setting`, `custodian`, `authenticator`, `relatesto` (reference — `relatesTo[].target` via idx_reference), `relation` (token — `relatesTo[].code` with system `http://hl7.org/fhir/document-relationship-type` via idx_token), `related` (`doc.context.related[]` via idx_reference).
 - `location` — `content[].attachment.url` via idx_string (URI type — exact match `value = $n`).
-- **TODO stubs:** `relationship` (composite of relatesto + relation — requires composite search support not yet implemented).
+- `relationship` — composite of `relatesto` (reference) + `relation` (token); stores per-entry `(relation_code, target_ref)` tuple in idx_composite with `string2 = target_ref`. Wire format: `relationship=DocumentReference/targetId$appends`. Per-entry tuple matching eliminates false positives when a document has multiple relatesTo entries with different codes/targets.
 
 ### CarePlan
 

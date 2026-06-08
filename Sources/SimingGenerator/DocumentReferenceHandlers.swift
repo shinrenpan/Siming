@@ -285,6 +285,24 @@ func documentReferenceHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── composite: relationship (relatesTo[]: relation code + target ref) ──────
+    // Stores per-entry (relation_code, target_ref) tuples into idx_composite so
+    // that tuple matching is exact — avoids false positives when a document has
+    // multiple relatesTo entries with different codes and targets.
+    case "relationship":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ d: DocumentReference) {
+            for rel in d.relatesTo ?? [] {
+                guard let relCode = rel.code.value?.rawValue,
+                      let refStr  = rel.target.reference?.value?.string else { continue }
+                p.composites.append(.init(paramName: "relationship",
+                    code1System: "http://hl7.org/fhir/document-relationship-type",
+                    code1Code: relCode, string2: refStr))
+            }
+        }
+        """
+
     // ── reference: relatesto (relatesTo[].target) ────────────────────────────
     case "relatesto":
         return """

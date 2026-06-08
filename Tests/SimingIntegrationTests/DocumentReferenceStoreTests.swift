@@ -366,4 +366,32 @@ final class DocumentReferenceStoreTests: XCTestCase {
         let result = try await store.search(query: DocumentReferenceSearchQuery(location: [url]))
         XCTAssertEqual(result.total, 1)
     }
+
+    // ── Search: relationship (composite tuple match via idx_composite) ─────────
+
+    func testSearch_byRelationship_matchesExactTuple() async throws {
+        let pid  = try await patientStore.create(makePatient(family: "RelshipPt")).id
+        let targetId = UUID().uuidString
+        _ = try await store.create(makeDocumentReference(patientId: pid, relatesToTarget: "DocumentReference/\(targetId)", relatesToCode: "appends"))
+        _ = try await store.create(makeDocumentReference(patientId: pid, relatesToTarget: "DocumentReference/\(targetId)", relatesToCode: "replaces"))
+        _ = try await store.create(makeDocumentReference(patientId: pid))
+
+        let param = DocumentReferenceSearchQuery.RelationshipParam.parse("DocumentReference/\(targetId)$appends")!
+        let result = try await store.search(query: DocumentReferenceSearchQuery(relationship: [param]))
+        XCTAssertEqual(result.total, 1)
+    }
+
+    func testSearch_byRelationship_noFalsePositive_whenSameTargetDifferentCode() async throws {
+        let pid  = try await patientStore.create(makePatient(family: "RelshipFPPt")).id
+        let targetId = UUID().uuidString
+        // doc1: (appends, target) — the code we search for is "replaces"
+        // doc2: (replaces, otherTarget) — different target
+        let otherId = UUID().uuidString
+        _ = try await store.create(makeDocumentReference(patientId: pid, relatesToTarget: "DocumentReference/\(targetId)", relatesToCode: "appends"))
+        _ = try await store.create(makeDocumentReference(patientId: pid, relatesToTarget: "DocumentReference/\(otherId)", relatesToCode: "replaces"))
+
+        let param = DocumentReferenceSearchQuery.RelationshipParam.parse("DocumentReference/\(targetId)$replaces")!
+        let result = try await store.search(query: DocumentReferenceSearchQuery(relationship: [param]))
+        XCTAssertEqual(result.total, 0)
+    }
 }

@@ -245,8 +245,16 @@ private func extract_DocumentReference_relation(_ p: inout SearchParams, _ d: Do
     }
 }
 
-// TODO: unhandled — relationship [composite] DocumentReference.relatesTo
-private func extract_DocumentReference_relationship(_ p: inout SearchParams, _ d: DocumentReference) {}
+// relationship [composite] — DocumentReference.relatesTo
+private func extract_DocumentReference_relationship(_ p: inout SearchParams, _ d: DocumentReference) {
+    for rel in d.relatesTo ?? [] {
+        guard let relCode = rel.code.value?.rawValue,
+              let refStr  = rel.target.reference?.value?.string else { continue }
+        p.composites.append(.init(paramName: "relationship",
+            code1System: "http://hl7.org/fhir/document-relationship-type",
+            code1Code: relCode, string2: refStr))
+    }
+}
 
 // security-label [token] — DocumentReference.securityLabel
 private func extract_DocumentReference_security_label(_ p: inout SearchParams, _ d: DocumentReference) {

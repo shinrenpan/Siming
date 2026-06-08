@@ -377,6 +377,20 @@ public struct DocumentReferenceStore: Sendable {
         // relation token CTE
         if !query.relation.isEmpty { filterCTEs.append(tokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
 
+        // relationship composite CTE — per-entry tuple match via idx_composite
+        if !query.relationship.isEmpty {
+            let orConds = query.relationship.map { rp -> String in
+                var parts = ["code1_code = \(bind(rp.relationCode))", "string2 = \(bind(rp.targetRef))"]
+                if let sys = rp.relationSystem { parts.append("code1_system = \(bind(sys))") }
+                return "(" + parts.joined(separator: " AND ") + ")"
+            }.joined(separator: " OR ")
+            filterCTEs.append(("f_relationship", """
+                SELECT DISTINCT resource_id FROM idx_composite
+                WHERE resource_type = 'DocumentReference' AND param_name = 'relationship'
+                  AND (\(orConds))
+                """))
+        }
+
         // reference CTEs
         if let ref = query.subject       { filterCTEs.append(refCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
         if let ref = query.patient       { filterCTEs.append(refCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
@@ -656,6 +670,16 @@ public struct DocumentReferenceStore: Sendable {
 
         if !query.relation.isEmpty { filterCTEs.append(countTokenORCTE(name: "f_relation", paramName: "relation", tokens: query.relation)) }
 
+        if !query.relationship.isEmpty {
+            let orConds = query.relationship.map { rp -> String in
+                var parts = ["code1_code = \(bind(rp.relationCode))", "string2 = \(bind(rp.targetRef))"]
+                if let sys = rp.relationSystem { parts.append("code1_system = \(bind(sys))") }
+                return "(" + parts.joined(separator: " AND ") + ")"
+            }.joined(separator: " OR ")
+            filterCTEs.append(("f_relationship", "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'DocumentReference' AND param_name = 'relationship' AND (\(orConds))"))
+        }
+
+
         if let ref = query.subject       { filterCTEs.append(countRefCTE(name: "f_subject",       paramName: "subject",       ref: ref)) }
         if let ref = query.patient       { filterCTEs.append(countRefCTE(name: "f_patient",       paramName: "patient",       ref: ref)) }
         if let ref = query.author        { filterCTEs.append(countRefCTE(name: "f_author",        paramName: "author",        ref: ref)) }
@@ -732,6 +756,7 @@ public struct DocumentReferenceStore: Sendable {
         case "relatesto":      return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'relatesto'"
         case "related":        return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'DocumentReference' AND param_name = 'related'"
         case "relation":       return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'relation'"
+        case "relationship":   return "SELECT DISTINCT resource_id FROM idx_composite WHERE resource_type = 'DocumentReference' AND param_name = 'relationship'"
         default:               return nil
         }
     }
