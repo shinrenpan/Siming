@@ -55,6 +55,12 @@ Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infr
 
 Supported on **all 23 resources** (FHIR R4 §3.2.1). Each `XxxSearchQuery` has `identifierNot: [IdentifierParam]`. Implemented as a `NOT IN` subquery against `idx_token` with `param_name='identifier'`. Three formats: `system|code`, `|code` (null system), `code` (any system).
 
+### Reference parameter `:type` modifier
+
+Supported on **all 23 resources** (FHIR R4 §3.1.3.4). `param:ResourceType=id` is equivalent to `param=ResourceType/id`. For example, `subject:Patient=123` and `subject=Patient/123` produce identical results.
+
+Implemented via `normalizeReferenceTypeModifiers()` in `SearchHelpers.swift`, called at the start of each `parseXxxQuery` function. Normalisation rules: key must not start with `_` (to skip `_has`, `_include`), must not contain `.` (to skip chained params), and the modifier must start with an uppercase letter with no further `:` (distinguishes resource types from search modifiers like `:not`, `:missing`, `:contains`).
+
 ### Chained search and `_has`
 
 Fully implemented for all 23 resources. Child param types mapped in `chainChildParamType` in `ChainedParam.swift`. Includes: `effective-time`, `reason-given`, `reason-not-given`, `reason-code`.
