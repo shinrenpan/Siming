@@ -134,7 +134,7 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Reference params** (idx_reference): `based-on`, `derived-from`, `device`, `focus`, `has-member`, `part-of`, `specimen`.
 
-**Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `method`, `value-concept`, `combo-value-concept` (both `obs.value as CodeableConcept` AND `obs.component[].value as CodeableConcept`), `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
+**Token params** (idx_token, `:not` modifier supported): `combo-code` (indexes both `obs.code` AND `obs.component[].code`), `component-code` (`obs.component[].code`), `method`, `value-concept`, `combo-value-concept` (both `obs.value as CodeableConcept` AND `obs.component[].value as CodeableConcept`), `data-absent-reason` (`obs.dataAbsentReason`), `combo-data-absent-reason` (both `obs.dataAbsentReason` AND `obs.component[].dataAbsentReason`), `component-data-absent-reason` (`obs.component[].dataAbsentReason`), `component-value-concept` (`obs.component[].value as CodeableConcept`).
 
 **Quantity params** (idx_quantity): `value-quantity` (`obs.value as Quantity`), `combo-value-quantity` (both `obs.value as Quantity` AND `obs.component[].value as Quantity`), `component-value-quantity` (`obs.component[].value as Quantity`; SampledData case silently skipped).
 
@@ -219,15 +219,18 @@ All of the following are fully implemented:
 ### Location
 
 - `endpoint` — fully implemented via idx_reference.
+- `operational-status` / `operational-status:not` — `loc.operationalStatus` token via idx_token.
 - `near` (geospatial) — **TODO stub** (no-op extractor); requires PostGIS extension.
 
 ### RelatedPerson
 
 - `phonetic` — alias for `name`; indexes same HumanName fields, stored with `param_name="phonetic"` in idx_string (not a separate index).
+- `phone:not`, `email:not`, `telecom:not`, `address-use:not` — token negation via idx_token NOT IN subquery.
 
 ### ServiceRequest
 
 - `order-detail` — `sr.orderDetail[].coding[]` via idx_token with `:not` modifier.
+- `body-site:not`, `performer-type:not`, `requisition:not` — token negation via idx_token NOT IN subquery.
 - `instantiates-canonical` — `sr.instantiatesCanonical[]` via idx_string (case-insensitive URL match via `lower(value) = lower($n)`).
 - `instantiates-uri` — indexes `sr.instantiatesUri[]` via idx_string (exact URL match).
 
@@ -236,17 +239,20 @@ All of the following are fully implemented:
 - Swift field `description_fhir` maps to FHIR search param `description`.
 - Fully implemented: `contenttype`, `format`, `language`, `setting`, `custodian`, `authenticator`, `relatesto` (reference — `relatesTo[].target` via idx_reference), `relation` (token — `relatesTo[].code` with system `http://hl7.org/fhir/document-relationship-type` via idx_token), `related` (`doc.context.related[]` via idx_reference).
 - `location` — `content[].attachment.url` via idx_string (URI type — exact match `value = $n`).
+- `facility:not`, `event:not` — token negation via idx_token NOT IN subquery.
 - `relationship` — composite of `relatesto` (reference) + `relation` (token); stores per-entry `(relation_code, target_ref)` tuple in idx_composite with `string2 = target_ref`. Wire format: `relationship=DocumentReference/targetId$appends`. Per-entry tuple matching eliminates false positives when a document has multiple relatesTo entries with different codes/targets.
 
 ### CarePlan
 
 - `activity-date` — indexes `activity[].detail.scheduled[x]`: `.period` (start/end) and `.timing` (event dates) stored in idx_date; `.string` case silently skipped.
+- `activity-code:not` — token negation via idx_token NOT IN subquery.
 - `instantiates-canonical`, `instantiates-uri` — stored in idx_string (exact URL match).
 
 ### Goal
 
 - `start-date` — indexes `start[x]` only when `startDate` (FHIRDate); `startCodeableConcept` case silently skipped.
 - `target-date` — indexes `target.due[x]` only when `dueDate` (FHIRDate); `dueDuration` case silently skipped.
+- `achievement-status:not` — token negation via idx_token NOT IN subquery.
 
 ### FamilyMemberHistory
 
@@ -264,3 +270,11 @@ All of the following are fully implemented:
 - `effective-time` — maps to `effective[x]` (dateTime or Period) stored in idx_date with `param_name="effective-time"`.
 - `code` — searches medication as CodeableConcept only.
 - `medication` (reference) — searches when medication is a Reference; stored separately from `code`.
+
+### Medication
+
+- `form:not`, `ingredient-code:not`, `lot-number:not` — token negation via idx_token NOT IN subquery.
+
+### Specimen
+
+- `bodysite:not` — token negation via idx_token NOT IN subquery.
