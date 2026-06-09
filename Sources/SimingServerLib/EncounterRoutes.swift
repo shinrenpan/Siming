@@ -382,6 +382,7 @@ public func addEncounterRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> EncounterSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

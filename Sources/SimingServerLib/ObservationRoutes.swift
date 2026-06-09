@@ -392,6 +392,7 @@ public func addObservationRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseObservationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ObservationSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

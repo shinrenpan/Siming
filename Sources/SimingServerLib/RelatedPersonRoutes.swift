@@ -358,6 +358,7 @@ public func addRelatedPersonRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> RelatedPersonSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

@@ -375,6 +375,7 @@ public func addAllergyIntoleranceRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseAllergyIntoleranceQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> AllergyIntoleranceSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

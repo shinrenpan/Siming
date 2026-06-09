@@ -378,6 +378,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 private func parsePatientQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PatientSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

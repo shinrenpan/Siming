@@ -355,6 +355,7 @@ public func addMedicationStatementRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseMedicationStatementQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> MedicationStatementSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

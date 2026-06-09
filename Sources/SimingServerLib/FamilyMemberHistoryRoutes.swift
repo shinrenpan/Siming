@@ -355,6 +355,7 @@ public func addFamilyMemberHistoryRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> FamilyMemberHistorySearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }

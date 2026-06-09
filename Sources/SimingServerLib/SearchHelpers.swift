@@ -87,6 +87,29 @@ func unknownParams(
     }
 }
 
+/// Normalises FHIR reference `:type` modifier — converts `param:ResourceType=id` to
+/// `param=ResourceType/id` so existing reference parsers handle both wire formats.
+///
+/// Rules (all must hold for normalisation to apply):
+/// - key does NOT start with `_` (skip `_has`, `_include` etc. — they use colon differently)
+/// - key does NOT contain `.`  (skip chained params)
+/// - modifier (text after first `:`) starts with an uppercase letter and contains no further `:`
+///   (distinguishes resource types from search modifiers like :not, :missing, :contains, :text)
+func normalizeReferenceTypeModifiers(
+    _ pairs: some Collection<(key: Substring, value: Substring)>
+) -> [(key: Substring, value: Substring)] {
+    pairs.map { pair in
+        let keyStr = String(pair.key)
+        guard !keyStr.hasPrefix("_"), !keyStr.contains("."),
+              let colonIdx = keyStr.firstIndex(of: ":") else { return pair }
+        let modifier = String(keyStr[keyStr.index(after: colonIdx)...])
+        guard modifier.first?.isUppercase == true, !modifier.contains(":") else { return pair }
+        let base = Substring(keyStr[..<colonIdx])
+        let normalizedValue = Substring("\(modifier)/\(pair.value)")
+        return (key: base, value: normalizedValue)
+    }
+}
+
 /// Parses `_tag`, `_tag:not`, `_security`, `_security:not`, `_profile` from query params.
 func parseMetaSearchParams(from pairs: some Collection<(key: Substring, value: Substring)>) -> MetaSearchParams {
     func all(_ key: String) -> [String] {

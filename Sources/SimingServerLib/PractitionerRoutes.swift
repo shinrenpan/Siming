@@ -368,6 +368,7 @@ public func addPractitionerRoutes(
 // ── Query parser ──────────────────────────────────────────────────────────────
 
 func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PractitionerSearchQuery {
+    let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
     }
