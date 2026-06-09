@@ -415,9 +415,13 @@ public struct RelatedPersonStore: Sendable {
         }
 
         // :not modifiers
-        if !query.activeNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "active", tokens: query.activeNot)) }
-        if !query.genderNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "gender", tokens: query.genderNot)) }
+        if !query.activeNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "active",       tokens: query.activeNot)) }
+        if !query.genderNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "gender",       tokens: query.genderNot)) }
         if !query.relationshipNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "relationship", tokens: query.relationshipNot)) }
+        if !query.phoneNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "phone",        tokens: query.phoneNot)) }
+        if !query.emailNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "email",        tokens: query.emailNot)) }
+        if !query.telecomNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "telecom",      tokens: query.telecomNot)) }
+        if !query.addressUseNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "address-use",  tokens: query.addressUseNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -664,11 +668,30 @@ public struct RelatedPersonStore: Sendable {
             }
         }
 
+        func countTokenNotCond(paramName: String, tokens: [RelatedPersonSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'RelatedPerson' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
         var whereConditions = ["r.resource_type = 'RelatedPerson'", "r.deleted = false"]
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+
+        if !query.phoneNot.isEmpty        { whereConditions.append(countTokenNotCond(paramName: "phone",        tokens: query.phoneNot)) }
+        if !query.emailNot.isEmpty        { whereConditions.append(countTokenNotCond(paramName: "email",        tokens: query.emailNot)) }
+        if !query.telecomNot.isEmpty      { whereConditions.append(countTokenNotCond(paramName: "telecom",      tokens: query.telecomNot)) }
+        if !query.addressUseNot.isEmpty   { whereConditions.append(countTokenNotCond(paramName: "address-use",  tokens: query.addressUseNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {

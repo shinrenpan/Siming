@@ -13,6 +13,7 @@ public struct LocationSearchQuery: Sendable {
     public var type: [TokenParam]
     public var typeNot: [TokenParam]
     public var operationalStatus: [TokenParam]
+    public var operationalStatusNot: [TokenParam]  // operational-status:not modifier
     public var address: StringParam?
     public var addressCity: StringParam?
     public var addressState: StringParam?
@@ -43,6 +44,7 @@ public struct LocationSearchQuery: Sendable {
         type: [TokenParam] = [],
         typeNot: [TokenParam] = [],
         operationalStatus: [TokenParam] = [],
+        operationalStatusNot: [TokenParam] = [],
         address: StringParam? = nil,
         addressCity: StringParam? = nil,
         addressState: StringParam? = nil,
@@ -70,8 +72,9 @@ public struct LocationSearchQuery: Sendable {
         self.statusNot         = statusNot
         self.type              = type
         self.typeNot           = typeNot
-        self.operationalStatus = operationalStatus
-        self.address           = address
+        self.operationalStatus    = operationalStatus
+        self.operationalStatusNot = operationalStatusNot
+        self.address              = address
         self.addressCity       = addressCity
         self.addressState      = addressState
         self.addressPostalCode = addressPostalCode

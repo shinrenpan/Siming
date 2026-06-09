@@ -438,6 +438,8 @@ public struct DocumentReferenceStore: Sendable {
         if !query.typeNot.isEmpty          { whereConditions.append(tokenNotCondition(paramName: "type",           tokens: query.typeNot)) }
         if !query.categoryNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
         if !query.securityLabelNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "security-label", tokens: query.securityLabelNot)) }
+        if !query.facilityNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "facility",       tokens: query.facilityNot)) }
+        if !query.eventNot.isEmpty         { whereConditions.append(tokenNotCondition(paramName: "event",          tokens: query.eventNot)) }
         if !query.contentTypeNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "contenttype",    tokens: query.contentTypeNot)) }
         if !query.formatNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "format",         tokens: query.formatNot)) }
         if !query.languageNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "language",       tokens: query.languageNot)) }
@@ -737,11 +739,28 @@ public struct DocumentReferenceStore: Sendable {
         if let ref = query.relatesto     { filterCTEs.append(countRefCTE(name: "f_relatesto",     paramName: "relatesto",     ref: ref)) }
         if let ref = query.related       { filterCTEs.append(countRefCTE(name: "f_related",       paramName: "related",       ref: ref)) }
 
+        func countTokenNotCond(paramName: String, tokens: [DocumentReferenceSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
         var whereConditions = ["r.resource_type = 'DocumentReference'", "r.deleted = false"]
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+
+        if !query.facilityNot.isEmpty { whereConditions.append(countTokenNotCond(paramName: "facility", tokens: query.facilityNot)) }
+        if !query.eventNot.isEmpty    { whereConditions.append(countTokenNotCond(paramName: "event",    tokens: query.eventNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {

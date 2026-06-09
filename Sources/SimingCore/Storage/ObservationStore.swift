@@ -872,10 +872,15 @@ public struct ObservationStore: Sendable {
             }
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR "))))"
         }
-        if !query.comboCodeNot.isEmpty         { whereConditions.append(obsTokenNotCond(paramName: "combo-code",         tokens: query.comboCodeNot)) }
-        if !query.methodNot.isEmpty            { whereConditions.append(obsTokenNotCond(paramName: "method",             tokens: query.methodNot)) }
-        if !query.valueConceptNot.isEmpty      { whereConditions.append(obsTokenNotCond(paramName: "value-concept",      tokens: query.valueConceptNot)) }
-        if !query.comboValueConceptNot.isEmpty { whereConditions.append(obsTokenNotCond(paramName: "combo-value-concept", tokens: query.comboValueConceptNot)) }
+        if !query.comboCodeNot.isEmpty                 { whereConditions.append(obsTokenNotCond(paramName: "combo-code",                     tokens: query.comboCodeNot)) }
+        if !query.methodNot.isEmpty                    { whereConditions.append(obsTokenNotCond(paramName: "method",                           tokens: query.methodNot)) }
+        if !query.valueConceptNot.isEmpty              { whereConditions.append(obsTokenNotCond(paramName: "value-concept",                    tokens: query.valueConceptNot)) }
+        if !query.comboValueConceptNot.isEmpty         { whereConditions.append(obsTokenNotCond(paramName: "combo-value-concept",              tokens: query.comboValueConceptNot)) }
+        if !query.componentCodeNot.isEmpty             { whereConditions.append(obsTokenNotCond(paramName: "component-code",                   tokens: query.componentCodeNot)) }
+        if !query.dataAbsentReasonNot.isEmpty          { whereConditions.append(obsTokenNotCond(paramName: "data-absent-reason",               tokens: query.dataAbsentReasonNot)) }
+        if !query.comboDataAbsentReasonNot.isEmpty     { whereConditions.append(obsTokenNotCond(paramName: "combo-data-absent-reason",         tokens: query.comboDataAbsentReasonNot)) }
+        if !query.componentDataAbsentReasonNot.isEmpty { whereConditions.append(obsTokenNotCond(paramName: "component-data-absent-reason",     tokens: query.componentDataAbsentReasonNot)) }
+        if !query.componentValueConceptNot.isEmpty     { whereConditions.append(obsTokenNotCond(paramName: "component-value-concept",          tokens: query.componentValueConceptNot)) }
 
         // :missing modifier
         for paramName in query.missing.keys.sorted() {
@@ -1513,6 +1518,27 @@ public struct ObservationStore: Sendable {
             }
             whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
         }
+        func countObsTokenNotCond(paramName: String, tokens: [ObservationSearchQuery.TokenParam]) -> String {
+            var or: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { or.append("system = \(bind(sys))") }
+                else {
+                    let cP = bind(tok.code); var sc = ""
+                    if let sys = tok.system { sc = " AND system = \(bind(sys))" }
+                    or.append("(code = \(cP)\(sc))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR "))))"
+        }
+        if !query.comboCodeNot.isEmpty                 { whereConditions.append(countObsTokenNotCond(paramName: "combo-code",                     tokens: query.comboCodeNot)) }
+        if !query.methodNot.isEmpty                    { whereConditions.append(countObsTokenNotCond(paramName: "method",                           tokens: query.methodNot)) }
+        if !query.valueConceptNot.isEmpty              { whereConditions.append(countObsTokenNotCond(paramName: "value-concept",                    tokens: query.valueConceptNot)) }
+        if !query.comboValueConceptNot.isEmpty         { whereConditions.append(countObsTokenNotCond(paramName: "combo-value-concept",              tokens: query.comboValueConceptNot)) }
+        if !query.componentCodeNot.isEmpty             { whereConditions.append(countObsTokenNotCond(paramName: "component-code",                   tokens: query.componentCodeNot)) }
+        if !query.dataAbsentReasonNot.isEmpty          { whereConditions.append(countObsTokenNotCond(paramName: "data-absent-reason",               tokens: query.dataAbsentReasonNot)) }
+        if !query.comboDataAbsentReasonNot.isEmpty     { whereConditions.append(countObsTokenNotCond(paramName: "combo-data-absent-reason",         tokens: query.comboDataAbsentReasonNot)) }
+        if !query.componentDataAbsentReasonNot.isEmpty { whereConditions.append(countObsTokenNotCond(paramName: "component-data-absent-reason",     tokens: query.componentDataAbsentReasonNot)) }
+        if !query.componentValueConceptNot.isEmpty     { whereConditions.append(countObsTokenNotCond(paramName: "component-value-concept",          tokens: query.componentValueConceptNot)) }
         for paramName in query.missing.keys.sorted() {
             if let sub = observationMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {

@@ -14,6 +14,7 @@ public struct CarePlanSearchQuery: Sendable {
     public var identifier: [IdentifierParam]
     public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var activityCode: [TokenParam]
+    public var activityCodeNot: [TokenParam]  // activity-code:not modifier
 
     // date params
     public var date: [DateParam]
@@ -62,6 +63,7 @@ public struct CarePlanSearchQuery: Sendable {
         identifier: [IdentifierParam] = [],
         identifierNot: [IdentifierParam] = [],
         activityCode: [TokenParam] = [],
+        activityCodeNot: [TokenParam] = [],
         date: [DateParam] = [],
         activityDate: [DateParam] = [],
         activityDateNot: [DateParam] = [],
@@ -97,6 +99,7 @@ public struct CarePlanSearchQuery: Sendable {
         self.identifier        = identifier
         self.identifierNot     = identifierNot
         self.activityCode           = activityCode
+        self.activityCodeNot        = activityCodeNot
         self.date                   = date
         self.activityDate           = activityDate
         self.activityDateNot        = activityDateNot

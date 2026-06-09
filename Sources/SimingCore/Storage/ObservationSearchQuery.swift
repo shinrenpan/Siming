@@ -24,6 +24,7 @@ public struct ObservationSearchQuery: Sendable {
     public var partOf: String?
     public var specimen: String?
     public var componentCode: [TokenParam]    // component-code token OR
+    public var componentCodeNot: [TokenParam]  // component-code:not modifier
     public var comboCode: [TokenParam]
     public var comboCodeNot: [TokenParam]
     public var method: [TokenParam]
@@ -32,10 +33,14 @@ public struct ObservationSearchQuery: Sendable {
     public var valueConceptNot: [TokenParam]
     public var comboValueConcept: [TokenParam]
     public var comboValueConceptNot: [TokenParam]
-    public var dataAbsentReason: [TokenParam]         // data-absent-reason token OR
-    public var comboDataAbsentReason: [TokenParam]    // combo-data-absent-reason token OR
-    public var componentDataAbsentReason: [TokenParam] // component-data-absent-reason token OR
-    public var componentValueConcept: [TokenParam]    // component-value-concept token OR
+    public var dataAbsentReason: [TokenParam]              // data-absent-reason token OR
+    public var dataAbsentReasonNot: [TokenParam]           // data-absent-reason:not modifier
+    public var comboDataAbsentReason: [TokenParam]         // combo-data-absent-reason token OR
+    public var comboDataAbsentReasonNot: [TokenParam]      // combo-data-absent-reason:not modifier
+    public var componentDataAbsentReason: [TokenParam]     // component-data-absent-reason token OR
+    public var componentDataAbsentReasonNot: [TokenParam]  // component-data-absent-reason:not modifier
+    public var componentValueConcept: [TokenParam]         // component-value-concept token OR
+    public var componentValueConceptNot: [TokenParam]      // component-value-concept:not modifier
     public var componentValueQuantity: [QuantityParam] // component-value-quantity quantity OR
     public var comboValueQuantity: [QuantityParam]     // combo-value-quantity quantity OR (obs.value only; component part not yet indexed)
     public var valueQuantity: [QuantityParam] // value-quantity OR list
@@ -86,6 +91,7 @@ public struct ObservationSearchQuery: Sendable {
         partOf: String? = nil,
         specimen: String? = nil,
         componentCode: [TokenParam] = [],
+        componentCodeNot: [TokenParam] = [],
         comboCode: [TokenParam] = [],
         comboCodeNot: [TokenParam] = [],
         method: [TokenParam] = [],
@@ -95,9 +101,13 @@ public struct ObservationSearchQuery: Sendable {
         comboValueConcept: [TokenParam] = [],
         comboValueConceptNot: [TokenParam] = [],
         dataAbsentReason: [TokenParam] = [],
+        dataAbsentReasonNot: [TokenParam] = [],
         comboDataAbsentReason: [TokenParam] = [],
+        comboDataAbsentReasonNot: [TokenParam] = [],
         componentDataAbsentReason: [TokenParam] = [],
+        componentDataAbsentReasonNot: [TokenParam] = [],
         componentValueConcept: [TokenParam] = [],
+        componentValueConceptNot: [TokenParam] = [],
         componentValueQuantity: [QuantityParam] = [],
         comboValueQuantity: [QuantityParam] = [],
         valueQuantity: [QuantityParam] = [],
@@ -140,19 +150,24 @@ public struct ObservationSearchQuery: Sendable {
         self.hasMember      = hasMember
         self.partOf         = partOf
         self.specimen       = specimen
-        self.componentCode  = componentCode
-        self.comboCode      = comboCode
-        self.comboCodeNot   = comboCodeNot
+        self.componentCode    = componentCode
+        self.componentCodeNot = componentCodeNot
+        self.comboCode        = comboCode
+        self.comboCodeNot     = comboCodeNot
         self.method         = method
         self.methodNot      = methodNot
         self.valueConcept   = valueConcept
         self.valueConceptNot = valueConceptNot
         self.comboValueConcept    = comboValueConcept
         self.comboValueConceptNot = comboValueConceptNot
-        self.dataAbsentReason          = dataAbsentReason
-        self.comboDataAbsentReason     = comboDataAbsentReason
-        self.componentDataAbsentReason = componentDataAbsentReason
-        self.componentValueConcept     = componentValueConcept
+        self.dataAbsentReason               = dataAbsentReason
+        self.dataAbsentReasonNot            = dataAbsentReasonNot
+        self.comboDataAbsentReason          = comboDataAbsentReason
+        self.comboDataAbsentReasonNot       = comboDataAbsentReasonNot
+        self.componentDataAbsentReason      = componentDataAbsentReason
+        self.componentDataAbsentReasonNot   = componentDataAbsentReasonNot
+        self.componentValueConcept          = componentValueConcept
+        self.componentValueConceptNot       = componentValueConceptNot
         self.componentValueQuantity    = componentValueQuantity
         self.comboValueQuantity        = comboValueQuantity
         self.valueQuantity  = valueQuantity

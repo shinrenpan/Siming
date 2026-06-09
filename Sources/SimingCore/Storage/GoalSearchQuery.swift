@@ -8,6 +8,7 @@ public struct GoalSearchQuery: Sendable {
     public var lifecycleStatus: [TokenParam]
     public var lifecycleStatusNot: [TokenParam]
     public var achievementStatus: [TokenParam]
+    public var achievementStatusNot: [TokenParam]  // achievement-status:not modifier
     public var category: [TokenParam]
     public var categoryNot: [TokenParam]
     public var identifier: [IdentifierParam]
@@ -40,6 +41,7 @@ public struct GoalSearchQuery: Sendable {
         lifecycleStatus: [TokenParam] = [],
         lifecycleStatusNot: [TokenParam] = [],
         achievementStatus: [TokenParam] = [],
+        achievementStatusNot: [TokenParam] = [],
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
@@ -60,8 +62,9 @@ public struct GoalSearchQuery: Sendable {
     ) {
         self.lifecycleStatus    = lifecycleStatus
         self.lifecycleStatusNot = lifecycleStatusNot
-        self.achievementStatus  = achievementStatus
-        self.category           = category
+        self.achievementStatus    = achievementStatus
+        self.achievementStatusNot = achievementStatusNot
+        self.category             = category
         self.categoryNot        = categoryNot
         self.identifier         = identifier
         self.identifierNot      = identifierNot

@@ -419,8 +419,11 @@ public struct ServiceRequestStore: Sendable {
         if !query.intentNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "intent",   tokens: query.intentNot)) }
         if !query.priorityNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "priority", tokens: query.priorityNot)) }
         if !query.codeNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "code",     tokens: query.codeNot)) }
-        if !query.categoryNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "category",     tokens: query.categoryNot)) }
-        if !query.orderDetailNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
+        if !query.categoryNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
+        if !query.bodySiteNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "body-site",       tokens: query.bodySiteNot)) }
+        if !query.performerTypeNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "performer-type",  tokens: query.performerTypeNot)) }
+        if !query.requisitionNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "requisition",     tokens: query.requisitionNot)) }
+        if !query.orderDetailNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "order-detail",    tokens: query.orderDetailNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -734,7 +737,10 @@ public struct ServiceRequestStore: Sendable {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
-        if !query.orderDetailNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "order-detail", tokens: query.orderDetailNot)) }
+        if !query.bodySiteNot.isEmpty      { whereConditions.append(countTokenNotCondition(paramName: "body-site",       tokens: query.bodySiteNot)) }
+        if !query.performerTypeNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "performer-type",  tokens: query.performerTypeNot)) }
+        if !query.requisitionNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "requisition",     tokens: query.requisitionNot)) }
+        if !query.orderDetailNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "order-detail",    tokens: query.orderDetailNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {

@@ -19,8 +19,12 @@ let knownObservationParams: Set<String> = [
     "combo-code", "combo-code:not", "method", "method:not",
     "value-concept", "value-concept:not", "combo-value-concept", "combo-value-concept:not",
     "value-date", "value-string", "value-string:contains", "value-string:exact", "value-string:text",
-    "data-absent-reason", "combo-data-absent-reason", "component-data-absent-reason",
-    "component-value-concept", "component-value-quantity", "combo-value-quantity",
+    "data-absent-reason", "data-absent-reason:not",
+    "combo-data-absent-reason", "combo-data-absent-reason:not",
+    "component-data-absent-reason", "component-data-absent-reason:not",
+    "component-code:not",
+    "component-value-concept", "component-value-concept:not",
+    "component-value-quantity", "combo-value-quantity",
     "code-value-quantity", "code-value-string", "code-value-concept", "code-value-date",
     "component-code-value-quantity", "component-code-value-concept",
     "combo-code-value-quantity", "combo-code-value-concept",
@@ -417,7 +421,8 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let hasMember     = first("has-member").map(String.init)
     let partOf        = first("part-of").map(String.init)
     let specimen      = first("specimen").map(String.init)
-    let componentCode = first("component-code").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let componentCode    = first("component-code").map { ObservationSearchQuery.TokenParam.parseList(String($0)) } ?? []
+    let componentCodeNot = all("component-code:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let comboCode     = all("combo-code").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let comboCodeNot  = all("combo-code:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let method        = all("method").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
@@ -426,10 +431,14 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let valueConceptNot = all("value-concept:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let comboValueConcept    = all("combo-value-concept").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let comboValueConceptNot = all("combo-value-concept:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
-    let dataAbsentReason        = all("data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
-    let comboDataAbsentReason   = all("combo-data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
-    let componentDataAbsentReason = all("component-data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
-    let componentValueConcept   = all("component-value-concept").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let dataAbsentReason             = all("data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let dataAbsentReasonNot          = all("data-absent-reason:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let comboDataAbsentReason        = all("combo-data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let comboDataAbsentReasonNot     = all("combo-data-absent-reason:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let componentDataAbsentReason    = all("component-data-absent-reason").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let componentDataAbsentReasonNot = all("component-data-absent-reason:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let componentValueConcept        = all("component-value-concept").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
+    let componentValueConceptNot     = all("component-value-concept:not").flatMap { ObservationSearchQuery.TokenParam.parseList(String($0)) }
     let componentValueQuantity  = first("component-value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let comboValueQuantity      = first("combo-value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
     let codeValueQuantity = all("code-value-quantity").flatMap { ObservationSearchQuery.CompositeCodeQuantity.parseList(String($0)) }
@@ -479,15 +488,15 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
         identifier: identifier, identifierNot: identifierNot, encounter: encounter, performer: performer,
         basedOn: basedOn, derivedFrom: derivedFrom, device: device, focus: focus,
         hasMember: hasMember, partOf: partOf, specimen: specimen,
-        componentCode: componentCode,
+        componentCode: componentCode, componentCodeNot: componentCodeNot,
         comboCode: comboCode, comboCodeNot: comboCodeNot,
         method: method, methodNot: methodNot,
         valueConcept: valueConcept, valueConceptNot: valueConceptNot,
         comboValueConcept: comboValueConcept, comboValueConceptNot: comboValueConceptNot,
-        dataAbsentReason: dataAbsentReason,
-        comboDataAbsentReason: comboDataAbsentReason,
-        componentDataAbsentReason: componentDataAbsentReason,
-        componentValueConcept: componentValueConcept,
+        dataAbsentReason: dataAbsentReason, dataAbsentReasonNot: dataAbsentReasonNot,
+        comboDataAbsentReason: comboDataAbsentReason, comboDataAbsentReasonNot: comboDataAbsentReasonNot,
+        componentDataAbsentReason: componentDataAbsentReason, componentDataAbsentReasonNot: componentDataAbsentReasonNot,
+        componentValueConcept: componentValueConcept, componentValueConceptNot: componentValueConceptNot,
         componentValueQuantity: componentValueQuantity,
         comboValueQuantity: comboValueQuantity,
         valueQuantity: valueQuantity,

@@ -406,12 +406,11 @@ public struct MedicationStore: Sendable {
         }
 
         // :not modifiers
-        if !query.codeNot.isEmpty {
-            whereConditions.append(tokenNotCondition(paramName: "code", tokens: query.codeNot))
-        }
-        if !query.statusNot.isEmpty {
-            whereConditions.append(tokenNotCondition(paramName: "status", tokens: query.statusNot))
-        }
+        if !query.codeNot.isEmpty           { whereConditions.append(tokenNotCondition(paramName: "code",             tokens: query.codeNot)) }
+        if !query.statusNot.isEmpty         { whereConditions.append(tokenNotCondition(paramName: "status",           tokens: query.statusNot)) }
+        if !query.formNot.isEmpty           { whereConditions.append(tokenNotCondition(paramName: "form",             tokens: query.formNot)) }
+        if !query.ingredientCodeNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "ingredient-code",  tokens: query.ingredientCodeNot)) }
+        if !query.lotNumberNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "lot-number",       tokens: query.lotNumberNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -601,6 +600,20 @@ public struct MedicationStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Medication' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
+        func countTokenNotCondition(paramName: String, tokens: [MedicationSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Medication' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
         if !query.code.isEmpty {
             filterCTEs.append(countTokenORCTE(name: "f_code", paramName: "code", tokens: query.code))
         }
@@ -682,6 +695,13 @@ public struct MedicationStore: Sendable {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+
+        // :not modifiers
+        if !query.codeNot.isEmpty           { whereConditions.append(countTokenNotCondition(paramName: "code",            tokens: query.codeNot)) }
+        if !query.statusNot.isEmpty         { whereConditions.append(countTokenNotCondition(paramName: "status",          tokens: query.statusNot)) }
+        if !query.formNot.isEmpty           { whereConditions.append(countTokenNotCondition(paramName: "form",            tokens: query.formNot)) }
+        if !query.ingredientCodeNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "ingredient-code", tokens: query.ingredientCodeNot)) }
+        if !query.lotNumberNot.isEmpty      { whereConditions.append(countTokenNotCondition(paramName: "lot-number",      tokens: query.lotNumberNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {

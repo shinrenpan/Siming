@@ -432,9 +432,10 @@ public struct CarePlanStore: Sendable {
         }
 
         // :not modifiers
-        if !query.statusNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "status",  tokens: query.statusNot)) }
-        if !query.intentNot.isEmpty  { whereConditions.append(tokenNotCondition(paramName: "intent",  tokens: query.intentNot)) }
-        if !query.categoryNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "category", tokens: query.categoryNot)) }
+        if !query.statusNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "status",         tokens: query.statusNot)) }
+        if !query.intentNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "intent",         tokens: query.intentNot)) }
+        if !query.categoryNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
+        if !query.activityCodeNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "activity-code",  tokens: query.activityCodeNot)) }
         for dn in query.activityDateNot {
             let s = bind(dn.dateStart); let e = bind(dn.dateEnd)
             whereConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")
@@ -717,6 +718,23 @@ public struct CarePlanStore: Sendable {
                 whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
+
+        func cTokenNotCondition(paramName: String, tokens: [CarePlanSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { orClauses.append("system = \(bind(sys))") }
+                else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+        if !query.statusNot.isEmpty       { whereConditions.append(cTokenNotCondition(paramName: "status",        tokens: query.statusNot)) }
+        if !query.intentNot.isEmpty       { whereConditions.append(cTokenNotCondition(paramName: "intent",        tokens: query.intentNot)) }
+        if !query.categoryNot.isEmpty     { whereConditions.append(cTokenNotCondition(paramName: "category",      tokens: query.categoryNot)) }
+        if !query.activityCodeNot.isEmpty { whereConditions.append(cTokenNotCondition(paramName: "activity-code", tokens: query.activityCodeNot)) }
 
         for dn in query.activityDateNot {
             let s = bind(dn.dateStart); let e = bind(dn.dateEnd)

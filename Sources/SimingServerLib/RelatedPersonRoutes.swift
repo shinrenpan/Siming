@@ -18,6 +18,7 @@ let knownRelatedPersonParams: Set<String> = [
     "name", "phonetic", "address", "address-city", "address-country",
     "address-postalcode", "address-state", "birthdate", "patient",
     "active:not", "gender:not", "relationship:not",
+    "phone:not", "email:not", "telecom:not", "address-use:not",
     "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -373,9 +374,13 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
     let relationship     = all("relationship").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let relationshipNot  = all("relationship:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let phone            = all("phone").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
+    let phoneNot         = all("phone:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let email            = all("email").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
+    let emailNot         = all("email:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let telecom          = all("telecom").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
+    let telecomNot       = all("telecom:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let addressUse       = all("address-use").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
+    let addressUseNot    = all("address-use:not").flatMap { RelatedPersonSearchQuery.TokenParam.parseList(String($0)) }
     let name             = RelatedPersonSearchQuery.StringParam.parse(key: "name", from: pairs)
                         ?? RelatedPersonSearchQuery.StringParam.parse(key: "phonetic", from: pairs)
     let address          = RelatedPersonSearchQuery.StringParam.parse(key: "address",            from: pairs)
@@ -410,7 +415,8 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
         gender: gender, genderNot: genderNot,
         identifier: identifier, identifierNot: identifierNot,
         relationship: relationship, relationshipNot: relationshipNot,
-        phone: phone, email: email, telecom: telecom, addressUse: addressUse,
+        phone: phone, phoneNot: phoneNot, email: email, emailNot: emailNot,
+        telecom: telecom, telecomNot: telecomNot, addressUse: addressUse, addressUseNot: addressUseNot,
         name: name, address: address,
         addressCity: addressCity, addressCountry: addressCountry,
         addressPostalcode: addressPostalcode, addressState: addressState,

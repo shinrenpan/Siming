@@ -16,7 +16,7 @@ let knownMedicationParams: Set<String> = [
     "code", "status", "form", "identifier",
     "lot-number", "ingredient-code", "manufacturer", "ingredient",
     "expiration-date",
-    "code:not", "status:not",
+    "code:not", "status:not", "form:not", "ingredient-code:not", "lot-number:not",
     "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
@@ -366,9 +366,12 @@ func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Su
     let codeNot        = all("code:not").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
     let status         = all("status").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
     let statusNot      = all("status:not").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
-    let form           = all("form").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
-    let ingredientCode = all("ingredient-code").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
-    let lotNumber      = all("lot-number").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let form               = all("form").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let formNot            = all("form:not").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let ingredientCode     = all("ingredient-code").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let ingredientCodeNot  = all("ingredient-code:not").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let lotNumber          = all("lot-number").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
+    let lotNumberNot       = all("lot-number:not").flatMap { MedicationSearchQuery.TokenParam.parseList(String($0)) }
     let identifier     = first("identifier").map { MedicationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot  = first("identifier:not").map { MedicationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let manufacturer   = first("manufacturer").map(String.init)
@@ -397,8 +400,10 @@ func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Su
     var query = MedicationSearchQuery(
         code: code, codeNot: codeNot,
         status: status, statusNot: statusNot,
-        form: form, identifier: identifier, identifierNot: identifierNot,
-        ingredientCode: ingredientCode, lotNumber: lotNumber,
+        form: form, formNot: formNot,
+        identifier: identifier, identifierNot: identifierNot,
+        ingredientCode: ingredientCode, ingredientCodeNot: ingredientCodeNot,
+        lotNumber: lotNumber, lotNumberNot: lotNumberNot,
         manufacturer: manufacturer, ingredient: ingredient,
         expirationDate: expirationDate,
         id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,

@@ -9,10 +9,13 @@ public struct MedicationSearchQuery: Sendable {
     public var status: [TokenParam]
     public var statusNot: [TokenParam]
     public var form: [TokenParam]
+    public var formNot: [TokenParam]
     public var identifier: [IdentifierParam]
     public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var ingredientCode: [TokenParam]
+    public var ingredientCodeNot: [TokenParam]
     public var lotNumber: [TokenParam]
+    public var lotNumberNot: [TokenParam]
     public var manufacturer: String?
     public var ingredient: String?
     public var expirationDate: [DateParam]
@@ -36,10 +39,13 @@ public struct MedicationSearchQuery: Sendable {
         status: [TokenParam] = [],
         statusNot: [TokenParam] = [],
         form: [TokenParam] = [],
+        formNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
         identifierNot: [IdentifierParam] = [],
         ingredientCode: [TokenParam] = [],
+        ingredientCodeNot: [TokenParam] = [],
         lotNumber: [TokenParam] = [],
+        lotNumberNot: [TokenParam] = [],
         manufacturer: String? = nil,
         ingredient: String? = nil,
         expirationDate: [DateParam] = [],
@@ -59,10 +65,13 @@ public struct MedicationSearchQuery: Sendable {
         self.status         = status
         self.statusNot      = statusNot
         self.form           = form
+        self.formNot        = formNot
         self.identifier     = identifier
         self.identifierNot  = identifierNot
-        self.ingredientCode = ingredientCode
-        self.lotNumber      = lotNumber
+        self.ingredientCode    = ingredientCode
+        self.ingredientCodeNot = ingredientCodeNot
+        self.lotNumber         = lotNumber
+        self.lotNumberNot      = lotNumberNot
         self.manufacturer   = manufacturer
         self.ingredient     = ingredient
         self.expirationDate = expirationDate

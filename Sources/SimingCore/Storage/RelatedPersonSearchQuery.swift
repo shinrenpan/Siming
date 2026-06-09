@@ -14,9 +14,13 @@ public struct RelatedPersonSearchQuery: Sendable {
     public var relationship: [TokenParam]
     public var relationshipNot: [TokenParam]
     public var phone: [TokenParam]
+    public var phoneNot: [TokenParam]
     public var email: [TokenParam]
+    public var emailNot: [TokenParam]
     public var telecom: [TokenParam]
+    public var telecomNot: [TokenParam]
     public var addressUse: [TokenParam]
+    public var addressUseNot: [TokenParam]
 
     // string params (single optional, supports modifiers via StringParam.parse)
     public var name: StringParam?
@@ -57,9 +61,13 @@ public struct RelatedPersonSearchQuery: Sendable {
         relationship: [TokenParam] = [],
         relationshipNot: [TokenParam] = [],
         phone: [TokenParam] = [],
+        phoneNot: [TokenParam] = [],
         email: [TokenParam] = [],
+        emailNot: [TokenParam] = [],
         telecom: [TokenParam] = [],
+        telecomNot: [TokenParam] = [],
         addressUse: [TokenParam] = [],
+        addressUseNot: [TokenParam] = [],
         name: StringParam? = nil,
         address: StringParam? = nil,
         addressCity: StringParam? = nil,
@@ -88,9 +96,13 @@ public struct RelatedPersonSearchQuery: Sendable {
         self.relationship       = relationship
         self.relationshipNot    = relationshipNot
         self.phone              = phone
+        self.phoneNot           = phoneNot
         self.email              = email
+        self.emailNot           = emailNot
         self.telecom            = telecom
+        self.telecomNot         = telecomNot
         self.addressUse         = addressUse
+        self.addressUseNot      = addressUseNot
         self.name               = name
         self.address            = address
         self.addressCity        = addressCity

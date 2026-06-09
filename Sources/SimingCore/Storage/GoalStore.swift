@@ -412,8 +412,9 @@ public struct GoalStore: Sendable {
         }
 
         // :not modifiers
-        if !query.lifecycleStatusNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "lifecycle-status", tokens: query.lifecycleStatusNot)) }
-        if !query.categoryNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "category",         tokens: query.categoryNot)) }
+        if !query.lifecycleStatusNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "lifecycle-status",    tokens: query.lifecycleStatusNot)) }
+        if !query.achievementStatusNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "achievement-status",  tokens: query.achievementStatusNot)) }
+        if !query.categoryNot.isEmpty          { whereConditions.append(tokenNotCondition(paramName: "category",            tokens: query.categoryNot)) }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
@@ -674,6 +675,22 @@ public struct GoalStore: Sendable {
                 whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Goal' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
+
+        func cTokenNotCondition(paramName: String, tokens: [GoalSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { orClauses.append("system = \(bind(sys))") }
+                else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Goal' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+        if !query.lifecycleStatusNot.isEmpty   { whereConditions.append(cTokenNotCondition(paramName: "lifecycle-status",   tokens: query.lifecycleStatusNot)) }
+        if !query.achievementStatusNot.isEmpty { whereConditions.append(cTokenNotCondition(paramName: "achievement-status", tokens: query.achievementStatusNot)) }
+        if !query.categoryNot.isEmpty          { whereConditions.append(cTokenNotCondition(paramName: "category",           tokens: query.categoryNot)) }
 
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }

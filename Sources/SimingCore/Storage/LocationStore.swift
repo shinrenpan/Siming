@@ -437,6 +437,9 @@ public struct LocationStore: Sendable {
         if !query.typeNot.isEmpty {
             whereConditions.append(tokenNotCondition(paramName: "type", tokens: query.typeNot))
         }
+        if !query.operationalStatusNot.isEmpty {
+            whereConditions.append(tokenNotCondition(paramName: "operational-status", tokens: query.operationalStatusNot))
+        }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -728,6 +731,22 @@ public struct LocationStore: Sendable {
                 whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
+
+        func cTokenNotCondition(paramName: String, tokens: [LocationSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system { orClauses.append("system = \(bind(sys))") }
+                else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+        if !query.statusNot.isEmpty            { whereConditions.append(cTokenNotCondition(paramName: "status",             tokens: query.statusNot)) }
+        if !query.typeNot.isEmpty              { whereConditions.append(cTokenNotCondition(paramName: "type",               tokens: query.typeNot)) }
+        if !query.operationalStatusNot.isEmpty { whereConditions.append(cTokenNotCondition(paramName: "operational-status", tokens: query.operationalStatusNot)) }
 
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }

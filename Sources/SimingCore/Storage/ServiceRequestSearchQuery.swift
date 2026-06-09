@@ -16,10 +16,13 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var category: [TokenParam]
     public var categoryNot: [TokenParam]
     public var bodySite: [TokenParam]
+    public var bodySiteNot: [TokenParam]
     public var identifier: [IdentifierParam]
     public var identifierNot: [IdentifierParam]  // identifier:not modifier
     public var performerType: [TokenParam]
+    public var performerTypeNot: [TokenParam]
     public var requisition: [TokenParam]
+    public var requisitionNot: [TokenParam]
 
     // string params
     public var instantiatesCanonical: [String] // ServiceRequest.instantiatesCanonical (exact URL match)
@@ -70,10 +73,13 @@ public struct ServiceRequestSearchQuery: Sendable {
         category: [TokenParam] = [],
         categoryNot: [TokenParam] = [],
         bodySite: [TokenParam] = [],
+        bodySiteNot: [TokenParam] = [],
         identifier: [IdentifierParam] = [],
         identifierNot: [IdentifierParam] = [],
         performerType: [TokenParam] = [],
+        performerTypeNot: [TokenParam] = [],
         requisition: [TokenParam] = [],
+        requisitionNot: [TokenParam] = [],
         instantiatesCanonical: [String] = [],
         instantiatesUri: [String] = [],
         orderDetail: [TokenParam] = [],
@@ -110,10 +116,13 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.category       = category
         self.categoryNot    = categoryNot
         self.bodySite       = bodySite
+        self.bodySiteNot    = bodySiteNot
         self.identifier     = identifier
         self.identifierNot  = identifierNot
         self.performerType  = performerType
+        self.performerTypeNot = performerTypeNot
         self.requisition    = requisition
+        self.requisitionNot = requisitionNot
         self.instantiatesCanonical = instantiatesCanonical
         self.instantiatesUri = instantiatesUri
         self.orderDetail    = orderDetail

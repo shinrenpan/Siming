@@ -16,7 +16,7 @@ let knownLocationParams: Set<String> = [
     "name", "identifier", "identifier:not", "status", "type", "operational-status",
     "address", "address-city", "address-state", "address-country", "address-postalcode", "address-use",
     "organization", "partof", "endpoint",
-    "status:not", "type:not",
+    "status:not", "type:not", "operational-status:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total", "_elements", "_format", "_summary",
     "_include", "_revinclude",
 ]
@@ -386,7 +386,8 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let statusNot        = all("status:not").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
     let type             = all("type").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
     let typeNot          = all("type:not").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
-    let operationalStatus = all("operational-status").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
+    let operationalStatus    = all("operational-status").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
+    let operationalStatusNot = all("operational-status:not").flatMap { LocationSearchQuery.TokenParam.parseList(String($0)) }
 
     let identifier    = first("identifier").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot = first("identifier:not").map { LocationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
@@ -417,7 +418,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
         name: name, identifier: identifier, identifierNot: identifierNot,
         status: status, statusNot: statusNot,
         type: type, typeNot: typeNot,
-        operationalStatus: operationalStatus,
+        operationalStatus: operationalStatus, operationalStatusNot: operationalStatusNot,
         address: address, addressCity: addressCity, addressState: addressState,
         addressPostalCode: addressPostalCode, addressCountry: addressCountry,
         organization: organization, partof: partof, endpoint: endpoint,

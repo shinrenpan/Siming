@@ -18,7 +18,7 @@ let knownCarePlanParams: Set<String> = [
     "instantiates-canonical", "instantiates-uri",
     "subject", "patient", "encounter", "care-team", "condition", "goal",
     "based-on", "part-of", "replaces", "performer", "activity-reference",
-    "status:not", "intent:not", "category:not",
+    "status:not", "intent:not", "category:not", "activity-code:not",
     "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -373,7 +373,8 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
     let categoryNot  = all("category:not").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
     let identifier      = first("identifier").map { CarePlanSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot   = first("identifier:not").map { CarePlanSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let activityCode = all("activity-code").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
+    let activityCode    = all("activity-code").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
+    let activityCodeNot = all("activity-code:not").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
 
     let date              = all("date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
     let activityDate      = all("activity-date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
@@ -420,7 +421,7 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         status: status, statusNot: statusNot,
         intent: intent, intentNot: intentNot,
         category: category, categoryNot: categoryNot,
-        identifier: identifier, identifierNot: identifierNot, activityCode: activityCode,
+        identifier: identifier, identifierNot: identifierNot, activityCode: activityCode, activityCodeNot: activityCodeNot,
         date: date,
         activityDate: activityDate, activityDateNot: activityDateNot,
         instantiatesCanonical: instantiatesCanonical, instantiatesUri: instantiatesUri,

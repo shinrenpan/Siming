@@ -21,6 +21,7 @@ let knownServiceRequestParams: Set<String> = [
     "instantiates-canonical", "instantiates-uri",
     "order-detail", "order-detail:not",
     "status:not", "intent:not", "priority:not", "code:not", "category:not",
+    "body-site:not", "performer-type:not", "requisition:not",
     "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -377,9 +378,12 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let codeNot      = all("code:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let category     = all("category").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot  = all("category:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let bodySite     = all("body-site").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let performerType = all("performer-type").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let requisition  = all("requisition").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let bodySite        = all("body-site").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let bodySiteNot     = all("body-site:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let performerType   = all("performer-type").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let performerTypeNot = all("performer-type:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let requisition     = all("requisition").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
+    let requisitionNot  = all("requisition:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let identifier    = first("identifier").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot = first("identifier:not").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
@@ -430,10 +434,10 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
         priority: priority, priorityNot: priorityNot,
         code: code, codeNot: codeNot,
         category: category, categoryNot: categoryNot,
-        bodySite: bodySite,
+        bodySite: bodySite, bodySiteNot: bodySiteNot,
         identifier: identifier, identifierNot: identifierNot,
-        performerType: performerType,
-        requisition: requisition,
+        performerType: performerType, performerTypeNot: performerTypeNot,
+        requisition: requisition, requisitionNot: requisitionNot,
         instantiatesCanonical: instantiatesCanonical,
         instantiatesUri: instantiatesUri,
         orderDetail: orderDetail, orderDetailNot: orderDetailNot,

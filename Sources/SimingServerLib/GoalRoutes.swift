@@ -16,7 +16,7 @@ let knownGoalParams: Set<String> = [
     "lifecycle-status", "achievement-status", "category", "identifier",
     "start-date", "target-date",
     "subject", "patient",
-    "lifecycle-status:not", "category:not",
+    "lifecycle-status:not", "achievement-status:not", "category:not",
     "identifier:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
     "_elements", "_format", "_summary", "_include", "_revinclude",
@@ -364,8 +364,9 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
     }
 
     let lifecycleStatus    = all("lifecycle-status").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
-    let lifecycleStatusNot = all("lifecycle-status:not").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
-    let achievementStatus  = all("achievement-status").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
+    let lifecycleStatusNot    = all("lifecycle-status:not").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
+    let achievementStatus     = all("achievement-status").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
+    let achievementStatusNot  = all("achievement-status:not").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
     let category           = all("category").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
     let categoryNot        = all("category:not").flatMap { GoalSearchQuery.TokenParam.parseList(String($0)) }
     let identifier         = first("identifier").map { GoalSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
@@ -399,7 +400,7 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
 
     var query = GoalSearchQuery(
         lifecycleStatus: lifecycleStatus, lifecycleStatusNot: lifecycleStatusNot,
-        achievementStatus: achievementStatus,
+        achievementStatus: achievementStatus, achievementStatusNot: achievementStatusNot,
         category: category, categoryNot: categoryNot,
         identifier: identifier, identifierNot: identifierNot,
         startDate: startDate, targetDate: targetDate,

@@ -16,7 +16,9 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var securityLabel: [TokenParam]
     public var securityLabelNot: [TokenParam]
     public var facility: [TokenParam]
+    public var facilityNot: [TokenParam]
     public var event: [TokenParam]
+    public var eventNot: [TokenParam]
     public var contentType: [TokenParam]
     public var contentTypeNot: [TokenParam]
     public var format: [TokenParam]
@@ -78,7 +80,9 @@ public struct DocumentReferenceSearchQuery: Sendable {
         securityLabel: [TokenParam] = [],
         securityLabelNot: [TokenParam] = [],
         facility: [TokenParam] = [],
+        facilityNot: [TokenParam] = [],
         event: [TokenParam] = [],
+        eventNot: [TokenParam] = [],
         contentType: [TokenParam] = [],
         contentTypeNot: [TokenParam] = [],
         format: [TokenParam] = [],
@@ -124,7 +128,9 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.securityLabel    = securityLabel
         self.securityLabelNot = securityLabelNot
         self.facility         = facility
+        self.facilityNot      = facilityNot
         self.event            = event
+        self.eventNot         = eventNot
         self.contentType      = contentType
         self.contentTypeNot   = contentTypeNot
         self.format           = format

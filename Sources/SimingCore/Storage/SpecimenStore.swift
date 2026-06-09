@@ -392,6 +392,7 @@ public struct SpecimenStore: Sendable {
         if !query.statusNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "status",       tokens: query.statusNot)) }
         if !query.typeNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "type",         tokens: query.typeNot)) }
         if !query.accessionNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "accession",    tokens: query.accessionNot)) }
+        if !query.bodysiteNot.isEmpty    { whereConditions.append(tokenNotCondition(paramName: "bodysite",     tokens: query.bodysiteNot)) }
         if !query.containerNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "container",    tokens: query.containerNot)) }
         if !query.containerIdNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "container-id", tokens: query.containerIdNot)) }
 
@@ -586,6 +587,20 @@ public struct SpecimenStore: Sendable {
             return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Specimen' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
         }
 
+        func countTokenNotCondition(paramName: String, tokens: [SpecimenSearchQuery.TokenParam]) -> String {
+            var orClauses: [String] = []
+            for tok in tokens {
+                if tok.code.isEmpty, let sys = tok.system {
+                    orClauses.append("system = \(bind(sys))")
+                } else {
+                    let codeP = bind(tok.code); var sysCond = ""
+                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
+                    orClauses.append("(code = \(codeP)\(sysCond))")
+                }
+            }
+            return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Specimen' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR "))))"
+        }
+
         func countRefCTE(name: String, paramName: String, ref: String) -> (String, String) {
             let parts = ref.split(separator: "/")
             if parts.count == 2 {
@@ -655,6 +670,14 @@ public struct SpecimenStore: Sendable {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
         }
+
+        // :not modifiers
+        if !query.statusNot.isEmpty      { whereConditions.append(countTokenNotCondition(paramName: "status",       tokens: query.statusNot)) }
+        if !query.typeNot.isEmpty        { whereConditions.append(countTokenNotCondition(paramName: "type",         tokens: query.typeNot)) }
+        if !query.accessionNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "accession",    tokens: query.accessionNot)) }
+        if !query.bodysiteNot.isEmpty    { whereConditions.append(countTokenNotCondition(paramName: "bodysite",     tokens: query.bodysiteNot)) }
+        if !query.containerNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "container",    tokens: query.containerNot)) }
+        if !query.containerIdNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "container-id", tokens: query.containerIdNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
