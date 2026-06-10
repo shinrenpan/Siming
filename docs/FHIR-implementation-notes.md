@@ -36,7 +36,7 @@ Per-resource search parameter implementation details and known gaps.
 | MedicationAdministration | `date` (effective-time), `status`, `code`, `_lastUpdated`, `_id` |
 | All resources | `_lastUpdated`, `_id` |
 
-### Meta search parameters (`_tag`, `_security`, `_profile`)
+### Meta search parameters (`_tag`, `_security`, `_profile`, `_source`)
 
 Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infrastructure in `MetaSearchParams.swift`.
 
@@ -45,11 +45,13 @@ Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infr
 | `_tag` | `meta.tag[]: Coding` | idx_token (`param_name='_tag'`) | ✓ `_tag:not` |
 | `_security` | `meta.security[]: Coding` | idx_token (`param_name='_security'`) | ✓ `_security:not` |
 | `_profile` | `meta.profile[]: canonical` | idx_string (`param_name='_profile'`, exact URI) | — |
+| `_source` | `meta.source: uri` | idx_string (`param_name='_source'`, exact URI) | — |
 
 - **Write path**: `appendMetaParams(&params, meta: resource.meta)` called in each store's `write()` after the resource-specific extractor. Note: stores that strip `resource.meta` before extraction must capture `originalMeta` first.
 - **Search path**: `metaFilterCTEs(resourceType:, meta:, bind:)` appends filter CTEs and NOT IN conditions into the standard SQL builder.
-- **Strict mode**: `unknownParams()` globally accepts `_tag`, `_security`, `_profile` — no per-route change needed.
+- **Strict mode**: `unknownParams()` globally accepts `_tag`, `_security`, `_profile`, `_source` — no per-route change needed.
 - `_tag` / `_security` token format: `system|code`, `|code`, `code` (same as standard token params).
+- `_source` is a scalar URI (not an array); multiple values in the query are treated as OR.
 - **CapabilityStatement**: declared in server-level `rest.searchParam` in `MetadataRoutes.swift` (not per-resource).
 
 ### `identifier:not` across all resources

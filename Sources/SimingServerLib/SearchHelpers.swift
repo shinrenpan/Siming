@@ -67,11 +67,11 @@ func parseElements(from pairs: some Collection<(key: Substring, value: Substring
 }
 
 /// Global meta search params accepted on every resource (FHIR R4 §3.2.2).
-private let knownMetaParams: Set<String> = ["_tag", "_security", "_profile"]
+private let knownMetaParams: Set<String> = ["_tag", "_security", "_profile", "_source"]
 
 /// Returns parameter keys not present in `known` (base name before `:` stripped).
 /// Chained params (containing `.`) and `_has:` params are always treated as known.
-/// Global meta params (`_tag`, `_security`, `_profile`) are universally accepted.
+/// Global meta params (`_tag`, `_security`, `_profile`, `_source`) are universally accepted.
 /// Used for `Prefer: handling=strict` validation.
 func unknownParams(
     in pairs: some Collection<(key: Substring, value: Substring)>,
@@ -110,7 +110,7 @@ func normalizeReferenceTypeModifiers(
     }
 }
 
-/// Parses `_tag`, `_tag:not`, `_security`, `_security:not`, `_profile` from query params.
+/// Parses `_tag`, `_tag:not`, `_security`, `_security:not`, `_profile`, `_source` from query params.
 func parseMetaSearchParams(from pairs: some Collection<(key: Substring, value: Substring)>) -> MetaSearchParams {
     func all(_ key: String) -> [String] {
         pairs.filter { String($0.key) == key }.map { String($0.value) }
@@ -121,6 +121,7 @@ func parseMetaSearchParams(from pairs: some Collection<(key: Substring, value: S
     meta.security    = all("_security").flatMap    { MetaSearchParams.TokenParam.parseList($0) }
     meta.securityNot = all("_security:not").flatMap { MetaSearchParams.TokenParam.parseList($0) }
     meta.profile     = all("_profile")
+    meta.source      = all("_source")
     return meta
 }
 

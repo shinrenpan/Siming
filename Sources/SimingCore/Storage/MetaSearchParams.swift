@@ -12,6 +12,7 @@ public struct MetaSearchParams: Sendable {
     public var security:    [TokenParam] = []   // _security token OR
     public var securityNot: [TokenParam] = []   // _security:not
     public var profile:     [String]     = []   // _profile URI exact match
+    public var source:      [String]     = []   // _source URI exact match (meta.source)
 
     public init() {}
 }
@@ -37,6 +38,9 @@ public func appendMetaParams(_ params: inout SearchParams, meta: Meta?) {
         if let uri = profile.value?.url.absoluteString {
             params.strings.append(StringIndexRow(paramName: "_profile", value: uri))
         }
+    }
+    if let src = meta.source?.value?.url.absoluteString, !src.isEmpty {
+        params.strings.append(StringIndexRow(paramName: "_source", value: src))
     }
 }
 
@@ -89,6 +93,13 @@ public func metaFilterCTEs(
         let or = meta.profile.map { "value = \(bind($0))" }.joined(separator: " OR ")
         filterCTEs.append(("f__profile",
             "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = '\(resourceType)' AND param_name = '_profile' AND (\(or))"))
+    }
+
+    // _source (idx_string, exact URI match — meta.source is a single URI per resource)
+    if !meta.source.isEmpty {
+        let or = meta.source.map { "value = \(bind($0))" }.joined(separator: " OR ")
+        filterCTEs.append(("f__source",
+            "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = '\(resourceType)' AND param_name = '_source' AND (\(or))"))
     }
 
     return (filterCTEs, whereConditions)

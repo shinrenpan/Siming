@@ -42,7 +42,7 @@ public struct ObservationSearchQuery: Sendable {
     public var componentValueConcept: [TokenParam]         // component-value-concept token OR
     public var componentValueConceptNot: [TokenParam]      // component-value-concept:not modifier
     public var componentValueQuantity: [QuantityParam] // component-value-quantity quantity OR
-    public var comboValueQuantity: [QuantityParam]     // combo-value-quantity quantity OR (obs.value only; component part not yet indexed)
+    public var comboValueQuantity: [QuantityParam]     // combo-value-quantity quantity OR (obs.value + obs.component[].value)
     public var valueQuantity: [QuantityParam] // value-quantity OR list
     // ── Root-level composite params ───────────────────────────────────────────
     public var codeValueQuantity: [CompositeCodeQuantity]   // code-value-quantity: code$value-quantity

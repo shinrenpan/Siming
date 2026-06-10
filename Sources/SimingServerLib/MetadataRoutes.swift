@@ -90,6 +90,12 @@ private func serverRest() -> CapabilityStatementRest {
             name: FHIRPrimitive(FHIRString("_profile")),
             type: FHIRPrimitive(.uri)
         ),
+        CapabilityStatementRestResourceSearchParam(
+            definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-source")),
+            documentation: FHIRPrimitive(FHIRString("Filter by meta.source URI. Exact match against the source URI stored with the resource.")),
+            name: FHIRPrimitive(FHIRString("_source")),
+            type: FHIRPrimitive(.uri)
+        ),
     ]
     return rest
 }
