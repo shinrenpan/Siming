@@ -55,6 +55,7 @@ Server listens on `http://localhost:8080`.
 | Feature | Status |
 |---|---|
 | read, vread, create, update, patch, delete | ✓ |
+| Transaction Bundle (`POST /`, type=transaction) — atomic multi-resource, urn:uuid resolution | ✓ |
 | history — instance, type, system | ✓ |
 | `/_history?_type=Patient,Observation,...` | ✓ |
 | Conditional create (`If-None-Exist`) | ✓ |

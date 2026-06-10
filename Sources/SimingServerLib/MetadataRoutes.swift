@@ -55,6 +55,7 @@ private func serverRest() -> CapabilityStatementRest {
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
     ]
     rest.interaction = [
+        CapabilityStatementRestInteraction(code: FHIRPrimitive(.transaction)),
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
     ]
     rest.documentation = FHIRPrimitive(FHIRString(

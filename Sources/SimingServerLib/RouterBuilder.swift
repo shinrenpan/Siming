@@ -37,6 +37,7 @@ public func buildRouter(
     addFamilyMemberHistoryRoutes(to: router, store: stores.familyMemberHistory, logger: logger)
     addAppointmentRoutes(to: router, store: stores.appointment, logger: logger)
     addMedicationAdministrationRoutes(to: router, store: stores.medicationAdministration, logger: logger)
+    addTransactionRoutes(to: router, stores: stores, logger: logger)
     addCompartmentRoutes(to: router, stores: stores, logger: logger)
     addSystemRoutes(to: router, stores: stores, logger: logger)
     return router

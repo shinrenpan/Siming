@@ -5,6 +5,7 @@ import PostgresNIO
 /// Holds every resource store. Pass one value instead of 23+ individual parameters.
 /// Adding a future resource only requires adding one property here; wiring files stay stable.
 public struct StoreContainer: Sendable {
+    public let client: PostgresClient
     public let patient: PatientStore
     public let observation: ObservationStore
     public let encounter: EncounterStore
@@ -30,6 +31,7 @@ public struct StoreContainer: Sendable {
     public let medicationAdministration: MedicationAdministrationStore
 
     public init(client: PostgresClient, logger: Logger) {
+        self.client            = client
         patient                = PatientStore(client: client, logger: logger)
         observation            = ObservationStore(client: client, logger: logger)
         encounter              = EncounterStore(client: client, logger: logger)
