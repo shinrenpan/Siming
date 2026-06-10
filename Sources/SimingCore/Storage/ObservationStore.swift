@@ -515,7 +515,10 @@ public struct ObservationStore: Sendable {
             for qp in query.valueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -544,7 +547,10 @@ public struct ObservationStore: Sendable {
             for qp in query.comboValueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -573,7 +579,10 @@ public struct ObservationStore: Sendable {
             for qp in query.componentValueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -602,7 +611,10 @@ public struct ObservationStore: Sendable {
         func qCond(_ qp: ObservationSearchQuery.QuantityParam) -> String {
             var c: String
             switch qp.prefix {
-            case .eq: c = "value = \(bind(qp.value))"
+            case .eq:
+                let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                c = "value >= \(lo) AND value <= \(hi)"
             case .ne: c = "value != \(bind(qp.value))"
             case .lt: c = "value < \(bind(qp.value))"
             case .le: c = "value <= \(bind(qp.value))"
@@ -1231,7 +1243,10 @@ public struct ObservationStore: Sendable {
             for qp in query.valueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -1255,7 +1270,10 @@ public struct ObservationStore: Sendable {
             for qp in query.comboValueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -1279,7 +1297,10 @@ public struct ObservationStore: Sendable {
             for qp in query.componentValueQuantity {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -1308,7 +1329,10 @@ public struct ObservationStore: Sendable {
         func countQCond(_ qp: ObservationSearchQuery.QuantityParam) -> String {
             var c: String
             switch qp.prefix {
-            case .eq: c = "value = \(bind(qp.value))"
+            case .eq:
+                let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                c = "value >= \(lo) AND value <= \(hi)"
             case .ne: c = "value != \(bind(qp.value))"
             case .lt: c = "value < \(bind(qp.value))"
             case .le: c = "value <= \(bind(qp.value))"

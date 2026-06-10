@@ -72,6 +72,24 @@ private func serverRest() -> CapabilityStatementRest {
             name: FHIRPrimitive(FHIRString("_summary")),
             type: FHIRPrimitive(.token)
         ),
+        CapabilityStatementRestResourceSearchParam(
+            definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-tag")),
+            documentation: FHIRPrimitive(FHIRString("Filter by meta.tag token. Supports :not modifier and comma-separated OR list.")),
+            name: FHIRPrimitive(FHIRString("_tag")),
+            type: FHIRPrimitive(.token)
+        ),
+        CapabilityStatementRestResourceSearchParam(
+            definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-security")),
+            documentation: FHIRPrimitive(FHIRString("Filter by meta.security token. Supports :not modifier and comma-separated OR list.")),
+            name: FHIRPrimitive(FHIRString("_security")),
+            type: FHIRPrimitive(.token)
+        ),
+        CapabilityStatementRestResourceSearchParam(
+            definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-profile")),
+            documentation: FHIRPrimitive(FHIRString("Filter by meta.profile URI. Exact match against canonical URLs.")),
+            name: FHIRPrimitive(FHIRString("_profile")),
+            type: FHIRPrimitive(.uri)
+        ),
     ]
     return rest
 }

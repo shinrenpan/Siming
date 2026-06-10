@@ -227,6 +227,9 @@ public struct ObservationSearchQuery: Sendable {
         public let value: Double
         public let system: String?   // nil = match any system
         public let code: String?     // nil = match any unit code
+        // Number of decimal places in the original query string — used by eq to compute
+        // FHIR R4 §3.4.4.1 "within significant figures" range: ±0.5 × 10^(-decimalPlaces).
+        public let decimalPlaces: Int
 
         public static func parse(_ raw: String) -> QuantityParam? {
             let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb", "ap"]
@@ -241,9 +244,16 @@ public struct ObservationSearchQuery: Sendable {
             // Split rest on '|' without dropping empty subsequences
             let parts = rest.split(separator: "|", maxSplits: 2, omittingEmptySubsequences: false)
             guard let valueStr = parts.first, let val = Double(String(valueStr)) else { return nil }
+            let numStr = String(valueStr)
+            let decimalPlaces: Int
+            if let dotIdx = numStr.firstIndex(of: ".") {
+                decimalPlaces = numStr.distance(from: numStr.index(after: dotIdx), to: numStr.endIndex)
+            } else {
+                decimalPlaces = 0
+            }
             let system: String? = parts.count >= 2 ? (parts[1].isEmpty ? nil : String(parts[1])) : nil
             let code: String?   = parts.count >= 3 ? (parts[2].isEmpty ? nil : String(parts[2])) : nil
-            return QuantityParam(prefix: pfx, value: val, system: system, code: code)
+            return QuantityParam(prefix: pfx, value: val, system: system, code: code, decimalPlaces: decimalPlaces)
         }
 
         public static func parseList(_ raw: String) -> [QuantityParam] {

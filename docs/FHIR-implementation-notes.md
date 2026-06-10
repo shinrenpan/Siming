@@ -50,6 +50,7 @@ Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infr
 - **Search path**: `metaFilterCTEs(resourceType:, meta:, bind:)` appends filter CTEs and NOT IN conditions into the standard SQL builder.
 - **Strict mode**: `unknownParams()` globally accepts `_tag`, `_security`, `_profile` — no per-route change needed.
 - `_tag` / `_security` token format: `system|code`, `|code`, `code` (same as standard token params).
+- **CapabilityStatement**: declared in server-level `rest.searchParam` in `MetadataRoutes.swift` (not per-resource).
 
 ### `identifier:not` across all resources
 
@@ -99,6 +100,16 @@ Resources and params with modifier support:
 - **Practitioner, Organization, Location, RelatedPerson** — all `name` / `address` / `phonetic` variants
 
 `PatientSearchQuery.StringParam` is the shared type (public init, public `Modifier` enum). All other resources alias it via `typealias StringParam = PatientSearchQuery.StringParam`.
+
+### Quantity `eq` semantics (FHIR R4 §3.4.4.1)
+
+Quantity `eq` uses **significant-figures range matching**, not exact equality. For a query value with `d` decimal places, the match range is `[value − 0.5×10^(−d), value + 0.5×10^(−d)]`. For example, `value-quantity=5.4` matches `5.35 ≤ stored ≤ 5.45`; `value-quantity=5` matches `4.5 ≤ stored ≤ 5.5`.
+
+SQL: `value >= $lo AND value <= $hi` where `lo` and `hi` are computed from `QuantityParam.decimalPlaces` (captured from the original query string before `Double` conversion).
+
+Applies to **all** quantity parameters across all resources: Observation (`value-quantity`, `combo-value-quantity`, `component-value-quantity`), Condition (`onset-age`, `abatement-age`), Encounter (`length`).
+
+The `ne`, `lt`, `le`, `gt`, `ge`, `sa`, `eb` prefixes remain point comparisons (not range-expanded). The `ap` prefix uses ±10% of the stored value.
 
 ### Token `:not` modifier — `identifier:not`
 

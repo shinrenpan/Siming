@@ -654,7 +654,10 @@ public struct EncounterStore: Sendable {
             for qp in query.length {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
@@ -1191,7 +1194,10 @@ public struct EncounterStore: Sendable {
             for qp in query.length {
                 var cond: String
                 switch qp.prefix {
-                case .eq: cond = "value = \(bind(qp.value))"
+                case .eq:
+                    let lo = bind(qp.value - 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    let hi = bind(qp.value + 0.5 * pow(10.0, Double(-qp.decimalPlaces)))
+                    cond = "value >= \(lo) AND value <= \(hi)"
                 case .ne: cond = "value != \(bind(qp.value))"
                 case .lt: cond = "value < \(bind(qp.value))"
                 case .le: cond = "value <= \(bind(qp.value))"
