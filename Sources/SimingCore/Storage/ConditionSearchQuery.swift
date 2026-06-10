@@ -45,7 +45,7 @@ public struct ConditionSearchQuery: Sendable {
 
     public var totalMode: TotalMode
     public var count: Int
-    public var sort: SortOrder
+    public var sortKeys: [SortKey]
     public var cursor: SearchCursor?
 
     public init(
@@ -86,7 +86,7 @@ public struct ConditionSearchQuery: Sendable {
         has: [HasParam] = [],
         totalMode: TotalMode = .accurate,
         count: Int = 20,
-        sort: SortOrder = .lastUpdatedDescending,
+        sortKeys: [SortKey] = [.default],
         cursor: SearchCursor? = nil
     ) {
         self.subject              = subject
@@ -126,16 +126,37 @@ public struct ConditionSearchQuery: Sendable {
         self.has                  = has
         self.totalMode            = totalMode
         self.count                = count
-        self.sort                 = sort
+        self.sortKeys       = sortKeys
         self.cursor               = cursor
     }
 
     public typealias StringParam     = PatientSearchQuery.StringParam
+    // ── Sort order ────────────────────────────────────────────────────────────
+
+    /// Parses a comma-separated `_sort` value into sort keys.
+    /// Unrecognised tokens are ignored; empty result falls back to `[.default]`.
+    public static func parseSortKeys(_ raw: String) -> [SortKey] {
+        let keys = raw.split(separator: ",").compactMap { token -> SortKey? in
+            let s = String(token).trimmingCharacters(in: .whitespaces)
+            let desc = s.hasPrefix("-")
+            let name = desc ? String(s.dropFirst()) : s
+            let src: SortKeySource? = switch name {
+            case "_lastUpdated":    .lastUpdated
+            case "_id":             .resourceId
+            case "date":  .date(paramName: "onset-date")
+            case "clinical-status":  .token(paramName: "clinical-status")
+            case "code":  .token(paramName: "code")
+            default:                nil
+            }
+            guard let src else { return nil }
+            return SortKey(source: src, descending: desc)
+        }
+        return keys.isEmpty ? [.default] : keys
+    }
+
     public typealias TokenParam      = ObservationSearchQuery.TokenParam
     public typealias QuantityParam   = ObservationSearchQuery.QuantityParam
     public typealias DateParam       = PatientSearchQuery.BirthdateParam
-    public typealias SortOrder       = PatientSearchQuery.SortOrder
-    public typealias SearchCursor    = PatientSearchQuery.SearchCursor
     public typealias IdentifierParam = PatientSearchQuery.IdentifierParam
     public typealias TotalMode       = PatientSearchQuery.TotalMode
 }

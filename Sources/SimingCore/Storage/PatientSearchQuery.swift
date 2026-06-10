@@ -32,7 +32,7 @@ public struct PatientSearchQuery: Sendable {
     public var chains: [ChainedParam]    // chained search: refParam.childParam=value
     public var has: [HasParam]            // _has modifier: reverse chaining
     public var totalMode: TotalMode
-    public var sort: SortOrder
+    public var sortKeys: [SortKey]
     public var count: Int
     public var cursor: SearchCursor?
 
@@ -67,7 +67,7 @@ public struct PatientSearchQuery: Sendable {
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
         totalMode: TotalMode = .accurate,
-        sort: SortOrder = .lastUpdatedDescending,
+        sortKeys: [SortKey] = [.default],
         count: Int = 20,
         cursor: SearchCursor? = nil
     ) {
@@ -101,7 +101,7 @@ public struct PatientSearchQuery: Sendable {
         self.chains            = chains
         self.has               = has
         self.totalMode         = totalMode
-        self.sort              = sort
+        self.sortKeys          = sortKeys
         self.count             = count
         self.cursor            = cursor
     }
@@ -159,55 +159,24 @@ public struct PatientSearchQuery: Sendable {
 
     // ── Sort order ────────────────────────────────────────────────────────────
 
-    public enum SortOrder: Sendable {
-        case lastUpdatedDescending   // -_lastUpdated (default)
-        case lastUpdatedAscending    // _lastUpdated
-        case nameAscending           // name / family → first family name from idx_string
-        case nameDescending          // -name / -family
-        case birthdateAscending      // birthdate → date_start from idx_date
-        case birthdateDescending     // -birthdate
-        case dateAscending           // date (Observation effective date)
-        case dateDescending          // -date
-        case statusAscending         // status / lifecycle-status → code from idx_token
-        case statusDescending        // -status
-        case clinicalStatusAscending // clinical-status → code from idx_token
-        case clinicalStatusDescending// -clinical-status
-        case codeAscending           // code / vaccine-code → code from idx_token
-        case codeDescending          // -code
-        case _idAscending            // _id
-        case _idDescending           // -_id
-
-        public static func parse(_ raw: String) -> SortOrder {
-            switch raw.trimmingCharacters(in: .whitespaces) {
-            case "_lastUpdated":          return .lastUpdatedAscending
-            case "-_lastUpdated":         return .lastUpdatedDescending
-            case "name", "family":        return .nameAscending
-            case "-name", "-family":      return .nameDescending
-            case "birthdate":             return .birthdateAscending
-            case "-birthdate":            return .birthdateDescending
-            case "date":                  return .dateAscending
-            case "-date":                 return .dateDescending
-            case "status":                return .statusAscending
-            case "-status":               return .statusDescending
-            case "clinical-status":       return .clinicalStatusAscending
-            case "-clinical-status":      return .clinicalStatusDescending
-            case "code":                  return .codeAscending
-            case "-code":                 return .codeDescending
-            case "_id":                   return ._idAscending
-            case "-_id":                  return ._idDescending
-            default:                      return .lastUpdatedDescending
+    /// Parses a comma-separated `_sort` value into sort keys.
+    /// Unrecognised tokens are ignored; empty result falls back to `[.default]`.
+    public static func parseSortKeys(_ raw: String) -> [SortKey] {
+        let keys = raw.split(separator: ",").compactMap { token -> SortKey? in
+            let s = String(token).trimmingCharacters(in: .whitespaces)
+            let desc = s.hasPrefix("-")
+            let name = desc ? String(s.dropFirst()) : s
+            let src: SortKeySource? = switch name {
+            case "_lastUpdated":    .lastUpdated
+            case "_id":             .resourceId
+            case "name", "family":  .string(paramName: "family")
+            case "birthdate":       .date(paramName: "birthdate")
+            default:                nil
             }
+            guard let src else { return nil }
+            return SortKey(source: src, descending: desc)
         }
-
-        public var isDescending: Bool {
-            switch self {
-            case .lastUpdatedDescending, .nameDescending, .birthdateDescending, .dateDescending,
-                 .statusDescending, .clinicalStatusDescending, .codeDescending, ._idDescending:
-                return true
-            default:
-                return false
-            }
-        }
+        return keys.isEmpty ? [.default] : keys
     }
 
     // ── Identifier token search ────────────────────────────────────────────────
@@ -321,37 +290,5 @@ public struct PatientSearchQuery: Sendable {
         }
     }
 
-    // ── Pagination cursor ──────────────────────────────────────────────────────
-
-    public struct SearchCursor: Sendable {
-        /// Sort key value: epoch timestamp string for date sorts, raw string for string sorts.
-        public let sortValue: String
-        public let id: String
-        public let descending: Bool
-
-        // URL-safe base64: "<sortValue>|<id>|<1|0>"
-        public func encode() -> String {
-            let s = "\(sortValue)|\(id)|\(descending ? 1 : 0)"
-            return Data(s.utf8).base64EncodedString()
-                .replacingOccurrences(of: "+", with: "-")
-                .replacingOccurrences(of: "/", with: "_")
-                .replacingOccurrences(of: "=", with: "")
-        }
-
-        public static func decode(_ raw: String) -> SearchCursor? {
-            var b64 = raw
-                .replacingOccurrences(of: "-", with: "+")
-                .replacingOccurrences(of: "_", with: "/")
-            while b64.count % 4 != 0 { b64 += "=" }
-            guard let data = Data(base64Encoded: b64),
-                  let s = String(data: data, encoding: .utf8) else { return nil }
-            let parts = s.split(separator: "|", maxSplits: 2)
-            guard parts.count == 3 else { return nil }
-            return SearchCursor(
-                sortValue: String(parts[0]),
-                id: String(parts[1]),
-                descending: parts[2] == "1"
-            )
-        }
-    }
 }
+// SearchCursor is the shared type defined in MultiSort.swift.

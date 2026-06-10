@@ -272,22 +272,33 @@ struct JSONPassthroughTests {
 @Suite("PatientSearchQuery")
 struct PatientSearchQueryTests {
 
-    // SortOrder
+    // parseSortKeys
 
-    @Test("SortOrder ascending")
+    @Test("parseSortKeys ascending lastUpdated")
     func sortAscending() {
-        #expect(PatientSearchQuery.SortOrder.parse("_lastUpdated") == .lastUpdatedAscending)
+        let keys = PatientSearchQuery.parseSortKeys("_lastUpdated")
+        #expect(keys.count == 1)
+        if case .lastUpdated = keys[0].source { } else { Issue.record("expected lastUpdated source") }
+        #expect(keys[0].descending == false)
     }
 
-    @Test("SortOrder descending")
+    @Test("parseSortKeys descending lastUpdated")
     func sortDescending() {
-        #expect(PatientSearchQuery.SortOrder.parse("-_lastUpdated") == .lastUpdatedDescending)
+        let keys = PatientSearchQuery.parseSortKeys("-_lastUpdated")
+        #expect(keys.count == 1)
+        if case .lastUpdated = keys[0].source { } else { Issue.record("expected lastUpdated source") }
+        #expect(keys[0].descending == true)
     }
 
-    @Test("SortOrder unknown defaults to descending")
+    @Test("parseSortKeys unknown defaults to lastUpdated descending")
     func sortUnknown() {
-        #expect(PatientSearchQuery.SortOrder.parse("unknown_field") == .lastUpdatedDescending)
-        #expect(PatientSearchQuery.SortOrder.parse("") == .lastUpdatedDescending)
+        let keys1 = PatientSearchQuery.parseSortKeys("unknown_field")
+        #expect(keys1.count == 1)
+        if case .lastUpdated = keys1[0].source { } else { Issue.record("expected lastUpdated source for unknown") }
+        #expect(keys1[0].descending == true)
+        let keys2 = PatientSearchQuery.parseSortKeys("")
+        #expect(keys2.count == 1)
+        if case .lastUpdated = keys2[0].source { } else { Issue.record("expected lastUpdated source for empty") }
     }
 
     // IdentifierParam
@@ -469,87 +480,92 @@ struct PatientSearchQueryTests {
         #expect(PatientSearchQuery.BirthdateParam.parse("ge99-99-99") == nil)
     }
 
-    // SearchCursor
+    // SearchCursor (new multi-sort cursor)
 
-    @Test("SearchCursor encodes and decodes symmetrically (date sort value)")
+    @Test("SearchCursor encodes and decodes symmetrically (single sort value)")
     func cursorRoundtrip() throws {
-        let date = Date(timeIntervalSince1970: 1_717_545_600.5)
-        let sortVal = "\(date.timeIntervalSince1970)"
-        let original = PatientSearchQuery.SearchCursor(sortValue: sortVal, id: "abc-123-def", descending: true)
+        let epochStr = "1717545600.5"
+        let original = SearchCursor(values: [epochStr], id: "abc-123-def")
         let encoded = original.encode()
-        let decoded = try #require(PatientSearchQuery.SearchCursor.decode(encoded))
-        #expect(abs((Double(decoded.sortValue) ?? 0) - date.timeIntervalSince1970) < 0.001)
+        let decoded = try #require(SearchCursor.decode(encoded))
+        #expect(decoded.values.first == epochStr)
         #expect(decoded.id == "abc-123-def")
-        #expect(decoded.descending == true)
     }
 
     @Test("SearchCursor string sort value roundtrips")
     func cursorStringValueRoundtrip() throws {
-        let original = PatientSearchQuery.SearchCursor(sortValue: "Wang Wei", id: "pt-001", descending: false)
-        let decoded = try #require(PatientSearchQuery.SearchCursor.decode(original.encode()))
-        #expect(decoded.sortValue == "Wang Wei")
+        let original = SearchCursor(values: ["Wang Wei"], id: "pt-001")
+        let decoded = try #require(SearchCursor.decode(original.encode()))
+        #expect(decoded.values.first == "Wang Wei")
         #expect(decoded.id == "pt-001")
-        #expect(decoded.descending == false)
     }
 
-    @Test("SearchCursor ascending flag preserved")
-    func cursorAscendingFlag() throws {
-        let cursor = PatientSearchQuery.SearchCursor(sortValue: "1.0", id: "x", descending: false)
-        let decoded = try #require(PatientSearchQuery.SearchCursor.decode(cursor.encode()))
-        #expect(decoded.descending == false)
+    @Test("SearchCursor multi-value roundtrips")
+    func cursorMultiValueRoundtrip() throws {
+        let original = SearchCursor(values: ["1717545600", "Wang"], id: "pt-001")
+        let decoded = try #require(SearchCursor.decode(original.encode()))
+        #expect(decoded.values.count == 2)
+        #expect(decoded.values[0] == "1717545600")
+        #expect(decoded.values[1] == "Wang")
+        #expect(decoded.id == "pt-001")
     }
 
     @Test("SearchCursor invalid input returns nil")
     func cursorInvalidDecode() {
-        #expect(PatientSearchQuery.SearchCursor.decode("!!!") == nil)
-        #expect(PatientSearchQuery.SearchCursor.decode("") == nil)
-        #expect(PatientSearchQuery.SearchCursor.decode("bm90dmFsaWQ=") == nil) // "notvalid" — no pipes
+        #expect(SearchCursor.decode("!!!") == nil)
+        #expect(SearchCursor.decode("") == nil)
+        // "notvalid" encodes to a single-part string — needs at least 2 parts
+        #expect(SearchCursor.decode("bm90dmFsaWQ=") == nil)
     }
 
-    // Step 19: extended SortOrder parsing
+    // Step 19: extended parseSortKeys parsing
 
-    @Test("SortOrder parse name ascending")
+    @Test("parseSortKeys name ascending")
     func sortOrderNameAscending() {
-        #expect(PatientSearchQuery.SortOrder.parse("name") == .nameAscending)
-        #expect(PatientSearchQuery.SortOrder.parse("family") == .nameAscending)
+        let keys = PatientSearchQuery.parseSortKeys("name")
+        #expect(keys.count == 1)
+        if case .string(let p) = keys[0].source { #expect(p == "family") }
+        else { Issue.record("expected string source for name") }
+        #expect(keys[0].descending == false)
+        let keys2 = PatientSearchQuery.parseSortKeys("family")
+        if case .string(let p) = keys2[0].source { #expect(p == "family") }
+        else { Issue.record("expected string source for family") }
     }
 
-    @Test("SortOrder parse name descending")
+    @Test("parseSortKeys name descending")
     func sortOrderNameDescending() {
-        #expect(PatientSearchQuery.SortOrder.parse("-name") == .nameDescending)
-        #expect(PatientSearchQuery.SortOrder.parse("-family") == .nameDescending)
+        let keys = PatientSearchQuery.parseSortKeys("-name")
+        #expect(keys.count == 1)
+        #expect(keys[0].descending == true)
+        if case .string(let p) = keys[0].source { #expect(p == "family") }
+        else { Issue.record("expected string source for -name") }
     }
 
-    @Test("SortOrder parse birthdate ascending and descending")
+    @Test("parseSortKeys birthdate ascending and descending")
     func sortOrderBirthdate() {
-        #expect(PatientSearchQuery.SortOrder.parse("birthdate") == .birthdateAscending)
-        #expect(PatientSearchQuery.SortOrder.parse("-birthdate") == .birthdateDescending)
+        let asc = PatientSearchQuery.parseSortKeys("birthdate")
+        if case .date(let p) = asc[0].source { #expect(p == "birthdate") }
+        else { Issue.record("expected date source for birthdate") }
+        #expect(asc[0].descending == false)
+        let desc = PatientSearchQuery.parseSortKeys("-birthdate")
+        #expect(desc[0].descending == true)
     }
 
-    @Test("SortOrder parse date (Observation)")
-    func sortOrderDate() {
-        #expect(PatientSearchQuery.SortOrder.parse("date") == .dateAscending)
-        #expect(PatientSearchQuery.SortOrder.parse("-date") == .dateDescending)
-    }
-
-    @Test("SortOrder parse _id ascending and descending")
+    @Test("parseSortKeys _id ascending and descending")
     func sortOrderId() {
-        #expect(PatientSearchQuery.SortOrder.parse("_id") == ._idAscending)
-        #expect(PatientSearchQuery.SortOrder.parse("-_id") == ._idDescending)
+        let asc = PatientSearchQuery.parseSortKeys("_id")
+        if case .resourceId = asc[0].source { } else { Issue.record("expected resourceId source for _id") }
+        #expect(asc[0].descending == false)
+        let desc = PatientSearchQuery.parseSortKeys("-_id")
+        #expect(desc[0].descending == true)
     }
 
-    @Test("SortOrder isDescending property")
+    @Test("parseSortKeys descending flag on lastUpdated")
     func sortOrderIsDescending() {
-        #expect(PatientSearchQuery.SortOrder.lastUpdatedDescending.isDescending == true)
-        #expect(PatientSearchQuery.SortOrder.lastUpdatedAscending.isDescending == false)
-        #expect(PatientSearchQuery.SortOrder.nameDescending.isDescending == true)
-        #expect(PatientSearchQuery.SortOrder.nameAscending.isDescending == false)
-        #expect(PatientSearchQuery.SortOrder.birthdateDescending.isDescending == true)
-        #expect(PatientSearchQuery.SortOrder.birthdateAscending.isDescending == false)
-        #expect(PatientSearchQuery.SortOrder.dateDescending.isDescending == true)
-        #expect(PatientSearchQuery.SortOrder.dateAscending.isDescending == false)
-        #expect(PatientSearchQuery.SortOrder._idDescending.isDescending == true)
-        #expect(PatientSearchQuery.SortOrder._idAscending.isDescending == false)
+        let desc = PatientSearchQuery.parseSortKeys("-_lastUpdated")
+        #expect(desc[0].descending == true)
+        let asc = PatientSearchQuery.parseSortKeys("_lastUpdated")
+        #expect(asc[0].descending == false)
     }
 
     // Step 16 params: family, given, address variants, gender, active, phone, email

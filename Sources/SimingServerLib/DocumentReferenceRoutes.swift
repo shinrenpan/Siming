@@ -414,9 +414,9 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
-    let sort        = DocumentReferenceSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = DocumentReferenceSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, docRefMaxCount)
-    let cursor      = first("_cursor").flatMap { DocumentReferenceSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = DocumentReferenceSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
@@ -462,7 +462,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         id: id, lastUpdated: lastUpdated,
         tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -511,7 +511,7 @@ private func docRefSelfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-func nextDocumentReferencePageURL(selfURL: String, cursor: DocumentReferenceSearchQuery.SearchCursor, count: Int) -> String {
+func nextDocumentReferencePageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

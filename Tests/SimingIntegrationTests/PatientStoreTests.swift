@@ -183,7 +183,7 @@ final class PatientStoreTests: XCTestCase {
         for i in 1...4 { _ = try await store.create(makePatient(family: "IdSort\(i)")) }
 
         let result = try await store.search(query: PatientSearchQuery(
-            sort: PatientSearchQuery.SortOrder.parse("_id"),
+            sortKeys: PatientSearchQuery.parseSortKeys("_id"),
             count: 10
         ))
         XCTAssertGreaterThanOrEqual(result.entries.count, 4)
@@ -228,7 +228,7 @@ final class PatientStoreTests: XCTestCase {
         }
 
         var allIds: Set<String> = []
-        var cursor: PatientSearchQuery.SearchCursor? = nil
+        var cursor: SearchCursor? = nil
         var pages = 0
         repeat {
             let q = PatientSearchQuery(

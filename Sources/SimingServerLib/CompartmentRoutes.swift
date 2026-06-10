@@ -1502,7 +1502,7 @@ private func selfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-private func nextPageURL(selfURL: String, cursor: ObservationSearchQuery.SearchCursor, count: Int) -> String {
+private func nextPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

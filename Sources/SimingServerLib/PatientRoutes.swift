@@ -425,9 +425,9 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     } ?? []
     let birthdates  = all("birthdate").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
     let lastUpdated = all("_lastUpdated").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
-    let sort        = PatientSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys    = PatientSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
-    let cursor      = first("_cursor").flatMap { PatientSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = PatientSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["name","family","given","gender","active","address","address-city","address-state",
@@ -458,7 +458,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
         birthdate: birthdates, deceased: deceased, deathDate: deathDates,
         lastUpdated: lastUpdated,
         tokenTexts: tokenTexts,
-        missing: missing, chains: chains, has: has, totalMode: totalMode, sort: sort, count: count, cursor: cursor)
+        missing: missing, chains: chains, has: has, totalMode: totalMode, sortKeys: sortKeys, count: count, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -511,7 +511,7 @@ private func selfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-private func nextPageURL(selfURL: String, cursor: PatientSearchQuery.SearchCursor, count: Int) -> String {
+private func nextPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

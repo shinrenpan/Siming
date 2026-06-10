@@ -401,9 +401,9 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
-    let sort        = DiagnosticReportSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = DiagnosticReportSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
-    let cursor      = first("_cursor").flatMap { DiagnosticReportSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = DiagnosticReportSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["patient", "subject", "encounter", "performer",
@@ -432,7 +432,7 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
         date: date, issued: issued,
         id: id, lastUpdated: lastUpdated, tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -481,7 +481,7 @@ private func selfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-private func nextDiagnosticReportPageURL(selfURL: String, cursor: DiagnosticReportSearchQuery.SearchCursor, count: Int) -> String {
+private func nextDiagnosticReportPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

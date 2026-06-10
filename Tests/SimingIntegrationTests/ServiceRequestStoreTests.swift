@@ -281,7 +281,7 @@ final class ServiceRequestStoreTests: XCTestCase {
 
         let query = ServiceRequestSearchQuery(
             patient: "Patient/\(patient.id)",
-            count: 10, sort: .dateDescending)
+            count: 10, sortKeys: ServiceRequestSearchQuery.parseSortKeys("-authored"))
         let result = try await store.search(query: query)
         guard result.entries.count >= 2 else { return }
         let sr0 = try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: result.entries[0].jsonWithMeta)

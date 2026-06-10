@@ -332,7 +332,7 @@ final class DocumentReferenceStoreTests: XCTestCase {
 
         let query = DocumentReferenceSearchQuery(
             patient: "Patient/\(patient.id)",
-            count: 10, sort: .dateDescending)
+            count: 10, sortKeys: DocumentReferenceSearchQuery.parseSortKeys("-date"))
         let result = try await store.search(query: query)
         guard result.entries.count >= 2 else { return }
         let doc0 = try JSONDecoder().decode(ModelsR4.DocumentReference.self, from: result.entries[0].jsonWithMeta)

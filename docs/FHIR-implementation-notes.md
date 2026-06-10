@@ -9,6 +9,12 @@ Per-resource search parameter implementation details and known gaps.
 
 ### `_sort` support
 
+Multi-key `_sort` is supported on all 23 resources (FHIR R4 §3.3). Comma-separated keys are accepted, e.g. `_sort=date,-status`. Pagination uses an expanded tuple cursor (N+1 OR-terms) that correctly handles mixed ASC/DESC across all key types.
+
+- **Cursor format**: base64url-encoded U+001F-delimited string: `sv_0 \x1f sv_1 \x1f … \x1f id`. Epoch-seconds text for TIMESTAMP values; raw text for string/token values.
+- **Unrecognised sort keys** are silently ignored; fallback is `_lastUpdated DESC`.
+- **TIMESTAMP IS NOT NULL guard**: resources missing a date index row (e.g. Patient without birthdate) appear NULLS LAST and are not incorrectly interleaved at page boundaries.
+
 | Resource | Supported sort params |
 |---|---|
 | Patient | `_lastUpdated`, `name`, `family`, `birthdate`, `_id` |
@@ -16,24 +22,24 @@ Per-resource search parameter implementation details and known gaps.
 | Encounter | `date`, `status`, `code`, `_id` |
 | Procedure | `date`, `status`, `code`, `_id` |
 | DiagnosticReport | `date`, `status`, `code`, `_id` |
-| Immunization | `date`, `status`, `code` (`vaccine-code` param), `_id` |
+| Immunization | `date`, `status`, `vaccine-code`, `_id` |
 | Condition | `date` (onset), `clinical-status`, `code`, `_id` |
-| MedicationRequest | `date` (authoredOn), `status`, `code`, `_id` |
+| MedicationRequest | `authoredon`, `status`, `code`, `_id` |
 | AllergyIntolerance | `date` (recordedDate), `clinical-status`, `code`, `_id` |
 | Practitioner | `_lastUpdated`, `name`, `_id` |
 | Organization | `_lastUpdated`, `name`, `_id` |
 | Location | `_lastUpdated`, `name`, `status`, `_id` |
 | RelatedPerson | `_lastUpdated`, `birthdate`, `_id` |
-| ServiceRequest | `date` (authored), `status`, `code`, `_lastUpdated`, `_id` |
-| Specimen | `date` (collected), `status`, `_lastUpdated`, `_id` |
+| ServiceRequest | `authored`, `status`, `code`, `_lastUpdated`, `_id` |
+| Specimen | `collected`, `status`, `_lastUpdated`, `_id` |
 | DocumentReference | `date`, `status`, `_lastUpdated`, `_id` |
 | CarePlan | `date` (period), `status`, `_lastUpdated`, `_id` |
-| Goal | `date` (start-date), `status` (lifecycle-status), `_lastUpdated`, `_id` |
-| MedicationStatement | `date` (effective), `status`, `code`, `_lastUpdated`, `_id` |
+| Goal | `start-date`, `lifecycle-status`, `_lastUpdated`, `_id` |
+| MedicationStatement | `effective`, `status`, `code`, `_lastUpdated`, `_id` |
 | FamilyMemberHistory | `date`, `status`, `code`, `_lastUpdated`, `_id` |
 | Medication | `status`, `code`, `_lastUpdated`, `_id` |
 | Appointment | `date` (start), `status`, `_lastUpdated`, `_id` |
-| MedicationAdministration | `date` (effective-time), `status`, `code`, `_lastUpdated`, `_id` |
+| MedicationAdministration | `effective-time`, `status`, `code`, `_lastUpdated`, `_id` |
 | All resources | `_lastUpdated`, `_id` |
 
 ### Meta search parameters (`_tag`, `_security`, `_profile`, `_source`)

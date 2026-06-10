@@ -399,9 +399,9 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
-    let sort        = CarePlanSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = CarePlanSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, carePlanMaxCount)
-    let cursor      = first("_cursor").flatMap { CarePlanSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = CarePlanSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
@@ -441,7 +441,7 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         id: id, lastUpdated: lastUpdated,
         tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -490,7 +490,7 @@ private func cpSelfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-func nextCarePlanPageURL(selfURL: String, cursor: CarePlanSearchQuery.SearchCursor, count: Int) -> String {
+func nextCarePlanPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

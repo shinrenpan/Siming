@@ -383,9 +383,9 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
-    let sort        = FamilyMemberHistorySearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = FamilyMemberHistorySearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, fmhMaxCount)
-    let cursor      = first("_cursor").flatMap { FamilyMemberHistorySearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = FamilyMemberHistorySearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
@@ -418,7 +418,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
         id: id, lastUpdated: lastUpdated,
         tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -467,7 +467,7 @@ private func fmhSelfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-func nextFamilyMemberHistoryPageURL(selfURL: String, cursor: FamilyMemberHistorySearchQuery.SearchCursor, count: Int) -> String {
+func nextFamilyMemberHistoryPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

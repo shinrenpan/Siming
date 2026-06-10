@@ -252,7 +252,7 @@ final class SpecimenStoreTests: XCTestCase {
 
         let query = SpecimenSearchQuery(
             patient: "Patient/\(patient.id)",
-            count: 10, sort: .dateDescending)
+            count: 10, sortKeys: SpecimenSearchQuery.parseSortKeys("-collected"))
         let result = try await store.search(query: query)
         guard result.entries.count >= 2 else { return }
         let spec0 = try JSONDecoder().decode(ModelsR4.Specimen.self, from: result.entries[0].jsonWithMeta)

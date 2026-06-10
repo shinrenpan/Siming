@@ -402,9 +402,9 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { ProcedureSearchQuery.DateParam.parse(String($0)) }
-    let sort        = ProcedureSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = ProcedureSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
-    let cursor      = first("_cursor").flatMap { ProcedureSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = ProcedureSearchQuery.TotalMode.parse(first("_total").map(String.init))
     var missing: [String: Bool] = [:]
     for p in ["patient", "subject", "encounter", "performer",
@@ -434,7 +434,7 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
         reasonCode: reasonCode, reasonCodeNot: reasonCodeNot, reasonReference: reasonReference,
         date: date, id: id, lastUpdated: lastUpdated, tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -483,7 +483,7 @@ private func selfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-private func nextProcedurePageURL(selfURL: String, cursor: ProcedureSearchQuery.SearchCursor, count: Int) -> String {
+private func nextProcedurePageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

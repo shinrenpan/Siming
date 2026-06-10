@@ -400,9 +400,9 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
     let lastUpdated = all("_lastUpdated").compactMap { LocationSearchQuery.DateParam.parse(String($0)) }
-    let sort        = LocationSearchQuery.SortOrder.parse(first("_sort").map(String.init) ?? "-_lastUpdated")
+    let sortKeys = LocationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
-    let cursor      = first("_cursor").flatMap { LocationSearchQuery.SearchCursor.decode(String($0)) }
+    let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
     let totalMode   = LocationSearchQuery.TotalMode.parse(first("_total").map(String.init))
 
     var missing: [String: Bool] = [:]
@@ -431,7 +431,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
         organization: organization, partof: partof, endpoint: endpoint,
         id: id, lastUpdated: lastUpdated, tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
-        totalMode: totalMode, count: count, sort: sort, cursor: cursor)
+        totalMode: totalMode, count: count, sortKeys: sortKeys, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query
 }
@@ -480,7 +480,7 @@ private func selfURL(_ request: Request) -> String {
     return "http://\(authority)\(request.uri)"
 }
 
-private func nextLocationPageURL(selfURL: String, cursor: LocationSearchQuery.SearchCursor, count: Int) -> String {
+private func nextLocationPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents
     var items = (components.queryItems ?? []).filter { $0.name != "_cursor" }

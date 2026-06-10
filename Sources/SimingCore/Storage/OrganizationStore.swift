@@ -30,7 +30,7 @@ public struct OrganizationStore: Sendable {
     public struct SearchResult: Sendable {
         public let entries: [RawEntry]
         public let total: Int?
-        public let nextCursor: OrganizationSearchQuery.SearchCursor?
+        public let nextCursor: SearchCursor?
     }
 
     public struct DeleteResult: Sendable {
@@ -215,10 +215,11 @@ public struct OrganizationStore: Sendable {
             let page     = Array(results.prefix(pageSize))
             let pageSortVals = Array(sortValTexts.prefix(pageSize))
 
-            let nextCursor: OrganizationSearchQuery.SearchCursor?
-            if hasNext, let lastEntry = page.last, let lastSortVal = pageSortVals.last {
-                nextCursor = OrganizationSearchQuery.SearchCursor(
-                    sortValue: lastSortVal, id: lastEntry.id, descending: query.sort.isDescending)
+            let nextCursor: SearchCursor?
+            if hasNext, let lastEntry = page.last, let lastConcat = pageSortVals.last {
+                let parts = lastConcat.split(separator: "\u{1f}", omittingEmptySubsequences: false).map(String.init)
+                let cursorValues = parts.count > 1 ? Array(parts.dropLast()) : parts
+                nextCursor = SearchCursor(values: cursorValues, id: lastEntry.id)
             } else {
                 nextCursor = nil
             }
@@ -490,72 +491,28 @@ public struct OrganizationStore: Sendable {
         let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
             + fromLines).joined(separator: "\n      ")
 
-        let sortIsDescending = query.sort.isDescending
-        let orderDir = sortIsDescending ? "DESC" : "ASC"
-
-        var sortKeysCTE: (name: String, sql: String)? = nil
-        var cursorCondSQL = ""
-        var finalSortValSQL = ""
-        var sortKind = 0
-
-        switch query.sort {
-        case .nameAscending, .nameDescending:
-            sortKeysCTE = ("sort_keys",
-                "SELECT DISTINCT ON (resource_id) resource_id, value AS sv " +
-                "FROM idx_string WHERE resource_type = 'Organization' AND param_name = 'name' " +
-                "ORDER BY resource_id, value ASC")
-            if let cursor = query.cursor {
-                let svP = bind(cursor.sortValue); let idP = bind(cursor.id)
-                let op = sortIsDescending ? "<" : ">"
-                cursorCondSQL = "(sort_val IS NOT NULL AND sort_val \(op) \(svP)) OR " +
-                    "(sort_val IS NOT NULL AND sort_val = \(svP) AND id > \(idP))"
-            }
-            finalSortValSQL = "COALESCE(p.sort_val, '')"
-            sortKind = 1
-
-        case ._idAscending, ._idDescending:
-            if let cursor = query.cursor {
-                let idP = bind(cursor.sortValue); let op = sortIsDescending ? "<" : ">"
-                cursorCondSQL = "i.id \(op) \(idP)"
-            }
-            finalSortValSQL = "p.id"
-            sortKind = 2
-
-        default:
-            if let cursor = query.cursor, let ts = Double(cursor.sortValue) {
-                let tsP = bind(Date(timeIntervalSince1970: ts)); let idP = bind(cursor.id)
-                let op = sortIsDescending ? "<" : ">"
-                cursorCondSQL = "(i.last_updated \(op) \(tsP) OR (i.last_updated = \(tsP) AND i.id > \(idP)))"
-            }
-            finalSortValSQL = "CAST(EXTRACT(EPOCH FROM p.last_updated) AS text)"
-        }
-
-        let limitP = bind(Int64(query.count + 1))
-
-        let pagedInner: String
-        switch sortKind {
-        case 1:
-            let inner = "SELECT i.id, i.version_id, i.last_updated, sk.sv AS sort_val " +
-                "FROM ids i LEFT JOIN sort_keys sk ON sk.resource_id = i.id"
-            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
-            pagedInner = "SELECT id, version_id, last_updated, sort_val FROM (\n      \(inner)\n    ) sub" +
-                "\(whereLine)\n    ORDER BY sort_val \(orderDir) NULLS LAST, id ASC\n    LIMIT \(limitP)"
-        case 2:
-            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
-            pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
-                "\(whereLine)\n    ORDER BY i.id \(orderDir)\n    LIMIT \(limitP)"
-        default:
-            let whereLine = cursorCondSQL.isEmpty ? "" : "\n    WHERE \(cursorCondSQL)"
-            pagedInner = "SELECT i.id, i.version_id, i.last_updated\n    FROM ids i" +
-                "\(whereLine)\n    ORDER BY i.last_updated \(orderDir), i.id ASC\n    LIMIT \(limitP)"
-        }
+        // ── Multi-sort paged CTE ──────────────────────────────────────────────
+        // Cursor binds MUST happen before limitP bind.
+        let sortResult = buildMultiSort(
+            sortKeys: query.sortKeys,
+            resourceType: "Organization",
+            idsAlias: "ids",
+            cursor: query.cursor,
+            limitBind: bind(Int64(query.count + 1)),
+            bindString: { bind($0) },
+            bindDate: { bind($0) }
+        )
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }
         cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
         let skipTotal = query.totalMode == .none || query.totalMode == .estimate
-        if !skipTotal { cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )") }
-        if let skCTE = sortKeysCTE { cteParts.append("\(skCTE.name) AS (\n    \(skCTE.sql)\n  )") }
-        cteParts.append("paged AS (\n    \(pagedInner)\n  )")
+        if !skipTotal {
+            cteParts.append("total_count AS (\n    SELECT COUNT(*) AS n FROM ids\n  )")
+        }
+        for (name, sql) in sortResult.sortCTEs {
+            cteParts.append("\(name) AS (\n    \(sql)\n  )")
+        }
+        cteParts.append("paged AS (\n    \(sortResult.pagedBody)\n  )")
         let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
 
         let totalExpr = skipTotal ? "CAST(0 AS bigint)" : "t.n"
@@ -563,7 +520,7 @@ public struct OrganizationStore: Sendable {
             ? "FROM paged p JOIN resources r ON r.resource_type = 'Organization' AND r.id = p.id AND r.version_id = p.version_id"
             : "FROM paged p CROSS JOIN total_count t JOIN resources r ON r.resource_type = 'Organization' AND r.id = p.id AND r.version_id = p.version_id"
 
-        let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), \(finalSortValSQL) AS sort_val_text\n\(fromClause)\nORDER BY sort_val_text \(orderDir) NULLS LAST, p.id ASC"
+        let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), p.sort_val_concat\n\(fromClause)\nORDER BY \(sortResult.outerOrderBy)"
         return (sql, binds)
     }
 

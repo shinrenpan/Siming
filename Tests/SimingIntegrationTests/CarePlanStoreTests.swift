@@ -317,7 +317,7 @@ final class CarePlanStoreTests: XCTestCase {
 
         let query = CarePlanSearchQuery(
             patient: "Patient/\(patient.id)",
-            count: 10, sort: .dateDescending)
+            count: 10, sortKeys: CarePlanSearchQuery.parseSortKeys("-date"))
         let result = try await store.search(query: query)
         guard result.entries.count >= 2 else { return }
         let cp0 = try JSONDecoder().decode(ModelsR4.CarePlan.self, from: result.entries[0].jsonWithMeta)
