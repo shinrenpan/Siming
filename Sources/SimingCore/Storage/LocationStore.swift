@@ -408,11 +408,11 @@ public struct LocationStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'Location'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -428,18 +428,18 @@ public struct LocationStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // :not modifiers
         if !query.statusNot.isEmpty {
-            whereConditions.append(tokenNotCondition(paramName: "status", tokens: query.statusNot))
+            extraConditions.append(tokenNotCondition(paramName: "status", tokens: query.statusNot))
         }
         if !query.typeNot.isEmpty {
-            whereConditions.append(tokenNotCondition(paramName: "type", tokens: query.typeNot))
+            extraConditions.append(tokenNotCondition(paramName: "type", tokens: query.typeNot))
         }
         if !query.operationalStatusNot.isEmpty {
-            whereConditions.append(tokenNotCondition(paramName: "operational-status", tokens: query.operationalStatusNot))
+            extraConditions.append(tokenNotCondition(paramName: "operational-status", tokens: query.operationalStatusNot))
         }
 
         // identifier:not
@@ -462,7 +462,7 @@ public struct LocationStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Location' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
@@ -470,9 +470,9 @@ public struct LocationStore: Sendable {
         for paramName in query.missing.keys.sorted() {
             if let sub = locationMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -512,15 +512,13 @@ public struct LocationStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Location", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Location",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

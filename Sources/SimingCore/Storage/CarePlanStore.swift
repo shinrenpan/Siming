@@ -385,11 +385,11 @@ public struct CarePlanStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'CarePlan'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -405,7 +405,7 @@ public struct CarePlanStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // identifier:not
@@ -428,27 +428,27 @@ public struct CarePlanStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'CarePlan' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
         // :not modifiers
-        if !query.statusNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "status",         tokens: query.statusNot)) }
-        if !query.intentNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "intent",         tokens: query.intentNot)) }
-        if !query.categoryNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
-        if !query.activityCodeNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "activity-code",  tokens: query.activityCodeNot)) }
+        if !query.statusNot.isEmpty       { extraConditions.append(tokenNotCondition(paramName: "status",         tokens: query.statusNot)) }
+        if !query.intentNot.isEmpty       { extraConditions.append(tokenNotCondition(paramName: "intent",         tokens: query.intentNot)) }
+        if !query.categoryNot.isEmpty     { extraConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
+        if !query.activityCodeNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "activity-code",  tokens: query.activityCodeNot)) }
         for dn in query.activityDateNot {
             let s = bind(dn.dateStart); let e = bind(dn.dateEnd)
-            whereConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")
+            extraConditions.append("r.id NOT IN (SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'CarePlan' AND param_name = 'activity-date' AND date_start >= \(s) AND date_end <= \(e))")
         }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
             if let sub = carePlanMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -489,15 +489,13 @@ public struct CarePlanStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "CarePlan", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "CarePlan",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

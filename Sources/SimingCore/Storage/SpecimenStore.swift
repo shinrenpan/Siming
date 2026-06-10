@@ -366,11 +366,11 @@ public struct SpecimenStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'Specimen'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -386,16 +386,16 @@ public struct SpecimenStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // :not modifiers
-        if !query.statusNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "status",       tokens: query.statusNot)) }
-        if !query.typeNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "type",         tokens: query.typeNot)) }
-        if !query.accessionNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "accession",    tokens: query.accessionNot)) }
-        if !query.bodysiteNot.isEmpty    { whereConditions.append(tokenNotCondition(paramName: "bodysite",     tokens: query.bodysiteNot)) }
-        if !query.containerNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "container",    tokens: query.containerNot)) }
-        if !query.containerIdNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "container-id", tokens: query.containerIdNot)) }
+        if !query.statusNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "status",       tokens: query.statusNot)) }
+        if !query.typeNot.isEmpty        { extraConditions.append(tokenNotCondition(paramName: "type",         tokens: query.typeNot)) }
+        if !query.accessionNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "accession",    tokens: query.accessionNot)) }
+        if !query.bodysiteNot.isEmpty    { extraConditions.append(tokenNotCondition(paramName: "bodysite",     tokens: query.bodysiteNot)) }
+        if !query.containerNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "container",    tokens: query.containerNot)) }
+        if !query.containerIdNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "container-id", tokens: query.containerIdNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -417,7 +417,7 @@ public struct SpecimenStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Specimen' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Specimen' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
@@ -425,9 +425,9 @@ public struct SpecimenStore: Sendable {
         for paramName in query.missing.keys.sorted() {
             if let sub = specimenMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -467,15 +467,13 @@ public struct SpecimenStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Specimen", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Specimen",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // Sort: dateAscending/dateDescending maps to collected
         // ── Multi-sort paged CTE ──────────────────────────────────────────────

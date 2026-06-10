@@ -75,3 +75,19 @@ HAPI POST at ≥20 connections has ~50% failure rate — treat POST comparison a
 - `buildBundleJSON()`: builds searchset Bundle as raw bytes — eliminates FHIRModels Bundle Codable overhead.
 - Write path: stored JSON reused as response — eliminates second `JSONEncoder.encode()`.
 - FHIRModels role preserved: write-path parse/validate + search extraction. Generator moat untouched.
+
+### 2026-06-10 — v4 (release build, 5000 patients, both PostgreSQL)
+
+| Scenario | Siming RPS | p50 ms | p99 ms | ok% | HAPI RPS | p50 ms | p99 ms | ok% | Ratio |
+|---|---|---|---|---|---|---|---|---|---|
+| POST /Patient (create) | 599 | 31.9 | 66.4 | 100% | 2254 | 11.2 | 25.4 | 49% | — |
+| GET /Patient/:id (read) | **15515** | 1.2 | 2.3 | 99% | 6883 | 2.2 | 11.9 | 100% | **2.25x faster** |
+| GET /Patient?name=Wang | **2512** | 8.0 | 14.4 | 100% | 1627 | 10.4 | 38.0 | 100% | **1.54x faster** |
+| GET /Patient?birthdate=ge1990-01-01 | 836 | 24.1 | 37.1 | 100% | 1927 | 9.0 | 29.3 | 100% | 0.43x |
+
+**v4 optimisations** (LATERAL JOIN in `ids` CTE + multi-key `_sort`):
+- `buildIdsInner()`: when filter CTEs are present, replaces full `resources` Seq Scan with a LATERAL join against `resources_live_idx` — one Index Only Scan per matched resource_id instead of scanning all rows.
+- EXPLAIN ANALYZE: name=Wang query 2.6 ms (was 5.6 ms); birthdate range query 6.5 ms (was 8.5 ms).
+- Multi-key `_sort` (Round 76): `_sort=family,birthdate` etc. — all sort sources (lastUpdated, string, date, token, id) with keyset cursor pagination.
+
+**Birthdate note**: `birthdate=ge1990-01-01` matches ~40% of the dataset (1985 / 5000 patients). At 20 concurrent connections, sorting and counting 1985 results per query saturates PostgreSQL — p50 = 24 ms. This is a broad range query; the result is honest, not a bug.

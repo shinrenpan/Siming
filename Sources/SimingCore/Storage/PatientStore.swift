@@ -472,13 +472,15 @@ public struct PatientStore: Sendable {
                 """))
         }
 
-        // ── `ids` CTE — _id, _lastUpdated, and :not conditions ─────────────────
-
-        var whereConditions = ["r.resource_type = 'Patient'", "r.deleted = false"]
+        // ── `ids` CTE — extra conditions (beyond resource_type + deleted=false) ──
+        // All collected into extraConditions and passed to buildIdsInner, which
+        // either applies them directly (DISTINCT ON path) or transforms r.id /
+        // r.last_updated references for the LATERAL path.
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart)
@@ -495,7 +497,7 @@ public struct PatientStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // identifier:not
@@ -518,14 +520,14 @@ public struct PatientStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
         // gender:not
         if !query.genderNot.isEmpty {
             let phs = query.genderNot.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'gender' AND code IN (\(phs)))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'gender' AND code IN (\(phs)))")
         }
         if !query.languageNot.isEmpty {
             var orClauses: [String] = []
@@ -536,16 +538,16 @@ public struct PatientStore: Sendable {
                     orClauses.append("code = \(bind(tok.code))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Patient' AND param_name = 'language' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         // :missing modifier
         for paramName in query.missing.keys.sorted() {
             if let sub = patientMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -582,21 +584,17 @@ public struct PatientStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = \(pn) AND value ILIKE \(val)"))
         }
 
-        // meta params: _tag, _security, _profile
+        // meta params: _tag, _security, _profile, _source
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Patient", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs {
-            fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
-        }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Patient",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

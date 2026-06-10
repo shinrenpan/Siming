@@ -786,11 +786,11 @@ public struct ObservationStore: Sendable {
 
         // ── `ids` CTE — _id, _lastUpdated, and :not conditions ─────────────────
 
-        var whereConditions = ["r.resource_type = 'Observation'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart)
@@ -807,7 +807,7 @@ public struct ObservationStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // identifier:not
@@ -830,14 +830,14 @@ public struct ObservationStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
         // status:not — exclude resources where status matches any value
         if !query.statusNot.isEmpty {
             let phs = query.statusNot.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code IN (\(phs)))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'status' AND code IN (\(phs)))")
         }
 
         // code:not
@@ -853,7 +853,7 @@ public struct ObservationStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'code' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         // category:not
@@ -869,7 +869,7 @@ public struct ObservationStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = 'category' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         // combo-code:not / method:not / value-concept:not
@@ -885,23 +885,23 @@ public struct ObservationStore: Sendable {
             }
             return "r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Observation' AND param_name = '\(paramName)' AND (\(or.joined(separator: " OR "))))"
         }
-        if !query.comboCodeNot.isEmpty                 { whereConditions.append(obsTokenNotCond(paramName: "combo-code",                     tokens: query.comboCodeNot)) }
-        if !query.methodNot.isEmpty                    { whereConditions.append(obsTokenNotCond(paramName: "method",                           tokens: query.methodNot)) }
-        if !query.valueConceptNot.isEmpty              { whereConditions.append(obsTokenNotCond(paramName: "value-concept",                    tokens: query.valueConceptNot)) }
-        if !query.comboValueConceptNot.isEmpty         { whereConditions.append(obsTokenNotCond(paramName: "combo-value-concept",              tokens: query.comboValueConceptNot)) }
-        if !query.componentCodeNot.isEmpty             { whereConditions.append(obsTokenNotCond(paramName: "component-code",                   tokens: query.componentCodeNot)) }
-        if !query.dataAbsentReasonNot.isEmpty          { whereConditions.append(obsTokenNotCond(paramName: "data-absent-reason",               tokens: query.dataAbsentReasonNot)) }
-        if !query.comboDataAbsentReasonNot.isEmpty     { whereConditions.append(obsTokenNotCond(paramName: "combo-data-absent-reason",         tokens: query.comboDataAbsentReasonNot)) }
-        if !query.componentDataAbsentReasonNot.isEmpty { whereConditions.append(obsTokenNotCond(paramName: "component-data-absent-reason",     tokens: query.componentDataAbsentReasonNot)) }
-        if !query.componentValueConceptNot.isEmpty     { whereConditions.append(obsTokenNotCond(paramName: "component-value-concept",          tokens: query.componentValueConceptNot)) }
+        if !query.comboCodeNot.isEmpty                 { extraConditions.append(obsTokenNotCond(paramName: "combo-code",                     tokens: query.comboCodeNot)) }
+        if !query.methodNot.isEmpty                    { extraConditions.append(obsTokenNotCond(paramName: "method",                           tokens: query.methodNot)) }
+        if !query.valueConceptNot.isEmpty              { extraConditions.append(obsTokenNotCond(paramName: "value-concept",                    tokens: query.valueConceptNot)) }
+        if !query.comboValueConceptNot.isEmpty         { extraConditions.append(obsTokenNotCond(paramName: "combo-value-concept",              tokens: query.comboValueConceptNot)) }
+        if !query.componentCodeNot.isEmpty             { extraConditions.append(obsTokenNotCond(paramName: "component-code",                   tokens: query.componentCodeNot)) }
+        if !query.dataAbsentReasonNot.isEmpty          { extraConditions.append(obsTokenNotCond(paramName: "data-absent-reason",               tokens: query.dataAbsentReasonNot)) }
+        if !query.comboDataAbsentReasonNot.isEmpty     { extraConditions.append(obsTokenNotCond(paramName: "combo-data-absent-reason",         tokens: query.comboDataAbsentReasonNot)) }
+        if !query.componentDataAbsentReasonNot.isEmpty { extraConditions.append(obsTokenNotCond(paramName: "component-data-absent-reason",     tokens: query.componentDataAbsentReasonNot)) }
+        if !query.componentValueConceptNot.isEmpty     { extraConditions.append(obsTokenNotCond(paramName: "component-value-concept",          tokens: query.componentValueConceptNot)) }
 
         // :missing modifier
         for paramName in query.missing.keys.sorted() {
             if let sub = observationMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -942,17 +942,13 @@ public struct ObservationStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Observation", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs {
-            fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
-        }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Observation",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

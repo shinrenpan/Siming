@@ -365,11 +365,11 @@ public struct GoalStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'Goal'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -385,7 +385,7 @@ public struct GoalStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // identifier:not
@@ -408,22 +408,22 @@ public struct GoalStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Goal' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Goal' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
         // :not modifiers
-        if !query.lifecycleStatusNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "lifecycle-status",    tokens: query.lifecycleStatusNot)) }
-        if !query.achievementStatusNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "achievement-status",  tokens: query.achievementStatusNot)) }
-        if !query.categoryNot.isEmpty          { whereConditions.append(tokenNotCondition(paramName: "category",            tokens: query.categoryNot)) }
+        if !query.lifecycleStatusNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "lifecycle-status",    tokens: query.lifecycleStatusNot)) }
+        if !query.achievementStatusNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "achievement-status",  tokens: query.achievementStatusNot)) }
+        if !query.categoryNot.isEmpty          { extraConditions.append(tokenNotCondition(paramName: "category",            tokens: query.categoryNot)) }
 
         // :missing
         for paramName in query.missing.keys.sorted() {
             if let sub = goalMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -464,15 +464,13 @@ public struct GoalStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Goal", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Goal",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

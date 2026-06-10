@@ -411,11 +411,11 @@ public struct DocumentReferenceStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'DocumentReference'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -431,21 +431,21 @@ public struct DocumentReferenceStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // :not modifiers
-        if !query.statusNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "status",         tokens: query.statusNot)) }
-        if !query.typeNot.isEmpty          { whereConditions.append(tokenNotCondition(paramName: "type",           tokens: query.typeNot)) }
-        if !query.categoryNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
-        if !query.securityLabelNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "security-label", tokens: query.securityLabelNot)) }
-        if !query.facilityNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "facility",       tokens: query.facilityNot)) }
-        if !query.eventNot.isEmpty         { whereConditions.append(tokenNotCondition(paramName: "event",          tokens: query.eventNot)) }
-        if !query.contentTypeNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "contenttype",    tokens: query.contentTypeNot)) }
-        if !query.formatNot.isEmpty        { whereConditions.append(tokenNotCondition(paramName: "format",         tokens: query.formatNot)) }
-        if !query.languageNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "language",       tokens: query.languageNot)) }
-        if !query.settingNot.isEmpty       { whereConditions.append(tokenNotCondition(paramName: "setting",        tokens: query.settingNot)) }
-        if !query.relationNot.isEmpty      { whereConditions.append(tokenNotCondition(paramName: "relation",       tokens: query.relationNot)) }
+        if !query.statusNot.isEmpty        { extraConditions.append(tokenNotCondition(paramName: "status",         tokens: query.statusNot)) }
+        if !query.typeNot.isEmpty          { extraConditions.append(tokenNotCondition(paramName: "type",           tokens: query.typeNot)) }
+        if !query.categoryNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "category",       tokens: query.categoryNot)) }
+        if !query.securityLabelNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "security-label", tokens: query.securityLabelNot)) }
+        if !query.facilityNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "facility",       tokens: query.facilityNot)) }
+        if !query.eventNot.isEmpty         { extraConditions.append(tokenNotCondition(paramName: "event",          tokens: query.eventNot)) }
+        if !query.contentTypeNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "contenttype",    tokens: query.contentTypeNot)) }
+        if !query.formatNot.isEmpty        { extraConditions.append(tokenNotCondition(paramName: "format",         tokens: query.formatNot)) }
+        if !query.languageNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "language",       tokens: query.languageNot)) }
+        if !query.settingNot.isEmpty       { extraConditions.append(tokenNotCondition(paramName: "setting",        tokens: query.settingNot)) }
+        if !query.relationNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "relation",       tokens: query.relationNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -467,7 +467,7 @@ public struct DocumentReferenceStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'DocumentReference' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
@@ -475,9 +475,9 @@ public struct DocumentReferenceStore: Sendable {
         for paramName in query.missing.keys.sorted() {
             if let sub = documentReferenceMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -517,15 +517,13 @@ public struct DocumentReferenceStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "DocumentReference", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "DocumentReference",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // Sort: dateAscending/dateDescending maps to `date` param
         // ── Multi-sort paged CTE ──────────────────────────────────────────────

@@ -413,11 +413,11 @@ public struct ImmunizationStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'Immunization'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -433,7 +433,7 @@ public struct ImmunizationStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         func notTokenCond(paramName: String, tokens: [ImmunizationSearchQuery.TokenParam]) -> String {
@@ -470,22 +470,22 @@ public struct ImmunizationStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Immunization' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
-        if !query.statusNot.isEmpty      { whereConditions.append(notTokenCond(paramName: "status",        tokens: query.statusNot)) }
-        if !query.vaccineCodeNot.isEmpty { whereConditions.append(notTokenCond(paramName: "vaccine-code",  tokens: query.vaccineCodeNot)) }
-        if !query.reasonCodeNot.isEmpty  { whereConditions.append(notTokenCond(paramName: "reason-code",   tokens: query.reasonCodeNot)) }
-        if !query.statusReasonNot.isEmpty { whereConditions.append(notTokenCond(paramName: "status-reason",tokens: query.statusReasonNot)) }
-        if !query.targetDiseaseNot.isEmpty { whereConditions.append(notTokenCond(paramName: "target-disease",tokens: query.targetDiseaseNot)) }
+        if !query.statusNot.isEmpty      { extraConditions.append(notTokenCond(paramName: "status",        tokens: query.statusNot)) }
+        if !query.vaccineCodeNot.isEmpty { extraConditions.append(notTokenCond(paramName: "vaccine-code",  tokens: query.vaccineCodeNot)) }
+        if !query.reasonCodeNot.isEmpty  { extraConditions.append(notTokenCond(paramName: "reason-code",   tokens: query.reasonCodeNot)) }
+        if !query.statusReasonNot.isEmpty { extraConditions.append(notTokenCond(paramName: "status-reason",tokens: query.statusReasonNot)) }
+        if !query.targetDiseaseNot.isEmpty { extraConditions.append(notTokenCond(paramName: "target-disease",tokens: query.targetDiseaseNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = immunizationMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -526,15 +526,13 @@ public struct ImmunizationStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Immunization", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Immunization",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

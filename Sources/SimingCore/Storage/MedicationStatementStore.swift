@@ -365,11 +365,11 @@ public struct MedicationStatementStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'MedicationStatement'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart); let endP = bind(lu.dateEnd)
@@ -385,13 +385,13 @@ public struct MedicationStatementStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // :not modifiers
-        if !query.statusNot.isEmpty   { whereConditions.append(tokenNotCondition(paramName: "status",   tokens: query.statusNot)) }
-        if !query.categoryNot.isEmpty { whereConditions.append(tokenNotCondition(paramName: "category", tokens: query.categoryNot)) }
-        if !query.codeNot.isEmpty     { whereConditions.append(tokenNotCondition(paramName: "code",     tokens: query.codeNot)) }
+        if !query.statusNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "status",   tokens: query.statusNot)) }
+        if !query.categoryNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "category", tokens: query.categoryNot)) }
+        if !query.codeNot.isEmpty     { extraConditions.append(tokenNotCondition(paramName: "code",     tokens: query.codeNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -413,7 +413,7 @@ public struct MedicationStatementStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'MedicationStatement' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'MedicationStatement' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
@@ -421,9 +421,9 @@ public struct MedicationStatementStore: Sendable {
         for paramName in query.missing.keys.sorted() {
             if let sub = medicationStatementMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -463,15 +463,13 @@ public struct MedicationStatementStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "MedicationStatement", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "MedicationStatement",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.

@@ -375,11 +375,11 @@ public struct AllergyIntoleranceStore: Sendable {
 
         // ── WHERE conditions ──────────────────────────────────────────────────
 
-        var whereConditions = ["r.resource_type = 'AllergyIntolerance'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart)
@@ -396,7 +396,7 @@ public struct AllergyIntoleranceStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         func notTokenCond(paramName: String, tokens: [AllergyIntoleranceSearchQuery.TokenParam]) -> String {
@@ -433,26 +433,26 @@ public struct AllergyIntoleranceStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'AllergyIntolerance' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
-        if !query.clinicalStatusNot.isEmpty   { whereConditions.append(notTokenCond(paramName: "clinical-status",     tokens: query.clinicalStatusNot)) }
-        if !query.verificationStatusNot.isEmpty { whereConditions.append(notTokenCond(paramName: "verification-status", tokens: query.verificationStatusNot)) }
-        if !query.typeNot.isEmpty             { whereConditions.append(notTokenCond(paramName: "type",                 tokens: query.typeNot)) }
-        if !query.categoryNot.isEmpty         { whereConditions.append(notTokenCond(paramName: "category",             tokens: query.categoryNot)) }
-        if !query.criticalityNot.isEmpty      { whereConditions.append(notTokenCond(paramName: "criticality",          tokens: query.criticalityNot)) }
-        if !query.codeNot.isEmpty             { whereConditions.append(notTokenCond(paramName: "code",                 tokens: query.codeNot)) }
-        if !query.manifestationNot.isEmpty    { whereConditions.append(notTokenCond(paramName: "manifestation",        tokens: query.manifestationNot)) }
-        if !query.severityNot.isEmpty         { whereConditions.append(notTokenCond(paramName: "severity",             tokens: query.severityNot)) }
-        if !query.routeNot.isEmpty            { whereConditions.append(notTokenCond(paramName: "route",                tokens: query.routeNot)) }
+        if !query.clinicalStatusNot.isEmpty   { extraConditions.append(notTokenCond(paramName: "clinical-status",     tokens: query.clinicalStatusNot)) }
+        if !query.verificationStatusNot.isEmpty { extraConditions.append(notTokenCond(paramName: "verification-status", tokens: query.verificationStatusNot)) }
+        if !query.typeNot.isEmpty             { extraConditions.append(notTokenCond(paramName: "type",                 tokens: query.typeNot)) }
+        if !query.categoryNot.isEmpty         { extraConditions.append(notTokenCond(paramName: "category",             tokens: query.categoryNot)) }
+        if !query.criticalityNot.isEmpty      { extraConditions.append(notTokenCond(paramName: "criticality",          tokens: query.criticalityNot)) }
+        if !query.codeNot.isEmpty             { extraConditions.append(notTokenCond(paramName: "code",                 tokens: query.codeNot)) }
+        if !query.manifestationNot.isEmpty    { extraConditions.append(notTokenCond(paramName: "manifestation",        tokens: query.manifestationNot)) }
+        if !query.severityNot.isEmpty         { extraConditions.append(notTokenCond(paramName: "severity",             tokens: query.severityNot)) }
+        if !query.routeNot.isEmpty            { extraConditions.append(notTokenCond(paramName: "route",                tokens: query.routeNot)) }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = allergyIntoleranceMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -493,15 +493,13 @@ public struct AllergyIntoleranceStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "AllergyIntolerance", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "AllergyIntolerance",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // Sort: dateAscending/dateDescending maps to 'date' (recordedDate)
         // ── Multi-sort paged CTE ──────────────────────────────────────────────

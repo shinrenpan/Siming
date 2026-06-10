@@ -721,11 +721,11 @@ public struct EncounterStore: Sendable {
 
         // ── WHERE conditions for :not modifiers and direct resource filters ─────
 
-        var whereConditions = ["r.resource_type = 'Encounter'", "r.deleted = false"]
+        var extraConditions: [String] = []
 
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
+            extraConditions.append("r.id IN (\(phs))")
         }
         for lu in query.lastUpdated {
             let startP = bind(lu.dateStart)
@@ -742,7 +742,7 @@ public struct EncounterStore: Sendable {
             case .eb: cond = "r.last_updated < \(startP)"
             case .ap: cond = "r.last_updated BETWEEN \(bind(lu.apExpandedStart)) AND \(bind(lu.apExpandedEnd))"
             }
-            whereConditions.append(cond)
+            extraConditions.append(cond)
         }
 
         // identifier:not
@@ -765,13 +765,13 @@ public struct EncounterStore: Sendable {
                 }
             }
             if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
+                extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
             }
         }
 
         if !query.statusNot.isEmpty {
             let phs = query.statusNot.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'status' AND code IN (\(phs)))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'status' AND code IN (\(phs)))")
         }
 
         if !query.classNot.isEmpty {
@@ -786,7 +786,7 @@ public struct EncounterStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'class' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'class' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         if !query.typeNot.isEmpty {
@@ -801,7 +801,7 @@ public struct EncounterStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'type' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         if !query.reasonCodeNot.isEmpty {
@@ -816,7 +816,7 @@ public struct EncounterStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'reason-code' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         if !query.participantTypeNot.isEmpty {
@@ -831,7 +831,7 @@ public struct EncounterStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'participant-type' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'participant-type' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         if !query.specialArrangementNot.isEmpty {
@@ -846,15 +846,15 @@ public struct EncounterStore: Sendable {
                     orClauses.append("(code = \(codeP)\(sysCond))")
                 }
             }
-            whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'special-arrangement' AND (\(orClauses.joined(separator: " OR "))))")
+            extraConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Encounter' AND param_name = 'special-arrangement' AND (\(orClauses.joined(separator: " OR "))))")
         }
 
         for paramName in query.missing.keys.sorted() {
             if let sub = encounterMissingSubquery(param: paramName) {
                 if query.missing[paramName] == true {
-                    whereConditions.append("r.id NOT IN (\(sub))")
+                    extraConditions.append("r.id NOT IN (\(sub))")
                 } else {
-                    whereConditions.append("r.id IN (\(sub))")
+                    extraConditions.append("r.id IN (\(sub))")
                 }
             }
         }
@@ -895,17 +895,13 @@ public struct EncounterStore: Sendable {
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Encounter", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
-        whereConditions += metaWhere
+        extraConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs {
-            fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
-        }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildIdsInner(
+            resourceType: "Encounter",
+            filterCTEs: filterCTEs,
+            extraConditions: extraConditions
+        )
 
         // ── Sort-specific paged CTE ───────────────────────────────────────────
 

@@ -1,5 +1,69 @@
 import Foundation
 
+// ── ids CTE builder ───────────────────────────────────────────────────────
+//
+// Builds the inner SQL for `ids AS MATERIALIZED (…)`.
+//
+// When filterCTEs is non-empty, uses a LATERAL JOIN against resources_live_idx
+// for an index-only current-version lookup — much faster than scanning the full
+// resources table via DISTINCT ON / hash-join.
+//
+// When filterCTEs is empty, falls back to DISTINCT ON / full scan (no better
+// index-based alternative without knowing the result set size up front).
+//
+// Extra conditions (beyond resource_type + deleted=false) are string-transformed:
+//   r.id          → <firstCTE>.resource_id
+//   r.last_updated → lat.last_updated
+//
+// Parameters:
+//   resourceType   — SQL string literal; MUST be a compile-time constant.
+//   filterCTEs     — pre-built filter CTEs; each returns resource_id rows.
+//   extraConditions — WHERE conditions beyond the base resource_type+deleted guard.
+
+public func buildIdsInner(
+    resourceType: String,
+    filterCTEs: [(name: String, sql: String)],
+    extraConditions: [String] = []
+) -> String {
+    guard !filterCTEs.isEmpty else {
+        // No index-backed filters — full scan via DISTINCT ON.
+        var fromLines = ["FROM resources r"]
+        var conds = ["r.resource_type = '\(resourceType)'", "r.deleted = false"] + extraConditions
+        fromLines.append("WHERE " + conds.joined(separator: " AND "))
+        fromLines.append("ORDER BY r.id, r.version_id DESC")
+        return (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
+            + fromLines).joined(separator: "\n      ")
+    }
+
+    let first = filterCTEs[0].name
+    let joinLines = filterCTEs.dropFirst().map {
+        "JOIN \($0.name) ON \($0.name).resource_id = \(first).resource_id"
+    }
+    let joinClause = joinLines.isEmpty ? "" : "\n      " + joinLines.joined(separator: "\n      ")
+
+    // Transform extra conditions that reference the old resources alias `r`.
+    let transformedExtra = extraConditions.map { cond in
+        cond
+            .replacingOccurrences(of: "r.last_updated", with: "lat.last_updated")
+            .replacingOccurrences(of: "r.id ", with: "\(first).resource_id ")
+            .replacingOccurrences(of: "r.id)", with: "\(first).resource_id)")
+    }
+    let extraClause = transformedExtra.isEmpty
+        ? ""
+        : "\n      WHERE " + transformedExtra.joined(separator: " AND ")
+
+    return """
+        SELECT \(first).resource_id AS id, lat.version_id, lat.last_updated
+        FROM \(first)\(joinClause)
+        JOIN LATERAL (
+          SELECT version_id, last_updated
+          FROM resources
+          WHERE resource_type = '\(resourceType)' AND id = \(first).resource_id AND deleted = false
+          ORDER BY version_id DESC LIMIT 1
+        ) lat ON TRUE\(extraClause)
+        """
+}
+
 // ── Sort key source ────────────────────────────────────────────────────────
 // Describes where in the index tables a sort value comes from.
 
@@ -91,10 +155,12 @@ public struct MultiSortResult {
 //   3. Uses `ORDER BY \(sortResult.outerOrderBy)` in the outer SELECT.
 //   4. Reads `p.sort_val_concat` as the cursor-value column (6th SELECT column).
 //
-// The paged CTE produces correct keyset pagination via an expanded tuple
-// comparison (N+1 OR terms) that handles mixed ASC/DESC sort keys.
-// TIMESTAMP columns use IS NOT NULL guards in cursor conditions (consistent
-// with existing single-sort behaviour for resources that lack a date index row).
+// The paged CTE is generated as a flat SELECT directly from `idsAlias` with optional
+// LEFT JOINs for index-based sort keys — no nested subquery — so PostgreSQL can
+// apply Top-N sort optimisation on the MATERIALIZED ids CTE.
+//
+// Cursor WHERE uses the same column expressions as ORDER BY (not aliases), which
+// is required since column aliases are not visible in the same SELECT's WHERE.
 //
 // Parameters:
 //   sortKeys    — parsed keys; falls back to [SortKey.default] when empty.
@@ -117,14 +183,16 @@ public func buildMultiSort(
 
     let keys = sortKeys.isEmpty ? [SortKey.default] : sortKeys
 
+    // Each Slot carries both the SQL expression for ORDER BY / WHERE
+    // and the alias used in the outer SELECT.
     struct Slot {
-        let innerExpr: String    // "…expr… AS sv_N"
-        let colName: String      // "sv_N"
-        let orderDir: String     // "ASC" or "DESC"
+        let expr: String        // actual SQL expression (usable in WHERE / ORDER BY)
+        let colName: String     // SELECT alias "sv_N"
+        let orderDir: String    // "ASC" or "DESC"
         let nullsLast: Bool
-        let concatExpr: String   // expression for sort_val_concat (epoch text for TIMESTAMP)
+        let concatExpr: String  // expression for sort_val_concat
         let isTimestamp: Bool
-        let cteAlias: String?    // non-nil → needs a LEFT JOIN
+        let cteAlias: String?   // non-nil → needs a LEFT JOIN
     }
 
     var sortCTEs: [(name: String, sql: String)] = []
@@ -138,19 +206,19 @@ public func buildMultiSort(
         switch key.source {
         case .lastUpdated:
             slots.append(Slot(
-                innerExpr: "\(ids).last_updated AS \(sv)",
+                expr: "\(ids).last_updated",
                 colName: sv,
                 orderDir: dir, nullsLast: true,
-                concatExpr: "COALESCE(CAST(EXTRACT(EPOCH FROM \(sv)) AS text), '')",
+                concatExpr: "COALESCE(CAST(EXTRACT(EPOCH FROM \(ids).last_updated) AS text), '')",
                 isTimestamp: true, cteAlias: nil
             ))
 
         case .resourceId:
             slots.append(Slot(
-                innerExpr: "\(ids).id AS \(sv)",
+                expr: "\(ids).id",
                 colName: sv,
                 orderDir: dir, nullsLast: false,
-                concatExpr: sv,
+                concatExpr: "\(ids).id",
                 isTimestamp: false, cteAlias: nil
             ))
 
@@ -162,10 +230,10 @@ public func buildMultiSort(
                 "ORDER BY resource_id, value ASC"
             ))
             slots.append(Slot(
-                innerExpr: "COALESCE(\(alias).sv, '') AS \(sv)",
+                expr: "COALESCE(\(alias).sv, '')",
                 colName: sv,
                 orderDir: dir, nullsLast: true,
-                concatExpr: sv,
+                concatExpr: "COALESCE(\(alias).sv, '')",
                 isTimestamp: false, cteAlias: alias
             ))
 
@@ -177,10 +245,10 @@ public func buildMultiSort(
                 "ORDER BY resource_id, date_start ASC"
             ))
             slots.append(Slot(
-                innerExpr: "\(alias).sv AS \(sv)",
+                expr: "\(alias).sv",
                 colName: sv,
                 orderDir: dir, nullsLast: true,
-                concatExpr: "COALESCE(CAST(EXTRACT(EPOCH FROM \(sv)) AS text), '')",
+                concatExpr: "COALESCE(CAST(EXTRACT(EPOCH FROM \(alias).sv) AS text), '')",
                 isTimestamp: true, cteAlias: alias
             ))
 
@@ -192,16 +260,18 @@ public func buildMultiSort(
                 "ORDER BY resource_id, code ASC"
             ))
             slots.append(Slot(
-                innerExpr: "COALESCE(\(alias).sv, '') AS \(sv)",
+                expr: "COALESCE(\(alias).sv, '')",
                 colName: sv,
                 orderDir: dir, nullsLast: true,
-                concatExpr: sv,
+                concatExpr: "COALESCE(\(alias).sv, '')",
                 isTimestamp: false, cteAlias: alias
             ))
         }
     }
 
     // ── Cursor WHERE: expanded tuple comparison ──────────────────────────
+    // Uses expr (the actual SQL expressions) not colName aliases, because
+    // aliases defined in the same SELECT are not visible in WHERE.
     var cursorWhere = ""
     if let cur = cursor {
         let valBinds: [String] = slots.enumerated().map { (i, slot) in
@@ -218,52 +288,51 @@ public func buildMultiSort(
         for i in 0..<slots.count {
             var conds: [String] = []
             for j in 0..<i {
-                if slots[j].isTimestamp { conds.append("\(slots[j].colName) IS NOT NULL") }
-                conds.append("\(slots[j].colName) = \(valBinds[j])")
+                if slots[j].isTimestamp { conds.append("\(slots[j].expr) IS NOT NULL") }
+                conds.append("\(slots[j].expr) = \(valBinds[j])")
             }
-            if slots[i].isTimestamp { conds.append("\(slots[i].colName) IS NOT NULL") }
+            if slots[i].isTimestamp { conds.append("\(slots[i].expr) IS NOT NULL") }
             let op = keys[i].descending ? "<" : ">"
-            conds.append("\(slots[i].colName) \(op) \(valBinds[i])")
+            conds.append("\(slots[i].expr) \(op) \(valBinds[i])")
             terms.append("(\(conds.joined(separator: " AND ")))")
         }
         var conds: [String] = []
         for (j, slot) in slots.enumerated() {
-            if slot.isTimestamp { conds.append("\(slot.colName) IS NOT NULL") }
-            conds.append("\(slot.colName) = \(valBinds[j])")
+            if slot.isTimestamp { conds.append("\(slot.expr) IS NOT NULL") }
+            conds.append("\(slot.expr) = \(valBinds[j])")
         }
-        conds.append("id > \(idBind)")
+        conds.append("\(ids).id > \(idBind)")
         terms.append("(\(conds.joined(separator: " AND ")))")
         cursorWhere = terms.joined(separator: "\n      OR ")
     }
 
-    // ── Inner subquery ───────────────────────────────────────────────────
-    let joinLines = sortCTEs.map { "LEFT JOIN \($0.name) ON \($0.name).resource_id = \(ids).id" }
-    let joinClause = joinLines.isEmpty ? "" : "\n      " + joinLines.joined(separator: "\n      ")
+    // ── JOINs for index-backed sort keys ─────────────────────────────────
+    let joinLines = slots.compactMap { $0.cteAlias }.map {
+        "LEFT JOIN \($0) ON \($0).resource_id = \(ids).id"
+    }
+    let joinClause = joinLines.isEmpty ? "" : "\n  " + joinLines.joined(separator: "\n  ")
 
-    let innerCols = (["\(ids).id", "\(ids).version_id", "\(ids).last_updated"]
-        + slots.map { $0.innerExpr }).joined(separator: ",\n        ")
-    let innerSQL = "SELECT \(innerCols)\n      FROM \(ids)\(joinClause)"
-
-    // ── sort_val_concat: U+001F-delimited sort values + id ───────────────
-    let concatSQL = (slots.map { $0.concatExpr } + ["id"]).joined(separator: " || CHR(31) || ")
+    // ── SELECT list ───────────────────────────────────────────────────────
+    let svSelects = slots.map { "\($0.expr) AS \($0.colName)" }.joined(separator: ",\n    ")
+    let concatSQL = (slots.map { $0.concatExpr } + ["\(ids).id"]).joined(separator: " || CHR(31) || ")
 
     // ── ORDER BY ─────────────────────────────────────────────────────────
-    func orderPart(_ prefix: String, _ slot: Slot) -> String {
-        "\(prefix)\(slot.colName) \(slot.orderDir)\(slot.nullsLast ? " NULLS LAST" : "")"
-    }
-    let innerOrderBy = (slots.map { orderPart("", $0) } + ["id ASC"]).joined(separator: ", ")
-    let outerOrderBy = (slots.map { orderPart("p.", $0) } + ["p.id ASC"]).joined(separator: ", ")
+    let innerOrderBy = (slots.map { "\($0.expr) \($0.orderDir)\($0.nullsLast ? " NULLS LAST" : "")" }
+        + ["\(ids).id ASC"]).joined(separator: ", ")
+    let outerOrderBy = (slots.map { "p.\($0.colName) \($0.orderDir)\($0.nullsLast ? " NULLS LAST" : "")" }
+        + ["p.id ASC"]).joined(separator: ", ")
 
-    // ── Paged CTE body ───────────────────────────────────────────────────
-    let svCols = (["id", "version_id", "last_updated"] + slots.map { $0.colName }).joined(separator: ", ")
-    let whereClause = cursorWhere.isEmpty ? "" : "\n    WHERE \(cursorWhere)"
+    // ── WHERE ─────────────────────────────────────────────────────────────
+    let whereClause = cursorWhere.isEmpty ? "" : "\n  WHERE \(cursorWhere)"
 
+    // ── Paged CTE body ────────────────────────────────────────────────────
+    // Flat SELECT from ids (+ optional LEFT JOINs) — no nested subquery —
+    // so PostgreSQL can apply Top-N sort on the MATERIALIZED ids CTE.
     let pagedBody = """
-        SELECT \(svCols),
+        SELECT \(ids).id, \(ids).version_id, \(ids).last_updated,
+            \(svSelects),
             \(concatSQL) AS sort_val_concat
-        FROM (
-          \(innerSQL)
-        ) sub\(whereClause)
+        FROM \(ids)\(joinClause)\(whereClause)
         ORDER BY \(innerOrderBy)
         LIMIT \(limitBind)
         """
