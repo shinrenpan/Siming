@@ -49,3 +49,13 @@ public struct QuantityIndexRow: Sendable {
         self.paramName = paramName; self.system = system; self.code = code; self.value = value
     }
 }
+
+/// Carry a single token :text filter from the route layer to the store.
+/// The store queries idx_string WHERE param_name = '\(paramName):text' AND value ILIKE '%value%'.
+public struct TokenTextParam: Sendable {
+    public let paramName: String
+    public let value: String
+    public init(paramName: String, value: String) {
+        self.paramName = paramName; self.value = value
+    }
+}

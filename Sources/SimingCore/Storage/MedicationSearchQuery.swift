@@ -21,6 +21,7 @@ public struct MedicationSearchQuery: Sendable {
     public var expirationDate: [DateParam]
     public var id: [String]
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -51,6 +52,7 @@ public struct MedicationSearchQuery: Sendable {
         expirationDate: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -77,6 +79,7 @@ public struct MedicationSearchQuery: Sendable {
         self.expirationDate = expirationDate
         self.id             = id
         self.lastUpdated    = lastUpdated
+        self.tokenTexts     = tokenTexts
         self.missing        = missing
         self.chains         = chains
         self.has            = has

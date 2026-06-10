@@ -56,7 +56,7 @@ private func extract_AllergyIntolerance_clinical_status(_ p: inout SearchParams,
     for coding in ai.clinicalStatus?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "clinical-status", system: s, code: c))
+        p.appendToken(paramName: "clinical-status", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -65,7 +65,7 @@ private func extract_AllergyIntolerance_code(_ p: inout SearchParams, _ ai: Alle
     for coding in ai.code?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -116,7 +116,7 @@ private func extract_AllergyIntolerance_manifestation(_ p: inout SearchParams, _
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "manifestation", system: s, code: c))
+                p.appendToken(paramName: "manifestation", system: s, code: c, display: coding.display?.value?.string)
             }
         }
     }
@@ -161,7 +161,7 @@ private func extract_AllergyIntolerance_route(_ p: inout SearchParams, _ ai: All
         for coding in reaction.exposureRoute?.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "route", system: s, code: c))
+            p.appendToken(paramName: "route", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -191,6 +191,6 @@ private func extract_AllergyIntolerance_verification_status(_ p: inout SearchPar
     for coding in ai.verificationStatus?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "verification-status", system: s, code: c))
+        p.appendToken(paramName: "verification-status", system: s, code: c, display: coding.display?.value?.string)
     }
 }

@@ -66,7 +66,7 @@ private func extract_ServiceRequest_body_site(_ p: inout SearchParams, _ sr: Ser
         for coding in site.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "body-site", system: s, code: c))
+            p.appendToken(paramName: "body-site", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -77,7 +77,7 @@ private func extract_ServiceRequest_category(_ p: inout SearchParams, _ sr: Serv
         for coding in cat.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "category", system: s, code: c))
+            p.appendToken(paramName: "category", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -87,7 +87,7 @@ private func extract_ServiceRequest_code(_ p: inout SearchParams, _ sr: ServiceR
     for coding in sr.code?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -174,7 +174,7 @@ private func extract_ServiceRequest_order_detail(_ p: inout SearchParams, _ sr: 
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "order-detail", system: s, code: c))
+            p.appendToken(paramName: "order-detail", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -206,7 +206,7 @@ private func extract_ServiceRequest_performer_type(_ p: inout SearchParams, _ sr
     for coding in sr.performerType?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "performer-type", system: s, code: c))
+        p.appendToken(paramName: "performer-type", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 

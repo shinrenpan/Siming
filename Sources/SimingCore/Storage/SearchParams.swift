@@ -11,6 +11,24 @@ public struct SearchParams: Sendable {
     public var composites: [CompositeIndexRow] = []
 
     public init() {}
+
+    /// Appends a token row and — when display is non-nil/non-empty — an idx_string row
+    /// under `paramName:text`, enabling FHIR R4 §3.1.2.1 token :text search without
+    /// any schema change to idx_token.
+    public mutating func appendToken(paramName: String, system: String?, code: String, display: String? = nil) {
+        tokens.append(.init(paramName: paramName, system: system, code: code))
+        if let d = display, !d.isEmpty {
+            strings.append(.init(paramName: "\(paramName):text", value: d))
+        }
+    }
+
+    /// Appends a :text string row for a CodeableConcept's .text field (the whole-concept
+    /// human label, separate from individual Coding.display entries).
+    public mutating func appendConceptText(paramName: String, _ text: String?) {
+        if let t = text, !t.isEmpty {
+            strings.append(.init(paramName: "\(paramName):text", value: t))
+        }
+    }
 }
 
 /// One row in idx_composite: a (code1, value2/code2) tuple from a single

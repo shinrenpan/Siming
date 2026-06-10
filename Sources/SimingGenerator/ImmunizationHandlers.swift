@@ -41,7 +41,7 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in imm.vaccineCode.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -192,7 +192,7 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+                    p.appendToken(paramName: "reason-code", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -235,7 +235,7 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in imm.statusReason?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "status-reason", system: s, code: c))
+                p.appendToken(paramName: "status-reason", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -250,7 +250,7 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
                     for coding in cc.coding ?? [] {
                         let c = coding.code?.value?.string ?? ""
                         let s = coding.system?.value?.url.absoluteString
-                        p.tokens.append(.init(paramName: "target-disease", system: s, code: c))
+                        p.appendToken(paramName: "target-disease", system: s, code: c, display: coding.display?.value?.string)
                     }
                 }
             }

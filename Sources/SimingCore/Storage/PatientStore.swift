@@ -573,6 +573,14 @@ public struct PatientStore: Sendable {
             }
         }
 
+        // token:text filters
+        for (i, tt) in query.tokenTexts.enumerated() {
+            let pn = bind("\(tt.paramName):text")
+            let val = bind("%\(tt.value)%")
+            filterCTEs.append(("f_ttext\(i)",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = \(pn) AND value ILIKE \(val)"))
+        }
+
         // meta params: _tag, _security, _profile
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Patient", meta: query.meta, bind: strBind)
@@ -950,6 +958,14 @@ public struct PatientStore: Sendable {
             ) {
                 filterCTEs.append((name, sql))
             }
+        }
+
+        // token:text filters
+        for (i, tt) in query.tokenTexts.enumerated() {
+            let pn = bind("\(tt.paramName):text")
+            let val = bind("%\(tt.value)%")
+            filterCTEs.append(("f_ttext\(i)",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Patient' AND param_name = \(pn) AND value ILIKE \(val)"))
         }
 
         // meta params: _tag, _security, _profile

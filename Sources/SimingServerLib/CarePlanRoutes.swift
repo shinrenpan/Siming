@@ -415,6 +415,12 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         }
     }
 
+    let tokenTexts = pairs.compactMap { pair -> TokenTextParam? in
+        let key = String(pair.key)
+        guard key.hasSuffix(":text") else { return nil }
+        let paramName = String(key.dropLast(5))
+        return TokenTextParam(paramName: paramName, value: String(pair.value))
+    }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
 
@@ -433,6 +439,7 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
         replaces: replaces, performer: performer,
         activityReference: activityReference,
         id: id, lastUpdated: lastUpdated,
+        tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)

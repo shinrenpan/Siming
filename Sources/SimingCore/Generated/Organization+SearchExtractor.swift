@@ -139,7 +139,7 @@ private func extract_Organization_type(_ p: inout SearchParams, _ org: Organizat
         for coding in t.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "type", system: s, code: c))
+            p.appendToken(paramName: "type", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

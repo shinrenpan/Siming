@@ -47,7 +47,7 @@ private func extract_Procedure_category(_ p: inout SearchParams, _ proc: Procedu
     for coding in proc.category?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "category", system: s, code: c))
+        p.appendToken(paramName: "category", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -56,7 +56,7 @@ private func extract_Procedure_code(_ p: inout SearchParams, _ proc: Procedure) 
     for coding in proc.code?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -179,7 +179,7 @@ private func extract_Procedure_reason_code(_ p: inout SearchParams, _ proc: Proc
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+            p.appendToken(paramName: "reason-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

@@ -30,7 +30,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in ai.clinicalStatus?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -43,7 +43,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in ai.verificationStatus?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -97,7 +97,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in ai.code?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -169,7 +169,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
                     for coding in cc.coding ?? [] {
                         let c = coding.code?.value?.string ?? ""
                         let s = coding.system?.value?.url.absoluteString
-                        p.tokens.append(.init(paramName: "manifestation", system: s, code: c))
+                        p.appendToken(paramName: "manifestation", system: s, code: c, display: coding.display?.value?.string)
                     }
                 }
             }
@@ -202,7 +202,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in reaction.exposureRoute?.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "route", system: s, code: c))
+                    p.appendToken(paramName: "route", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }

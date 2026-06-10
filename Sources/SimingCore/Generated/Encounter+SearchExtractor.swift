@@ -77,7 +77,7 @@ private func extract_Encounter_based_on(_ p: inout SearchParams, _ enc: Encounte
 private func extract_Encounter_class(_ p: inout SearchParams, _ enc: Encounter) {
     let c = enc.`class`.code?.value?.string ?? ""
     let s = enc.`class`.system?.value?.url.absoluteString
-    p.tokens.append(.init(paramName: "class", system: s, code: c))
+    p.appendToken(paramName: "class", system: s, code: c, display: enc.`class`.display?.value?.string)
 }
 
 // date [date] — Encounter.period
@@ -216,7 +216,7 @@ private func extract_Encounter_participant_type(_ p: inout SearchParams, _ enc: 
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "participant-type", system: s, code: c))
+                p.appendToken(paramName: "participant-type", system: s, code: c, display: coding.display?.value?.string)
             }
         }
     }
@@ -250,7 +250,7 @@ private func extract_Encounter_reason_code(_ p: inout SearchParams, _ enc: Encou
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+            p.appendToken(paramName: "reason-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -283,7 +283,7 @@ private func extract_Encounter_special_arrangement(_ p: inout SearchParams, _ en
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "special-arrangement", system: s, code: c))
+            p.appendToken(paramName: "special-arrangement", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -312,7 +312,7 @@ private func extract_Encounter_type(_ p: inout SearchParams, _ enc: Encounter) {
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "type", system: s, code: c))
+            p.appendToken(paramName: "type", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

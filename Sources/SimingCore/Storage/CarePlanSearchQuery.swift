@@ -42,6 +42,7 @@ public struct CarePlanSearchQuery: Sendable {
     public var id: [String]
     public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -82,6 +83,7 @@ public struct CarePlanSearchQuery: Sendable {
         activityReference: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -118,6 +120,7 @@ public struct CarePlanSearchQuery: Sendable {
         self.activityReference = activityReference
         self.id                = id
         self.lastUpdated       = lastUpdated
+        self.tokenTexts        = tokenTexts
         self.missing           = missing
         self.chains            = chains
         self.has               = has

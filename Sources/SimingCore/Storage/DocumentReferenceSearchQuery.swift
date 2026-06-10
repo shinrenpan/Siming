@@ -56,6 +56,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
     // system params
     public var id: [String]
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -108,6 +109,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         relationship: [RelationshipParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -156,6 +158,7 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.relationship     = relationship
         self.id               = id
         self.lastUpdated      = lastUpdated
+        self.tokenTexts       = tokenTexts
         self.missing          = missing
         self.chains           = chains
         self.has              = has

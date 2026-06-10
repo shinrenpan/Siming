@@ -240,7 +240,7 @@ func patientHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in comm.language.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
                 if let text = comm.language.text?.value?.string {
                     p.tokens.append(.init(paramName: "\(code)", system: nil, code: text))

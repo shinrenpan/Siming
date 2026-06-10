@@ -64,7 +64,7 @@ func locationHandler(spec: ParamSpec, expr: String) -> String? {
             if let coding = loc.operationalStatus {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "operational-status", system: s, code: c))
+                p.appendToken(paramName: "operational-status", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -78,7 +78,7 @@ func locationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in t.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "type", system: s, code: c))
+                    p.appendToken(paramName: "type", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }

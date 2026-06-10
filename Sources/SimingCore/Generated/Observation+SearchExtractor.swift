@@ -70,8 +70,9 @@ private func extract_Observation_category(_ p: inout SearchParams, _ obs: Observ
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "category", system: s, code: c))
+            p.appendToken(paramName: "category", system: s, code: c, display: coding.display?.value?.string)
         }
+        p.appendConceptText(paramName: "category", cc.text?.value?.string)
     }
 }
 
@@ -80,11 +81,12 @@ private func extract_Observation_code(_ p: inout SearchParams, _ obs: Observatio
     for coding in obs.code.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
     if let text = obs.code.text?.value?.string {
         p.tokens.append(.init(paramName: "code", system: nil, code: text))
     }
+    p.appendConceptText(paramName: "code", obs.code.text?.value?.string)
 }
 
 // TODO: unhandled — code-value-concept [composite] Observation
@@ -104,13 +106,13 @@ private func extract_Observation_combo_code(_ p: inout SearchParams, _ obs: Obse
     for coding in obs.code.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+        p.appendToken(paramName: "combo-code", system: s, code: c, display: coding.display?.value?.string)
     }
     for comp in obs.component ?? [] {
         for coding in comp.code.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+            p.appendToken(paramName: "combo-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -166,13 +168,13 @@ private func extract_Observation_combo_data_absent_reason(_ p: inout SearchParam
     for coding in obs.dataAbsentReason?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+        p.appendToken(paramName: "combo-data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
     }
     for comp in obs.component ?? [] {
         for coding in comp.dataAbsentReason?.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+            p.appendToken(paramName: "combo-data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -183,7 +185,7 @@ private func extract_Observation_combo_value_concept(_ p: inout SearchParams, _ 
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+            p.appendToken(paramName: "combo-value-concept", system: s, code: c, display: coding.display?.value?.string)
         }
     }
     for comp in obs.component ?? [] {
@@ -191,7 +193,7 @@ private func extract_Observation_combo_value_concept(_ p: inout SearchParams, _ 
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+            p.appendToken(paramName: "combo-value-concept", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -221,7 +223,7 @@ private func extract_Observation_component_code(_ p: inout SearchParams, _ obs: 
         for coding in comp.code.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "component-code", system: s, code: c))
+            p.appendToken(paramName: "component-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -266,7 +268,7 @@ private func extract_Observation_component_data_absent_reason(_ p: inout SearchP
         for coding in comp.dataAbsentReason?.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "component-data-absent-reason", system: s, code: c))
+            p.appendToken(paramName: "component-data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -278,7 +280,7 @@ private func extract_Observation_component_value_concept(_ p: inout SearchParams
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "component-value-concept", system: s, code: c))
+            p.appendToken(paramName: "component-value-concept", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -300,7 +302,7 @@ private func extract_Observation_data_absent_reason(_ p: inout SearchParams, _ o
     for coding in obs.dataAbsentReason?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "data-absent-reason", system: s, code: c))
+        p.appendToken(paramName: "data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -421,7 +423,7 @@ private func extract_Observation_method(_ p: inout SearchParams, _ obs: Observat
     for coding in obs.method?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "method", system: s, code: c))
+        p.appendToken(paramName: "method", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -493,7 +495,7 @@ private func extract_Observation_value_concept(_ p: inout SearchParams, _ obs: O
     for coding in cc.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "value-concept", system: s, code: c))
+        p.appendToken(paramName: "value-concept", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 

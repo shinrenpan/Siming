@@ -101,6 +101,16 @@ Resources and params with modifier support:
 
 `PatientSearchQuery.StringParam` is the shared type (public init, public `Modifier` enum). All other resources alias it via `typealias StringParam = PatientSearchQuery.StringParam`.
 
+### Token `:text` modifier (FHIR R4 §3.1.2.1)
+
+Supported on **all 23 resources** for any token search parameter. `code:text=glucose` searches the human-readable display text of codings rather than the system/code.
+
+**Write path**: During resource indexing, `SearchParams.appendToken(paramName:system:code:display:)` writes the main token row to `idx_token` AND — when `Coding.display` is non-empty — an additional row to `idx_string` with `param_name = '{param}:text'`. `CodeableConcept.text` is also written via `appendConceptText(paramName:_:)`. No schema migration required; reuses the existing `idx_string` trigram GIN index.
+
+**Read path**: Route parsers collect all `param:text=value` query keys into `query.tokenTexts: [TokenTextParam]`. Stores generate one filter CTE per entry: `SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = '...' AND param_name = $1 AND value ILIKE $2`.
+
+**Scope**: Applies to `Coding`-backed params (code, category, type, method, value-concept, etc.). Enum/rawValue params (status, criticality) and identifier params have no display text and produce empty results for `:text` — which is correct FHIR behaviour.
+
 ### Quantity `eq` semantics (FHIR R4 §3.4.4.1)
 
 Quantity `eq` uses **significant-figures range matching**, not exact equality. For a query value with `d` decimal places, the match range is `[value − 0.5×10^(−d), value + 0.5×10^(−d)]`. For example, `value-quantity=5.4` matches `5.35 ≤ stored ≤ 5.45`; `value-quantity=5` matches `4.5 ≤ stored ≤ 5.5`.

@@ -29,6 +29,7 @@ public struct ImmunizationSearchQuery: Sendable {
     public var id: [String]                         // _id filter (OR)
     public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
+    public var tokenTexts: [TokenTextParam]         // param:text=value modifier
     public var missing: [String: Bool]              // param:missing=true/false
     public var chains: [ChainedParam]               // chained search
     public var has: [HasParam]                      // _has reverse chaining
@@ -65,6 +66,7 @@ public struct ImmunizationSearchQuery: Sendable {
         date: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -97,6 +99,7 @@ public struct ImmunizationSearchQuery: Sendable {
         self.date            = date
         self.id              = id
         self.lastUpdated     = lastUpdated
+        self.tokenTexts      = tokenTexts
         self.missing         = missing
         self.chains          = chains
         self.has             = has

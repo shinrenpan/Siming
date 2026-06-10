@@ -23,6 +23,7 @@ public struct LocationSearchQuery: Sendable {
     public var partof: String?
     public var id: [String]
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -55,6 +56,7 @@ public struct LocationSearchQuery: Sendable {
         endpoint: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -83,6 +85,7 @@ public struct LocationSearchQuery: Sendable {
         self.partof            = partof
         self.id                = id
         self.lastUpdated       = lastUpdated
+        self.tokenTexts        = tokenTexts
         self.missing           = missing
         self.chains            = chains
         self.has               = has

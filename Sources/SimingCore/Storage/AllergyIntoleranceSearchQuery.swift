@@ -33,6 +33,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
     public var id: [String]                             // _id filter (OR)
     public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]                 // _lastUpdated range filter
+    public var tokenTexts: [TokenTextParam]             // param:text=value modifier
     public var missing: [String: Bool]                  // param:missing=true/false
     public var chains: [ChainedParam]                   // chained search: patient.name=Wang, etc.
     public var has: [HasParam]                          // _has modifier: reverse chaining
@@ -73,6 +74,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         onset: [DateParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -109,6 +111,7 @@ public struct AllergyIntoleranceSearchQuery: Sendable {
         self.onset                = onset
         self.id                   = id
         self.lastUpdated          = lastUpdated
+        self.tokenTexts           = tokenTexts
         self.missing              = missing
         self.chains               = chains
         self.has                  = has

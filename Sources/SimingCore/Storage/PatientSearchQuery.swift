@@ -27,6 +27,7 @@ public struct PatientSearchQuery: Sendable {
     public var deceased: Bool?            // deceased token: true=deceased, false=not deceased
     public var deathDate: [BirthdateParam]   // death-date: deceasedDateTime range
     public var lastUpdated: [BirthdateParam]  // _lastUpdated: filter on last write time
+    public var tokenTexts: [TokenTextParam]  // param:text=value modifier
     public var missing: [String: Bool]    // param:missing=true/false
     public var chains: [ChainedParam]    // chained search: refParam.childParam=value
     public var has: [HasParam]            // _has modifier: reverse chaining
@@ -61,6 +62,7 @@ public struct PatientSearchQuery: Sendable {
         deceased: Bool? = nil,
         deathDate: [BirthdateParam] = [],
         lastUpdated: [BirthdateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -94,6 +96,7 @@ public struct PatientSearchQuery: Sendable {
         self.deceased          = deceased
         self.deathDate         = deathDate
         self.lastUpdated       = lastUpdated
+        self.tokenTexts        = tokenTexts
         self.missing           = missing
         self.chains            = chains
         self.has               = has

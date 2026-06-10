@@ -192,7 +192,7 @@ private func extract_Patient_language(_ p: inout SearchParams, _ patient: Patien
         for coding in comm.language.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "language", system: s, code: c))
+            p.appendToken(paramName: "language", system: s, code: c, display: coding.display?.value?.string)
         }
         if let text = comm.language.text?.value?.string {
             p.tokens.append(.init(paramName: "language", system: nil, code: text))

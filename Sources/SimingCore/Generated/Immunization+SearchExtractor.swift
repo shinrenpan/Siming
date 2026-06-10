@@ -137,7 +137,7 @@ private func extract_Immunization_reason_code(_ p: inout SearchParams, _ imm: Im
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "reason-code", system: s, code: c))
+            p.appendToken(paramName: "reason-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -176,7 +176,7 @@ private func extract_Immunization_status_reason(_ p: inout SearchParams, _ imm: 
     for coding in imm.statusReason?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "status-reason", system: s, code: c))
+        p.appendToken(paramName: "status-reason", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -187,7 +187,7 @@ private func extract_Immunization_target_disease(_ p: inout SearchParams, _ imm:
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "target-disease", system: s, code: c))
+                p.appendToken(paramName: "target-disease", system: s, code: c, display: coding.display?.value?.string)
             }
         }
     }
@@ -198,6 +198,6 @@ private func extract_Immunization_vaccine_code(_ p: inout SearchParams, _ imm: I
     for coding in imm.vaccineCode.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "vaccine-code", system: s, code: c))
+        p.appendToken(paramName: "vaccine-code", system: s, code: c, display: coding.display?.value?.string)
     }
 }

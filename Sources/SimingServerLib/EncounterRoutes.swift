@@ -441,6 +441,12 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
     }
+    let tokenTexts = pairs.compactMap { pair -> TokenTextParam? in
+        let key = String(pair.key)
+        guard key.hasSuffix(":text") else { return nil }
+        let paramName = String(key.dropLast(5))
+        return TokenTextParam(paramName: paramName, value: String(pair.value))
+    }
     let chains = parseChainParams(from: pairs)
     let has    = parseHasParams(from: pairs)
     var query = EncounterSearchQuery(
@@ -457,7 +463,8 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
         participantType: participantType, participantTypeNot: participantTypeNot,
         specialArrangement: specialArrangement, specialArrangementNot: specialArrangementNot,
         length: length,
-        id: id, lastUpdated: lastUpdated, missing: missing, chains: chains, has: has,
+        id: id, lastUpdated: lastUpdated, tokenTexts: tokenTexts,
+        missing: missing, chains: chains, has: has,
         totalMode: totalMode, count: count, sort: sort, cursor: cursor)
     query.meta = parseMetaSearchParams(from: pairs)
     return query

@@ -101,7 +101,7 @@ private func extract_Condition_body_site(_ p: inout SearchParams, _ cond: Condit
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "body-site", system: s, code: c))
+            p.appendToken(paramName: "body-site", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -112,7 +112,7 @@ private func extract_Condition_category(_ p: inout SearchParams, _ cond: Conditi
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "category", system: s, code: c))
+            p.appendToken(paramName: "category", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -122,7 +122,7 @@ private func extract_Condition_clinical_status(_ p: inout SearchParams, _ cond: 
     for coding in cond.clinicalStatus?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "clinical-status", system: s, code: c))
+        p.appendToken(paramName: "clinical-status", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -131,7 +131,7 @@ private func extract_Condition_code(_ p: inout SearchParams, _ cond: Condition) 
     for coding in cond.code?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -152,7 +152,7 @@ private func extract_Condition_evidence(_ p: inout SearchParams, _ cond: Conditi
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "evidence", system: s, code: c))
+                p.appendToken(paramName: "evidence", system: s, code: c, display: coding.display?.value?.string)
             }
         }
     }
@@ -257,7 +257,7 @@ private func extract_Condition_severity(_ p: inout SearchParams, _ cond: Conditi
     for coding in cond.severity?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "severity", system: s, code: c))
+        p.appendToken(paramName: "severity", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -267,7 +267,7 @@ private func extract_Condition_stage(_ p: inout SearchParams, _ cond: Condition)
         for coding in stage.summary?.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "stage", system: s, code: c))
+            p.appendToken(paramName: "stage", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -287,6 +287,6 @@ private func extract_Condition_verification_status(_ p: inout SearchParams, _ co
     for coding in cond.verificationStatus?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "verification-status", system: s, code: c))
+        p.appendToken(paramName: "verification-status", system: s, code: c, display: coding.display?.value?.string)
     }
 }

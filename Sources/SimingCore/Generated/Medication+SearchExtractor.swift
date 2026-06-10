@@ -28,7 +28,7 @@ private func extract_Medication_code(_ p: inout SearchParams, _ med: Medication)
     for coding in med.code?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -48,7 +48,7 @@ private func extract_Medication_form(_ p: inout SearchParams, _ med: Medication)
     for coding in med.form?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "form", system: s, code: c))
+        p.appendToken(paramName: "form", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -81,7 +81,7 @@ private func extract_Medication_ingredient_code(_ p: inout SearchParams, _ med: 
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "ingredient-code", system: s, code: c))
+            p.appendToken(paramName: "ingredient-code", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

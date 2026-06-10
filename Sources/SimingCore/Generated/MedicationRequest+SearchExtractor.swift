@@ -47,7 +47,7 @@ private func extract_MedicationRequest_category(_ p: inout SearchParams, _ mr: M
         for coding in cc.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "category", system: s, code: c))
+            p.appendToken(paramName: "category", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }
@@ -58,7 +58,7 @@ private func extract_MedicationRequest_code(_ p: inout SearchParams, _ mr: Medic
     for coding in cc.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "code", system: s, code: c))
+        p.appendToken(paramName: "code", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -122,7 +122,7 @@ private func extract_MedicationRequest_intended_performertype(_ p: inout SearchP
     for coding in mr.performerType?.coding ?? [] {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "intended-performertype", system: s, code: c))
+        p.appendToken(paramName: "intended-performertype", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 

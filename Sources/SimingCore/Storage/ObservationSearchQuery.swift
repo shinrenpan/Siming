@@ -59,6 +59,7 @@ public struct ObservationSearchQuery: Sendable {
     public var id: [String]               // _id filter (OR)
     public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]   // _lastUpdated range filter
+    public var tokenTexts: [TokenTextParam]  // param:text=value modifier
     public var missing: [String: Bool]    // param:missing=true/false
     public var chains: [ChainedParam]    // chained search: subject.name=Wang, etc.
     public var has: [HasParam]           // _has modifier: reverse chaining
@@ -123,6 +124,7 @@ public struct ObservationSearchQuery: Sendable {
         valueString: [StringParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -183,6 +185,7 @@ public struct ObservationSearchQuery: Sendable {
         self.valueString    = valueString
         self.id             = id
         self.lastUpdated    = lastUpdated
+        self.tokenTexts     = tokenTexts
         self.missing        = missing
         self.chains         = chains
         self.has            = has

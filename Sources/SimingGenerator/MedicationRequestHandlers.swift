@@ -70,7 +70,7 @@ func medicationRequestHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -85,7 +85,7 @@ func medicationRequestHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -181,7 +181,7 @@ func medicationRequestHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in mr.performerType?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """

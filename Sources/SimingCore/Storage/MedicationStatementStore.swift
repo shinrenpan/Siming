@@ -451,6 +451,14 @@ public struct MedicationStatementStore: Sendable {
             }
         }
 
+        // token:text filters
+        for (i, tt) in query.tokenTexts.enumerated() {
+            let pn = bind("\(tt.paramName):text")
+            let val = bind("%\(tt.value)%")
+            filterCTEs.append(("f_ttext\(i)",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'MedicationStatement' AND param_name = \(pn) AND value ILIKE \(val)"))
+        }
+
         let strBind: (String) -> String = { bind($0) }
         let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "MedicationStatement", meta: query.meta, bind: strBind)
         filterCTEs += metaCTEs
@@ -708,6 +716,14 @@ public struct MedicationStatementStore: Sendable {
             ) {
                 filterCTEs.append((name, sql))
             }
+        }
+
+        // token:text filters
+        for (i, tt) in query.tokenTexts.enumerated() {
+            let pn = bind("\(tt.paramName):text")
+            let val = bind("%\(tt.value)%")
+            filterCTEs.append(("f_ttext\(i)",
+                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'MedicationStatement' AND param_name = \(pn) AND value ILIKE \(val)"))
         }
 
         let strBind: (String) -> String = { bind($0) }

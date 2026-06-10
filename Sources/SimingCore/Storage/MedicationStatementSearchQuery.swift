@@ -21,6 +21,7 @@ public struct MedicationStatementSearchQuery: Sendable {
     public var partOf: String?                      // reference: partOf
     public var id: [String]                         // _id filter (OR)
     public var lastUpdated: [DateParam]             // _lastUpdated range filter
+    public var tokenTexts: [TokenTextParam]         // param:text=value modifier
     public var missing: [String: Bool]              // param:missing=true/false
     public var chains: [ChainedParam]               // chained search
     public var has: [HasParam]                      // _has modifier: reverse chaining
@@ -51,6 +52,7 @@ public struct MedicationStatementSearchQuery: Sendable {
         partOf: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -77,6 +79,7 @@ public struct MedicationStatementSearchQuery: Sendable {
         self.partOf       = partOf
         self.id           = id
         self.lastUpdated  = lastUpdated
+        self.tokenTexts   = tokenTexts
         self.missing      = missing
         self.chains       = chains
         self.has          = has

@@ -34,13 +34,13 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in obs.code.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+                p.appendToken(paramName: "combo-code", system: s, code: c, display: coding.display?.value?.string)
             }
             for comp in obs.component ?? [] {
                 for coding in comp.code.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "combo-code", system: s, code: c))
+                    p.appendToken(paramName: "combo-code", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -55,7 +55,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in obs.dataAbsentReason?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "data-absent-reason", system: s, code: c))
+                p.appendToken(paramName: "data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -69,13 +69,13 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in obs.dataAbsentReason?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+                p.appendToken(paramName: "combo-data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
             }
             for comp in obs.component ?? [] {
                 for coding in comp.dataAbsentReason?.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "combo-data-absent-reason", system: s, code: c))
+                    p.appendToken(paramName: "combo-data-absent-reason", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -92,7 +92,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "component-value-concept", system: s, code: c))
+                    p.appendToken(paramName: "component-value-concept", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -108,7 +108,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in cc.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "value-concept", system: s, code: c))
+                p.appendToken(paramName: "value-concept", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -268,7 +268,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+                    p.appendToken(paramName: "combo-value-concept", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
             for comp in obs.component ?? [] {
@@ -276,7 +276,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "combo-value-concept", system: s, code: c))
+                    p.appendToken(paramName: "combo-value-concept", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -334,11 +334,12 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in obs.code.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
             if let text = obs.code.text?.value?.string {
                 p.tokens.append(.init(paramName: "\(code)", system: nil, code: text))
             }
+            p.appendConceptText(paramName: "\(code)", obs.code.text?.value?.string)
         }
         """
 
@@ -363,8 +364,9 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
+                p.appendConceptText(paramName: "\(code)", cc.text?.value?.string)
             }
         }
         """
@@ -390,7 +392,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in obs.method?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -404,7 +406,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in comp.dataAbsentReason?.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -419,7 +421,7 @@ func observationHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in comp.code.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }

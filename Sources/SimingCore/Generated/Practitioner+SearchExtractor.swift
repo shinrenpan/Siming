@@ -96,7 +96,7 @@ private func extract_Practitioner_communication(_ p: inout SearchParams, _ prac:
         for coding in comm.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "communication", system: s, code: c))
+            p.appendToken(paramName: "communication", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

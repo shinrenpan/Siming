@@ -115,7 +115,7 @@ private func extract_Location_operational_status(_ p: inout SearchParams, _ loc:
     if let coding = loc.operationalStatus {
         let c = coding.code?.value?.string ?? ""
         let s = coding.system?.value?.url.absoluteString
-        p.tokens.append(.init(paramName: "operational-status", system: s, code: c))
+        p.appendToken(paramName: "operational-status", system: s, code: c, display: coding.display?.value?.string)
     }
 }
 
@@ -153,7 +153,7 @@ private func extract_Location_type(_ p: inout SearchParams, _ loc: Location) {
         for coding in t.coding ?? [] {
             let c = coding.code?.value?.string ?? ""
             let s = coding.system?.value?.url.absoluteString
-            p.tokens.append(.init(paramName: "type", system: s, code: c))
+            p.appendToken(paramName: "type", system: s, code: c, display: coding.display?.value?.string)
         }
     }
 }

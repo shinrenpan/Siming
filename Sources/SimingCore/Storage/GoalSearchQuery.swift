@@ -26,6 +26,7 @@ public struct GoalSearchQuery: Sendable {
     public var id: [String]
     public var meta: MetaSearchParams = MetaSearchParams()  // _tag / _security / _profile
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -52,6 +53,7 @@ public struct GoalSearchQuery: Sendable {
         patient: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -74,6 +76,7 @@ public struct GoalSearchQuery: Sendable {
         self.patient            = patient
         self.id                 = id
         self.lastUpdated        = lastUpdated
+        self.tokenTexts         = tokenTexts
         self.missing            = missing
         self.chains             = chains
         self.has                = has

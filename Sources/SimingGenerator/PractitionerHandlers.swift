@@ -101,7 +101,7 @@ func practitionerHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in comm.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }

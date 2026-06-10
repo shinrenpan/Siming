@@ -20,6 +20,7 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
     public var instantiatesUri: [String]             // instantiates-uri (URI)
     public var id: [String]                          // _id filter (OR)
     public var lastUpdated: [DateParam]              // _lastUpdated range filter
+    public var tokenTexts: [TokenTextParam]          // param:text=value modifier
     public var missing: [String: Bool]               // param:missing=true/false
     public var chains: [ChainedParam]                // chained search
     public var has: [HasParam]                       // _has modifier: reverse chaining
@@ -49,6 +50,7 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
         instantiatesUri: [String] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -74,6 +76,7 @@ public struct FamilyMemberHistorySearchQuery: Sendable {
         self.instantiatesUri        = instantiatesUri
         self.id                     = id
         self.lastUpdated     = lastUpdated
+        self.tokenTexts      = tokenTexts
         self.missing         = missing
         self.chains          = chains
         self.has             = has

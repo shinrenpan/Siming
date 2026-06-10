@@ -65,7 +65,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in sr.code?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -79,7 +79,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cat.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -94,7 +94,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in site.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                    p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }
@@ -121,7 +121,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
             for coding in sr.performerType?.coding ?? [] {
                 let c = coding.code?.value?.string ?? ""
                 let s = coding.system?.value?.url.absoluteString
-                p.tokens.append(.init(paramName: "\(code)", system: s, code: c))
+                p.appendToken(paramName: "\(code)", system: s, code: c, display: coding.display?.value?.string)
             }
         }
         """
@@ -331,7 +331,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                 for coding in cc.coding ?? [] {
                     let c = coding.code?.value?.string ?? ""
                     let s = coding.system?.value?.url.absoluteString
-                    p.tokens.append(.init(paramName: "order-detail", system: s, code: c))
+                    p.appendToken(paramName: "order-detail", system: s, code: c, display: coding.display?.value?.string)
                 }
             }
         }

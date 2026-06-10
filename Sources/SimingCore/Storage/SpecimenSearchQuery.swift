@@ -32,6 +32,7 @@ public struct SpecimenSearchQuery: Sendable {
     // system params
     public var id: [String]
     public var lastUpdated: [DateParam]
+    public var tokenTexts: [TokenTextParam]
     public var missing: [String: Bool]
     public var chains: [ChainedParam]
     public var has: [HasParam]
@@ -66,6 +67,7 @@ public struct SpecimenSearchQuery: Sendable {
         parent: String? = nil,
         id: [String] = [],
         lastUpdated: [DateParam] = [],
+        tokenTexts: [TokenTextParam] = [],
         missing: [String: Bool] = [:],
         chains: [ChainedParam] = [],
         has: [HasParam] = [],
@@ -96,6 +98,7 @@ public struct SpecimenSearchQuery: Sendable {
         self.parent         = parent
         self.id             = id
         self.lastUpdated    = lastUpdated
+        self.tokenTexts     = tokenTexts
         self.missing        = missing
         self.chains         = chains
         self.has            = has
