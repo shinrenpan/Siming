@@ -18,9 +18,7 @@ PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run Sim
 
 Server listens on `http://localhost:8080`.
 
-> **Note:** Linux / Docker builds are currently unsupported. FHIRModels 0.9.2 depends on
-> Apple's `os` framework (`import os`), which is unavailable on Linux. This will be
-> restored once FHIRModels ships a Linux-compatible release.
+> **Note:** Linux builds require Swift 6.2+. macOS and Linux (Docker) are both supported as of FHIRModels 0.9.3.
 
 ## FHIR R4 capabilities
 
