@@ -8,9 +8,10 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Goal priority: **A first, everything else later**.
-- **A (now):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **Later:** Production readiness, deeper FHIR features, Core IG, OAuth — when A is solid. Do not pull later-stage work into A.
+Server-side Swift FHIR R4 server. Current phase: **B**.
+- **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
+- **B (now):** Production readiness — Transaction Bundle (atomic multi-resource writes), SMART on FHIR (JWT Bearer / Resource Server role), rate limiting. Then Inferno/Touchstone.
+- **Later:** Core IG, terminology, subscriptions, R5.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
@@ -18,7 +19,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
 - **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=40 (set in `DatabaseConfiguration.postgresClientConfiguration`).
-- **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.2`.
+- **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.3`. Linux builds supported.
 - **FHIR version:** R4 only. R5 door stays open via the generator.
 
 ### FHIRModels API cheatsheet
@@ -186,12 +187,15 @@ f_date0 AS (
   WHERE resource_type = 'Patient' AND param_name = 'birthdate' AND date_end >= $2
 ),
 ids AS MATERIALIZED (
-  SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated
-  FROM resources r
-  JOIN f_name  ON f_name.resource_id  = r.id
-  JOIN f_date0 ON f_date0.resource_id = r.id
-  WHERE r.resource_type = 'Patient' AND r.deleted = false
-  ORDER BY r.id, r.version_id DESC
+  -- LATERAL variant (when filter CTEs present) — built by buildIdsInner() in MultiSort.swift
+  SELECT f_name.resource_id AS id, lat.version_id, lat.last_updated
+  FROM f_name
+  JOIN f_date0 ON f_date0.resource_id = f_name.resource_id
+  JOIN LATERAL (
+    SELECT version_id, last_updated FROM resources
+    WHERE resource_type = 'Patient' AND id = f_name.resource_id AND deleted = false
+    ORDER BY version_id DESC LIMIT 1
+  ) lat ON TRUE
 ),
 total_count AS (SELECT COUNT(*) AS n FROM ids),
 paged AS (SELECT id, version_id, last_updated FROM ids ORDER BY last_updated DESC, id ASC LIMIT $3)
@@ -200,7 +204,7 @@ FROM paged p CROSS JOIN total_count t
 JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` ensures the join + DISTINCT ON is evaluated exactly once even though it is referenced by both `total_count` and `paged`. Content is fetched only for the final page (deferred-content pattern).
+**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` — it auto-selects LATERAL (when filterCTEs non-empty, uses `resources_live_idx` Index Only Scans) vs DISTINCT ON (full scan fallback when no filters). Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` is evaluated exactly once even though referenced by both `total_count` and `paged`. Content is fetched only for the final page (deferred-content pattern).
 
 ## FHIR wire-format rules
 
@@ -216,7 +220,9 @@ Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` ensures the j
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
-**Deferred (do not build now):** Inferno/Touchstone, SMART on FHIR, terminology, `$operations`, transaction bundles, subscriptions.
+**B phase (build now):** Transaction bundles (`POST /` type=transaction), SMART on FHIR (JWT Bearer / Resource Server), rate limiting, Inferno/Touchstone.
+
+**Deferred (do not build now):** terminology, `$operations`, subscriptions, Core IG.
 
 ## Pagination
 
