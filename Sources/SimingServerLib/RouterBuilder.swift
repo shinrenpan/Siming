@@ -6,13 +6,18 @@ import SimingCore
 public func buildRouter(
     stores: StoreContainer,
     registry: PrometheusCollectorRegistry,
-    logger: Logger
+    logger: Logger,
+    smartConfig: SmartConfiguration? = nil
 ) -> Router<BasicRequestContext> {
     let router = Router()
     router.middlewares.add(MetricsMiddleware())
     router.middlewares.add(FormatMiddleware())
+    if let smartConfig {
+        router.middlewares.add(BearerAuthMiddleware(config: smartConfig, logger: logger))
+        addSmartRoutes(to: router, config: smartConfig)
+    }
     router.get("health") { _, _ in HTTPResponse.Status.ok }
-    addMetadataRoutes(to: router)
+    addMetadataRoutes(to: router, smartConfig: smartConfig)
     addMetricsRoute(to: router, registry: registry)
     addPatientRoutes(to: router, store: stores.patient, logger: logger)
     addObservationRoutes(to: router, store: stores.observation, logger: logger)

@@ -10,7 +10,7 @@ Only include information that prevents mistakes.
 
 Server-side Swift FHIR R4 server. Current phase: **B**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **B (now):** Production readiness — Transaction Bundle (atomic multi-resource writes), SMART on FHIR (JWT Bearer / Resource Server role), rate limiting. Then Inferno/Touchstone.
+- **B (now):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, rate limiting, Inferno/Touchstone.
 - **Later:** Core IG, terminology, subscriptions, R5.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
@@ -220,7 +220,7 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
-**B phase (build now):** ~~Transaction bundles~~ ✓, SMART on FHIR (JWT Bearer / Resource Server), rate limiting, Inferno/Touchstone.
+**B phase (build now):** ~~Transaction bundles~~ ✓, ~~SMART on FHIR (JWT Bearer / Resource Server)~~ ✓, rate limiting, Inferno/Touchstone.
 
 **Deferred (do not build now):** terminology, `$operations`, subscriptions, Core IG.
 

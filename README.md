@@ -87,6 +87,15 @@ Server listens on `http://localhost:8080`.
 
 For the full per-resource search parameter list, see [`docs/search-params.md`](docs/search-params.md).
 
+### Security
+
+| Feature | Status |
+|---|---|
+| SMART on FHIR JWT Bearer (resource server) — `SMART_ISSUER` + JWKS or PEM | ✓ |
+| `GET /.well-known/smart-configuration` | ✓ |
+
+Auth is opt-in: set `SMART_ISSUER` to enable. `/health`, `/metadata`, `/metrics`, `/.well-known/smart-configuration` are always public.
+
 ### Other
 
 | Feature | Status |
@@ -108,6 +117,10 @@ All error responses are `OperationOutcome`.
 | `PGPASSWORD` | — | Postgres password |
 | `PGDATABASE` | — | Postgres database name |
 | `MIGRATIONS_PATH` | `migrations` | Path to SQL migration files (relative to CWD) |
+| `SMART_ISSUER` | — | Expected JWT `iss` value; enables SMART bearer auth when set |
+| `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup to load public keys |
+| `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM — alternative to `SMART_JWKS_URL` |
+| `SMART_AUDIENCE` | — | Expected JWT `aud` value (optional) |
 
 ## Building from source
 

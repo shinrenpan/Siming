@@ -3,10 +3,13 @@ import Hummingbird
 import ModelsR4
 import NIOCore
 
-public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
+public func addMetadataRoutes(
+    to router: Router<BasicRequestContext>,
+    smartConfig: SmartConfiguration? = nil
+) {
     // GET /metadata — FHIR CapabilityStatement
     router.get("metadata") { _, _ in
-        let cs = buildCapabilityStatement()
+        let cs = buildCapabilityStatement(smartConfig: smartConfig)
         let data = try JSONEncoder().encode(cs)
         var headers = HTTPFields()
         headers[.contentType] = "application/fhir+json"
@@ -20,26 +23,26 @@ public func addMetadataRoutes(to router: Router<BasicRequestContext>) {
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
-private func buildCapabilityStatement() -> CapabilityStatement {
+private func buildCapabilityStatement(smartConfig: SmartConfiguration?) -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-08")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-10")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
         name: FHIRPrimitive(FHIRString("SimingCapabilityStatement")),
         publisher: FHIRPrimitive(FHIRString("Siming 司命")),
-        rest: [serverRest()],
+        rest: [serverRest(smartConfig: smartConfig)],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.42.0"))
+            version: FHIRPrimitive(FHIRString("0.79.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.42.0"))
+        version: FHIRPrimitive(FHIRString("0.79.0"))
     )
 }
 
-private func serverRest() -> CapabilityStatementRest {
+private func serverRest(smartConfig: SmartConfiguration?) -> CapabilityStatementRest {
     var rest = CapabilityStatementRest(
         mode: FHIRPrimitive(.server),
         resource: [patientResource(), observationResource(), encounterResource(), conditionResource(),
@@ -54,6 +57,22 @@ private func serverRest() -> CapabilityStatementRest {
     rest.compartment = [
         FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CompartmentDefinition/patient"))
     ]
+    if smartConfig != nil {
+        let security = CapabilityStatementRestSecurity(
+            cors: FHIRPrimitive(FHIRBool(true)),
+            description_fhir: FHIRPrimitive(FHIRString("SMART App Launch Framework")),
+            service: [
+                CodeableConcept(coding: [
+                    Coding(
+                        code: FHIRPrimitive(FHIRString("SMART-on-FHIR")),
+                        display: FHIRPrimitive(FHIRString("SMART-on-FHIR")),
+                        system: FHIRPrimitive(FHIRURI(stringLiteral: "http://terminology.hl7.org/CodeSystem/restful-security-service"))
+                    )
+                ])
+            ]
+        )
+        rest.security = security
+    }
     rest.interaction = [
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.transaction)),
         CapabilityStatementRestInteraction(code: FHIRPrimitive(.historySystem)),
