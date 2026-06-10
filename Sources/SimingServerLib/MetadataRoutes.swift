@@ -205,6 +205,42 @@ private func patientResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.date)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-deceased")),
+                documentation: FHIRPrimitive(FHIRString("Boolean or code token: deceased=true, deceased=false, or deceased=[date code].")),
+                name: FHIRPrimitive(FHIRString("deceased")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-death-date")),
+                documentation: FHIRPrimitive(FHIRString("Date of death. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("death-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-general-practitioner")),
+                documentation: FHIRPrimitive(FHIRString("Patient.generalPractitioner[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("general-practitioner")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-organization")),
+                documentation: FHIRPrimitive(FHIRString("Patient.managingOrganization. Reference: Organization/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("organization")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-link")),
+                documentation: FHIRPrimitive(FHIRString("Patient.link[].other reference.")),
+                name: FHIRPrimitive(FHIRString("link")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Patient-language")),
+                documentation: FHIRPrimitive(FHIRString("Patient.communication[].language. Token: system|code, code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("language")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
                 documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -319,6 +355,168 @@ private func observationResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.quantity)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-based-on")),
+                documentation: FHIRPrimitive(FHIRString("Observation.basedOn[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-derived-from")),
+                documentation: FHIRPrimitive(FHIRString("Observation.derivedFrom[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("derived-from")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-device")),
+                documentation: FHIRPrimitive(FHIRString("Observation.device. Reference: Device/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("device")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-focus")),
+                documentation: FHIRPrimitive(FHIRString("Observation.focus[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("focus")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-has-member")),
+                documentation: FHIRPrimitive(FHIRString("Observation.hasMember[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("has-member")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-part-of")),
+                documentation: FHIRPrimitive(FHIRString("Observation.partOf[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("part-of")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-specimen")),
+                documentation: FHIRPrimitive(FHIRString("Observation.specimen. Reference: Specimen/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("specimen")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-method")),
+                documentation: FHIRPrimitive(FHIRString("Observation.method. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("method")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Observation.valueCodeableConcept. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("value-concept")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-value-date")),
+                documentation: FHIRPrimitive(FHIRString("Observation.valueDateTime. Prefixes: eq, lt, gt, le, ge.")),
+                name: FHIRPrimitive(FHIRString("value-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-value-string")),
+                documentation: FHIRPrimitive(FHIRString("Observation.valueString. Prefix/contains/exact match.")),
+                name: FHIRPrimitive(FHIRString("value-string")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-code")),
+                documentation: FHIRPrimitive(FHIRString("Observation.code AND Observation.component[].code (OR). Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("combo-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Observation.valueCodeableConcept AND component[].valueCodeableConcept (OR). Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("combo-value-concept")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-value-quantity")),
+                documentation: FHIRPrimitive(FHIRString("Observation.valueQuantity and component[].valueQuantity. Prefixes: eq, lt, gt, le, ge, ne, ap. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("combo-value-quantity")),
+                type: FHIRPrimitive(.quantity)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-component-value-quantity")),
+                documentation: FHIRPrimitive(FHIRString("Observation.component[].valueQuantity. Prefixes: eq, lt, gt, le, ge, ne, ap.")),
+                name: FHIRPrimitive(FHIRString("component-value-quantity")),
+                type: FHIRPrimitive(.quantity)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-component-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Observation.component[].valueCodeableConcept. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("component-value-concept")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-component-data-absent-reason")),
+                documentation: FHIRPrimitive(FHIRString("Observation.component[].dataAbsentReason. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("component-data-absent-reason")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-data-absent-reason")),
+                documentation: FHIRPrimitive(FHIRString("Observation.dataAbsentReason. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("data-absent-reason")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-data-absent-reason")),
+                documentation: FHIRPrimitive(FHIRString("Observation.dataAbsentReason AND component[].dataAbsentReason (OR). Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("combo-data-absent-reason")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-code-value-quantity")),
+                documentation: FHIRPrimitive(FHIRString("Composite: code$value-quantity. Format: code-value-quantity=system|code$[prefix]value[|system][|code].")),
+                name: FHIRPrimitive(FHIRString("code-value-quantity")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-code-value-string")),
+                documentation: FHIRPrimitive(FHIRString("Composite: code$value-string. Format: code-value-string=system|code$string-value.")),
+                name: FHIRPrimitive(FHIRString("code-value-string")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-code-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Composite: code$value-concept. Format: code-value-concept=system|code$system|code.")),
+                name: FHIRPrimitive(FHIRString("code-value-concept")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-code-value-date")),
+                documentation: FHIRPrimitive(FHIRString("Composite: code$value-date. Format: code-value-date=system|code$date.")),
+                name: FHIRPrimitive(FHIRString("code-value-date")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-component-code-value-quantity")),
+                documentation: FHIRPrimitive(FHIRString("Composite on component: component-code$component-value-quantity. Uses idx_composite.")),
+                name: FHIRPrimitive(FHIRString("component-code-value-quantity")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-component-code-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Composite on component: component-code$component-value-concept. Uses idx_composite.")),
+                name: FHIRPrimitive(FHIRString("component-code-value-concept")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-code-value-quantity")),
+                documentation: FHIRPrimitive(FHIRString("Composite combining code and value-quantity or component-code and component-value-quantity. Uses idx_composite.")),
+                name: FHIRPrimitive(FHIRString("combo-code-value-quantity")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Observation-combo-code-value-concept")),
+                documentation: FHIRPrimitive(FHIRString("Composite combining code and value-concept or component variants. Uses idx_composite.")),
+                name: FHIRPrimitive(FHIRString("combo-code-value-concept")),
+                type: FHIRPrimitive(.composite)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
                 documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -401,6 +599,102 @@ private func encounterResource() -> CapabilityStatementRestResource {
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-identifier")),
                 documentation: FHIRPrimitive(FHIRString("Token OR on Encounter.identifier. Formats: code, system|code, system|.")),
                 name: FHIRPrimitive(FHIRString("identifier")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-account")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.account[]. Reference: Account/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("account")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-appointment")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.appointment[]. Reference: Appointment/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("appointment")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-based-on")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.basedOn[]. Reference: ServiceRequest/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-diagnosis")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.diagnosis[].condition. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("diagnosis")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-episode-of-care")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.episodeOfCare[]. Reference: EpisodeOfCare/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("episode-of-care")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-length")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.length (Duration). Prefixes: eq (sig-figs range), lt, gt, le, ge, ne, ap (±10%).")),
+                name: FHIRPrimitive(FHIRString("length")),
+                type: FHIRPrimitive(.quantity)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-location")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.location[].location. Reference: Location/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("location")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-location-period")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.location[].period. Date range on location period.")),
+                name: FHIRPrimitive(FHIRString("location-period")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-part-of")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.partOf. Reference: Encounter/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("part-of")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-participant")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.participant[].individual. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("participant")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-participant-type")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.participant[].type. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("participant-type")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-practitioner")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.participant[].individual where type=Practitioner. Reference: Practitioner/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("practitioner")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-reason-code")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.reasonCode[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("reason-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-reason-reference")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.reasonReference[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("reason-reference")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-service-provider")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.serviceProvider. Reference: Organization/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("service-provider")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Encounter-special-arrangement")),
+                documentation: FHIRPrimitive(FHIRString("Encounter.hospitalization.specialArrangement. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("special-arrangement")),
                 type: FHIRPrimitive(.token)
             ),
             CapabilityStatementRestResourceSearchParam(
@@ -508,6 +802,66 @@ private func conditionResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Date search on Condition.recordedDate. Prefixes: eq, lt, gt, le, ge.")),
                 name: FHIRPrimitive(FHIRString("recorded-date")),
                 type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-asserter")),
+                documentation: FHIRPrimitive(FHIRString("Condition.asserter. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("asserter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-evidence-detail")),
+                documentation: FHIRPrimitive(FHIRString("Condition.evidence[].detail[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("evidence-detail")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-body-site")),
+                documentation: FHIRPrimitive(FHIRString("Condition.bodySite[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("body-site")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-evidence")),
+                documentation: FHIRPrimitive(FHIRString("Condition.evidence[].code[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("evidence")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-severity")),
+                documentation: FHIRPrimitive(FHIRString("Condition.severity.coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("severity")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-stage")),
+                documentation: FHIRPrimitive(FHIRString("Condition.stage[].summary.coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("stage")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-onset-info")),
+                documentation: FHIRPrimitive(FHIRString("Condition.onsetString. Prefix/contains/exact match.")),
+                name: FHIRPrimitive(FHIRString("onset-info")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-abatement-string")),
+                documentation: FHIRPrimitive(FHIRString("Condition.abatementString. Prefix/contains/exact match.")),
+                name: FHIRPrimitive(FHIRString("abatement-string")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-onset-age")),
+                documentation: FHIRPrimitive(FHIRString("Condition.onsetAge. Prefixes: eq (sig-figs range), lt, gt, le, ge, ne, ap.")),
+                name: FHIRPrimitive(FHIRString("onset-age")),
+                type: FHIRPrimitive(.quantity)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Condition-abatement-age")),
+                documentation: FHIRPrimitive(FHIRString("Condition.abatementAge. Prefixes: eq (sig-figs range), lt, gt, le, ge, ne, ap.")),
+                name: FHIRPrimitive(FHIRString("abatement-age")),
+                type: FHIRPrimitive(.quantity)
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
@@ -697,6 +1051,36 @@ private func medicationRequestResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-date")),
+                documentation: FHIRPrimitive(FHIRString("MedicationRequest.authoredOn. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
+                name: FHIRPrimitive(FHIRString("date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-intended-dispenser")),
+                documentation: FHIRPrimitive(FHIRString("MedicationRequest.dispenseRequest.performer. Reference: Organization/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("intended-dispenser")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-intended-performer")),
+                documentation: FHIRPrimitive(FHIRString("MedicationRequest.performer. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("intended-performer")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-intended-performertype")),
+                documentation: FHIRPrimitive(FHIRString("MedicationRequest.performerType.coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("intended-performertype")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/MedicationRequest-medication")),
+                documentation: FHIRPrimitive(FHIRString("MedicationRequest.medicationReference. Reference: Medication/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("medication")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
                 documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -818,6 +1202,18 @@ private func allergyIntoleranceResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.date)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-asserter")),
+                documentation: FHIRPrimitive(FHIRString("AllergyIntolerance.asserter. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("asserter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/AllergyIntolerance-recorder")),
+                documentation: FHIRPrimitive(FHIRString("AllergyIntolerance.recorder. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("recorder")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
                 documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -907,6 +1303,48 @@ private func procedureResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Date search on Procedure.performed[x]. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
                 name: FHIRPrimitive(FHIRString("date")),
                 type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-based-on")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.basedOn[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-instantiates-canonical")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.instantiatesCanonical[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-canonical")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-instantiates-uri")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.instantiatesUri[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-uri")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-location")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.location. Reference: Location/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("location")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-part-of")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.partOf[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("part-of")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-reason-code")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.reasonCode[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("reason-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Procedure-reason-reference")),
+                documentation: FHIRPrimitive(FHIRString("Procedure.reasonReference[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("reason-reference")),
+                type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
@@ -1006,6 +1444,42 @@ private func diagnosticReportResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.date)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-based-on")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.basedOn[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-conclusion")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.conclusionCode[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("conclusion")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-media")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.media[].link. Reference: Media/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("media")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-result")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.result[]. Reference: Observation/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("result")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-results-interpreter")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.resultsInterpreter[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("results-interpreter")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DiagnosticReport-specimen")),
+                documentation: FHIRPrimitive(FHIRString("DiagnosticReport.specimen[]. Reference: Specimen/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("specimen")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
                 documentation: FHIRPrimitive(FHIRString("Filter by resource id. Comma-separated for OR.")),
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -1083,6 +1557,60 @@ private func immunizationResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Starts-with on Immunization.lotNumber. Modifiers: :contains, :exact.")),
                 name: FHIRPrimitive(FHIRString("lot-number")),
                 type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-location")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.location. Reference: Location/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("location")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-manufacturer")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.manufacturer. Reference: Organization/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("manufacturer")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-reaction")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.reaction[].detail. Reference: Observation/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("reaction")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-reaction-date")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.reaction[].date. Date range.")),
+                name: FHIRPrimitive(FHIRString("reaction-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-reason-code")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.reasonCode[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("reason-code")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-reason-reference")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.reasonReference[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("reason-reference")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-series")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.protocolApplied[].series. Prefix/contains/exact.")),
+                name: FHIRPrimitive(FHIRString("series")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-status-reason")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.statusReason.coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("status-reason")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Immunization-target-disease")),
+                documentation: FHIRPrimitive(FHIRString("Immunization.protocolApplied[].targetDisease[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("target-disease")),
+                type: FHIRPrimitive(.token)
             ),
             CapabilityStatementRestResourceSearchParam(
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Resource-id")),
@@ -1200,6 +1728,18 @@ private func practitionerResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.token)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-address-use")),
+                documentation: FHIRPrimitive(FHIRString("Practitioner.address[].use. Token: home|work|temp|old|billing.")),
+                name: FHIRPrimitive(FHIRString("address-use")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Practitioner-phonetic")),
+                documentation: FHIRPrimitive(FHIRString("Practitioner.name phonetic match (same as :contains on name).")),
+                name: FHIRPrimitive(FHIRString("phonetic")),
+                type: FHIRPrimitive(.string)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
                 type: FHIRPrimitive(.token)
             ),
@@ -1282,6 +1822,24 @@ private func organizationResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Reference to parent Organization.")),
                 name: FHIRPrimitive(FHIRString("partof")),
                 type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-address-use")),
+                documentation: FHIRPrimitive(FHIRString("Organization.address[].use. Token: home|work|temp|old|billing.")),
+                name: FHIRPrimitive(FHIRString("address-use")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-endpoint")),
+                documentation: FHIRPrimitive(FHIRString("Organization.endpoint[]. Reference: Endpoint/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("endpoint")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Organization-phonetic")),
+                documentation: FHIRPrimitive(FHIRString("Organization.name phonetic match (same as :contains on name).")),
+                name: FHIRPrimitive(FHIRString("phonetic")),
+                type: FHIRPrimitive(.string)
             ),
             CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -1380,6 +1938,18 @@ private func locationResource() -> CapabilityStatementRestResource {
                 definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Location-partof")),
                 documentation: FHIRPrimitive(FHIRString("Reference to parent Location.")),
                 name: FHIRPrimitive(FHIRString("partof")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Location-address-use")),
+                documentation: FHIRPrimitive(FHIRString("Location.address.use. Token: home|work|temp|old|billing.")),
+                name: FHIRPrimitive(FHIRString("address-use")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Location-endpoint")),
+                documentation: FHIRPrimitive(FHIRString("Location.endpoint[]. Reference: Endpoint/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("endpoint")),
                 type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
@@ -1659,6 +2229,24 @@ private func serviceRequestResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/ServiceRequest-instantiates-canonical")),
+                documentation: FHIRPrimitive(FHIRString("ServiceRequest.instantiatesCanonical[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-canonical")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/ServiceRequest-instantiates-uri")),
+                documentation: FHIRPrimitive(FHIRString("ServiceRequest.instantiatesUri[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-uri")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/ServiceRequest-order-detail")),
+                documentation: FHIRPrimitive(FHIRString("ServiceRequest.orderDetail[].coding. Token: system|code. Modifier: :not.")),
+                name: FHIRPrimitive(FHIRString("order-detail")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
                 type: FHIRPrimitive(.token)
             ),
@@ -1903,6 +2491,24 @@ private func carePlanResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-activity-date")),
+                documentation: FHIRPrimitive(FHIRString("CarePlan.activity[].detail.scheduledTiming/Period. Date range.")),
+                name: FHIRPrimitive(FHIRString("activity-date")),
+                type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-instantiates-canonical")),
+                documentation: FHIRPrimitive(FHIRString("CarePlan.instantiatesCanonical[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-canonical")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/CarePlan-instantiates-uri")),
+                documentation: FHIRPrimitive(FHIRString("CarePlan.instantiatesUri[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-uri")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
                 type: FHIRPrimitive(.token)
             ),
@@ -2020,6 +2626,48 @@ private func documentReferenceResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Reference to context.encounter (Encounter).")),
                 name: FHIRPrimitive(FHIRString("encounter")),
                 type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-authenticator")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.authenticator. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("authenticator")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-custodian")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.custodian. Reference: Organization/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("custodian")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-location")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.content[].attachment.url. URI match.")),
+                name: FHIRPrimitive(FHIRString("location")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-related")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.context.related[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("related")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-relatesto")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.relatesTo[].target. Reference: DocumentReference/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("relatesto")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-relation")),
+                documentation: FHIRPrimitive(FHIRString("DocumentReference.relatesTo[].code. Token: system|code.")),
+                name: FHIRPrimitive(FHIRString("relation")),
+                type: FHIRPrimitive(.token)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/DocumentReference-relationship")),
+                documentation: FHIRPrimitive(FHIRString("Composite: relatesto$relation.")),
+                name: FHIRPrimitive(FHIRString("relationship")),
+                type: FHIRPrimitive(.composite)
             ),
             CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
@@ -2279,6 +2927,18 @@ private func familyMemberHistoryResource() -> CapabilityStatementRestResource {
                 type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-instantiates-canonical")),
+                documentation: FHIRPrimitive(FHIRString("FamilyMemberHistory.instantiatesCanonical[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-canonical")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/FamilyMemberHistory-instantiates-uri")),
+                documentation: FHIRPrimitive(FHIRString("FamilyMemberHistory.instantiatesUri[]. URI match.")),
+                name: FHIRPrimitive(FHIRString("instantiates-uri")),
+                type: FHIRPrimitive(.uri)
+            ),
+            CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
                 type: FHIRPrimitive(.token)
             ),
@@ -2388,6 +3048,18 @@ private func appointmentResource() -> CapabilityStatementRestResource {
                 documentation: FHIRPrimitive(FHIRString("Date search on Appointment.start. Prefixes: eq, lt, gt, le, ge, sa, eb.")),
                 name: FHIRPrimitive(FHIRString("date")),
                 type: FHIRPrimitive(.date)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-based-on")),
+                documentation: FHIRPrimitive(FHIRString("Appointment.basedOn[]. Reference: ServiceRequest/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("based-on")),
+                type: FHIRPrimitive(.reference)
+            ),
+            CapabilityStatementRestResourceSearchParam(
+                definition: FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/SearchParameter/Appointment-reason-reference")),
+                documentation: FHIRPrimitive(FHIRString("Appointment.reasonReference[]. Reference: ResourceType/id or bare id.")),
+                name: FHIRPrimitive(FHIRString("reason-reference")),
+                type: FHIRPrimitive(.reference)
             ),
             CapabilityStatementRestResourceSearchParam(
                 name: FHIRPrimitive(FHIRString("_id")),
