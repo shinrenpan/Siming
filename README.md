@@ -76,7 +76,7 @@ Server listens on `http://localhost:8080`.
 | Token modifier: `:not` | ✓ |
 | `:missing` modifier | ✓ |
 | Multiple values — OR (comma) / AND (repeated param) | ✓ |
-| `_sort`, `_count`, cursor pagination | ✓ |
+| `_sort` (multi-key: `_sort=family,-birthdate`), `_count`, cursor pagination | ✓ |
 | `_total` (`accurate` \| `estimate` \| `none`) | ✓ |
 | `_elements` (field projection) | ✓ |
 | `_summary` (`true` \| `text` \| `data` \| `count` \| `false`) | ✓ |
@@ -126,10 +126,10 @@ See [`benchmarks/README.md`](benchmarks/README.md) for setup and results.
 
 Sample figures (release build, 5000 patients, both servers on PostgreSQL):
 
-| Scenario | Siming | HAPI FHIR |
-|---|---|---|
-| GET /Patient/:id | 16 577 RPS | 7 055 RPS |
-| GET /Patient?name=Wang | 2 420 RPS | 1 560 RPS |
+| Scenario | Siming | HAPI FHIR | Ratio |
+|---|---|---|---|
+| GET /Patient/:id | 15 515 RPS | 6 883 RPS | **2.25x** |
+| GET /Patient?name=Wang | 2 512 RPS | 1 627 RPS | **1.54x** |
 
 ## License
 

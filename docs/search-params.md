@@ -6,7 +6,7 @@ Supported FHIR R4 search parameters for each resource type.
 
 **String params** — all string-type params support `:contains`, `:exact`, `:text` modifiers (default is prefix/startsWith).
 
-**Token params** — all token params support `:not` modifier. `:text` modifier (display-text search) is not yet implemented.
+**Token params** — all token params support `:not` and `:text` modifiers. `:text` searches the human-readable display text of codings (stored in `idx_string` with `param_name='{param}:text'`).
 
 **Date params** — all date params support prefixes: `eq` (default), `ne`, `lt`, `le`, `gt`, `ge`, `sa`, `eb`, `ap` (approximate ±10%).
 
