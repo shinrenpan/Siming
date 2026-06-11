@@ -8,12 +8,12 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Current phase: **C**.
+Server-side Swift FHIR R4 server. Current phase: **D**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
 - **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
-- **C (now):** IG-First Architecture — package.tgz loading, TW Core IG compliance.
-- **D (later):** Terminology binding (ValueSet validation), Subscriptions/Notifications.
-- **Not planned:** R5 (explicitly out of scope), multi-tenancy.
+- **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
+- **D (now):** Terminology binding — local ValueSet/CodeSystem validation on write; `$validate` operation.
+- **Not planned:** R5 (explicitly out of scope), multi-tenancy, Subscriptions/Notifications (deprioritised — polling is sufficient for most deployments), external terminology server (Ontoserver / tx.fhir.org).
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
@@ -289,7 +289,19 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **C phase (build now):** IG-First Architecture — `SimingGenerator` reads `packages/*.tgz`, CapabilityStatement built at runtime from packages, TW Core IG compliance.
 
-**D phase (deferred):** Terminology binding (ValueSet/CodeSystem online validation), Subscriptions/Notifications.
+**D phase (build now):** Terminology binding — local ValueSet/CodeSystem validation on write, `$validate` operation.
+
+### D Phase implementation plan
+
+**D1 — ValueSet/CodeSystem index:** At startup, extract ValueSet and CodeSystem JSON resources from `packages/*.tgz` and build an in-memory index `ValueSet URL → Set<(system, code)>`. Extensional ValueSets only (explicit code lists). Skip intensional (filter-based) ValueSets — those require an external terminology server which is out of scope.
+
+**D2 — Generator: emit binding metadata:** Extend `SimingGenerator` to parse StructureDefinition elements and emit `required` binding metadata per resource type (field path → ValueSet URL). `extensible` / `preferred` / `example` bindings are skipped. This is the hardest round — StructureDefinition JSON is deeply nested. Fallback: hand-author binding lists for the most common resources if generator parsing proves intractable.
+
+**D3 — validate() hook:** Fill in the `validate(resource)` no-op in each Store using D2 metadata + D1 index. Invalid code → 422 + OperationOutcome naming the field and code. Valid → proceed to write.
+
+**D4 — `$validate` operation:** `POST /[ResourceType]/$validate` — validate without storing, return OperationOutcome. FHIR R4 standard operation.
+
+**D Phase explicit non-goals:** external terminology server, `$expand`, intensional ValueSets, full StructureDefinition shape validation (cardinality / type checking), Subscriptions.
 
 **Not planned:** R5, multi-tenancy, `$operations`.
 
