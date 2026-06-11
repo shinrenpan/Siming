@@ -9,6 +9,9 @@ A high-performance FHIR R4 server written in Swift.
 Requires macOS and a running PostgreSQL instance.
 
 ```bash
+# Download FHIR packages (one-time setup)
+bash scripts/fetch-packages.sh
+
 # Start PostgreSQL only (Docker)
 docker compose up -d db
 
@@ -109,11 +112,17 @@ Auth is opt-in: set `SMART_ISSUER` to enable. Rate limiting is opt-in: set `RATE
 
 | Feature | Status |
 |---|---|
-| CapabilityStatement (`GET /metadata`) | ✓ |
+| CapabilityStatement (`GET /metadata`) — built at runtime from FHIR packages; reflects SearchParameters and profiles from any loaded FHIR R4 IG | ✓ |
 | Prometheus metrics (`GET /metrics`) | ✓ |
 | `X-Request-ID` trace header | ✓ |
 
 All error responses are `OperationOutcome`.
+
+### IG packages
+
+`GET /metadata` is built at server startup from FHIR R4 packages in `packages/`. Place any FHIR R4 IG `.tgz` in that directory and the CapabilityStatement will reflect its SearchParameters and StructureDefinition profiles automatically — no rebuild required.
+
+`scripts/fetch-packages.sh` downloads the base R4 package (required) and an example IG package. Override the directory with `PACKAGES_DIR`.
 
 ## Configuration
 
@@ -126,6 +135,7 @@ All error responses are `OperationOutcome`.
 | `PGPASSWORD` | — | Postgres password |
 | `PGDATABASE` | — | Postgres database name |
 | `MIGRATIONS_PATH` | `migrations` | Path to SQL migration files (relative to CWD) |
+| `PACKAGES_DIR` | `packages` | Path to FHIR IG package directory (`*.tgz` files); used to build CapabilityStatement at startup |
 | `SMART_ISSUER` | — | Expected JWT `iss` value; enables SMART bearer auth when set |
 | `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup to load public keys |
 | `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM — alternative to `SMART_JWKS_URL` |
