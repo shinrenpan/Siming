@@ -52,7 +52,7 @@ public func addAppointmentRoutes(
                 headers[.contentType]  = apptFhirJSON
                 headers[.eTag]         = "W/\"\(existing.versionId)\""
                 headers[.lastModified] = httpDate(existing.lastUpdated)
-                headers[.location]     = "/Appointment/\(existing.id)/_history/\(existing.versionId)"
+                headers[.location] = "\(serverBaseURL(request))/Appointment/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
                                 body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
@@ -63,7 +63,7 @@ public func addAppointmentRoutes(
         headers[.contentType]  = apptFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Appointment/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
@@ -92,7 +92,7 @@ public func addAppointmentRoutes(
             headers[.contentType]  = apptFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Appointment/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
@@ -102,7 +102,7 @@ public func addAppointmentRoutes(
             headers[.contentType]  = apptFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Appointment/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         default:
@@ -187,7 +187,7 @@ public func addAppointmentRoutes(
         headers[.contentType]  = apptFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Appointment/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }

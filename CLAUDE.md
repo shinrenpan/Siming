@@ -254,7 +254,11 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## FHIR R4 interaction compliance
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`).
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`), CORS (`CORSMiddleware` — `OPTIONS` preflight + response headers; credentialed when `Origin` present).
+
+**Location header** on 201/200 write responses is an **absolute URL** (e.g., `http://host/Patient/id/_history/1`) built via `serverBaseURL(request)` from the `Host` header.
+
+**Accept header** validation — 406 when `Accept` is present and contains no JSON-compatible media type. `_format` takes precedence over `Accept`.
 
 **CapabilityStatement coverage (all 23 resources):** `versioning=versioned`, `conditionalCreate=true`, `conditionalRead=fullSupport`, `conditionalUpdate=true`, `conditionalDelete=single`, `updateCreate=true`, `readHistory=true`, plus per-resource `searchInclude`/`searchRevInclude`.
 

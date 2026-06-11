@@ -11,6 +11,7 @@ public func buildRouter(
     rateLimitConfig: RateLimitConfiguration? = nil
 ) -> Router<BasicRequestContext> {
     let router = Router()
+    router.middlewares.add(CORSMiddleware())
     router.middlewares.add(MetricsMiddleware())
     if let rateLimitConfig {
         router.middlewares.add(RateLimitMiddleware(config: rateLimitConfig))

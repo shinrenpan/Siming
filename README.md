@@ -66,6 +66,7 @@ Server listens on `http://localhost:8080`.
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
 | `Prefer: return=representation` / `return=minimal` / `return=OperationOutcome` on write | ✓ |
+| CORS — preflight (`OPTIONS`) + response headers for browser-based Inferno / Touchstone | ✓ |
 
 ### Search
 

@@ -55,7 +55,7 @@ public func addEncounterRoutes(
                 headers[.contentType]  = fhirJSON
                 headers[.eTag]         = "W/\"\(existing.versionId)\""
                 headers[.lastModified] = httpDate(existing.lastUpdated)
-                headers[.location]     = "/Encounter/\(existing.id)/_history/\(existing.versionId)"
+                headers[.location] = "\(serverBaseURL(request))/Encounter/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
                                 body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
@@ -66,7 +66,7 @@ public func addEncounterRoutes(
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Encounter/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Encounter/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
@@ -97,7 +97,7 @@ public func addEncounterRoutes(
             headers[.contentType]  = fhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Encounter/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Encounter/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
@@ -107,7 +107,7 @@ public func addEncounterRoutes(
             headers[.contentType]  = fhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Encounter/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Encounter/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         default:
@@ -203,7 +203,7 @@ public func addEncounterRoutes(
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Encounter/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Encounter/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
@@ -237,7 +237,7 @@ public func addEncounterRoutes(
         headers[.contentType]  = fhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Encounter/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Encounter/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }

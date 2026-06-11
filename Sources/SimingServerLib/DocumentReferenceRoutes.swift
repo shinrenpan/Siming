@@ -54,7 +54,7 @@ public func addDocumentReferenceRoutes(
                 headers[.contentType]  = docRefFhirJSON
                 headers[.eTag]         = "W/\"\(existing.versionId)\""
                 headers[.lastModified] = httpDate(existing.lastUpdated)
-                headers[.location]     = "/DocumentReference/\(existing.id)/_history/\(existing.versionId)"
+                headers[.location] = "\(serverBaseURL(request))/DocumentReference/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
                                 body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
@@ -65,7 +65,7 @@ public func addDocumentReferenceRoutes(
         headers[.contentType]  = docRefFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/DocumentReference/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
@@ -94,7 +94,7 @@ public func addDocumentReferenceRoutes(
             headers[.contentType]  = docRefFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/DocumentReference/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
@@ -104,7 +104,7 @@ public func addDocumentReferenceRoutes(
             headers[.contentType]  = docRefFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/DocumentReference/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         default:
@@ -189,7 +189,7 @@ public func addDocumentReferenceRoutes(
         headers[.contentType]  = docRefFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/DocumentReference/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }

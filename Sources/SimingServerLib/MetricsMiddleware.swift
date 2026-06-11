@@ -10,6 +10,8 @@ private let fhirResourceTypes: Set<String> = [
     "Patient", "Observation", "Encounter", "Condition", "Medication",
     "MedicationRequest", "DiagnosticReport", "Procedure", "AllergyIntolerance",
     "Immunization", "ServiceRequest", "Practitioner", "Organization", "Location",
+    "RelatedPerson", "Specimen", "DocumentReference", "CarePlan", "Goal",
+    "MedicationStatement", "FamilyMemberHistory", "Appointment", "MedicationAdministration",
 ]
 
 public struct MetricsMiddleware<Context: RequestContext>: RouterMiddleware {

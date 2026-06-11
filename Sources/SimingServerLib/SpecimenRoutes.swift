@@ -51,7 +51,7 @@ public func addSpecimenRoutes(
                 headers[.contentType]  = specFhirJSON
                 headers[.eTag]         = "W/\"\(existing.versionId)\""
                 headers[.lastModified] = httpDate(existing.lastUpdated)
-                headers[.location]     = "/Specimen/\(existing.id)/_history/\(existing.versionId)"
+                headers[.location] = "\(serverBaseURL(request))/Specimen/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
                                 body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
@@ -62,7 +62,7 @@ public func addSpecimenRoutes(
         headers[.contentType]  = specFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Specimen/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
@@ -91,7 +91,7 @@ public func addSpecimenRoutes(
             headers[.contentType]  = specFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Specimen/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
@@ -101,7 +101,7 @@ public func addSpecimenRoutes(
             headers[.contentType]  = specFhirJSON
             headers[.eTag]         = "W/\"\(result.versionId)\""
             headers[.lastModified] = httpDate(result.lastUpdated)
-            headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
+            headers[.location] = "\(serverBaseURL(request))/Specimen/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
                             body: preferBody(preferReturn, resource: result.jsonData))
         default:
@@ -186,7 +186,7 @@ public func addSpecimenRoutes(
         headers[.contentType]  = specFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
-        headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
+        headers[.location] = "\(serverBaseURL(request))/Specimen/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
                         body: preferBody(preferReturn, resource: result.jsonData))
     }
