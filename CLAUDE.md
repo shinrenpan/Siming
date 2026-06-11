@@ -8,10 +8,12 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Current phase: **B**.
+Server-side Swift FHIR R4 server. Current phase: **C**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **B (now):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, Inferno/Touchstone.
-- **Later:** Core IG, terminology, subscriptions, R5.
+- **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
+- **C (now):** IG-First Architecture — package.tgz loading, TW Core IG compliance.
+- **D (later):** Terminology binding (ValueSet validation), Subscriptions/Notifications.
+- **Not planned:** R5 (explicitly out of scope), multi-tenancy.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
@@ -20,7 +22,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
 - **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=40 (set in `DatabaseConfiguration.postgresClientConfiguration`).
 - **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.3`. Linux builds supported.
-- **FHIR version:** R4 only. R5 door stays open via the generator.
+- **FHIR version:** R4 only. R5 is explicitly out of scope — R4 and R5 are different enough to warrant a separate project.
 
 ### FHIRModels API cheatsheet
 
@@ -89,7 +91,7 @@ struct MyPayload: JWTPayload {
 - Unit tests: `swift test --filter SimingCoreTests` — no DB required
 - Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests` — requires Postgres
 - Run all tests: `swift test` — integration tests auto-skip if no DB configured
-- Regenerate search extractors: `swift run SimingGenerator`
+- Regenerate search extractors: `swift run SimingGenerator` — reads `packages/*.tgz`, writes `Sources/SimingCore/Generated/`
 - Local Postgres only: `docker compose up -d db`
 - DB connection env vars (defaults match docker-compose):
   - `DATABASE_URL=postgres://siming:siming@localhost:5432/siming` (takes priority)
@@ -152,7 +154,22 @@ Checklist (in addition to generator + extractor + SQL migration):
 
 ## Search parameters
 
-**Do NOT hand-write search-param definitions.** `SimingGenerator` consumes `Resources/fhir/search-parameters-r4.json` and emits extractors into `Sources/SimingCore/Generated/`. This generator is the architectural moat and the R5 door. Regenerate: `swift run SimingGenerator`.
+**Do NOT hand-write search-param definitions.** `SimingGenerator` consumes FHIR packages from `packages/*.tgz` and emits extractors into `Sources/SimingCore/Generated/`. This generator is the architectural moat. Regenerate: `swift run SimingGenerator`.
+
+### C Phase: Hybrid IG architecture
+
+Search extractors are **compile-time** (type-safe Swift, performance-critical). CapabilityStatement is **runtime** (built at server startup from `packages/*.tgz`, like HAPI).
+
+```
+packages/*.tgz  ──→  swift run SimingGenerator  ──→  Generated/extractors.swift  (commit to git)
+packages/*.tgz  ──→  server startup             ──→  /metadata  (dynamic, reflects loaded IGs)
+```
+
+Place packages in `packages/` before running generator or starting the server:
+- `hl7.fhir.r4.core-4.0.1.tgz` — base R4 (always required)
+- `tw.gov.mohw.twcore-x.x.x.tgz` — TW Core IG (for TW Core compliance)
+
+Without IG packages (only r4.core): generic FHIR R4 server. With TW Core: TW Core-compliant server. Same binary, different packages directory.
 
 ## Hummingbird 2 handler patterns
 
@@ -270,9 +287,11 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
-**B phase (build now):** ~~Transaction bundles~~ ✓, ~~SMART on FHIR (JWT Bearer / Resource Server)~~ ✓, ~~rate limiting~~ ✓, Inferno/Touchstone.
+**C phase (build now):** IG-First Architecture — `SimingGenerator` reads `packages/*.tgz`, CapabilityStatement built at runtime from packages, TW Core IG compliance.
 
-**Deferred (do not build now):** terminology, `$operations`, subscriptions, Core IG.
+**D phase (deferred):** Terminology binding (ValueSet/CodeSystem online validation), Subscriptions/Notifications.
+
+**Not planned:** R5, multi-tenancy, `$operations`.
 
 ## Pagination
 
@@ -280,16 +299,18 @@ Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 
 ## Conventions
 - **Generated code IS committed to git** — reviewable, diffable. Never hand-edit; change the generator instead.
-- Generator inputs live under `Resources/fhir/search-parameters-r4.json`.
+- Generator inputs live under `packages/*.tgz`. The old `Resources/fhir/search-parameters-r4.json` is superseded by C Phase package loading.
 - SQL migrations under `migrations/`. Filename without `.sql` = migration version in `schema_migrations`.
 
 ## The three doors to keep open
 
-1. **Validation hook** — `validate(resource)` no-op in write path. Never remove this call.
+1. **Validation hook** — `validate(resource)` no-op in write path. Never remove this call. This is the profile validation door (D Phase).
 2. **Auth as middleware** — never hardwire auth into handlers.
-3. **Search via generator** — this is also the R5 door.
+3. **Search via generator** — generator reads packages, emits Swift. Changing the IG = swap package + regenerate, no handler rewrites.
 
-**Weld test:** "Could profile validation / OAuth / R5 / `_history` be added without rewriting this?" If not, stop and restructure.
+**Weld test:** "Could profile validation / new IG / new auth scheme be added without rewriting this?" If not, stop and restructure.
+
+R5 is NOT a door to keep open. Do not design for R5 compatibility.
 
 ## Observability
 
