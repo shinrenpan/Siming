@@ -14,8 +14,8 @@ Requires Swift 6.2+ and Docker (for Postgres).
 # Download FHIR packages (one-time setup)
 bash scripts/fetch-packages.sh
 
-# Start Postgres in Docker, then run server natively (no image rebuild)
-bash scripts/run-dev.sh
+# Start Postgres in Docker, then run server natively in release mode (no image rebuild)
+bash scripts/run-macOS.sh
 ```
 
 Server listens on `http://localhost:8080`.
@@ -185,8 +185,7 @@ Environment variables override the corresponding `config.yml` field.
 **macOS (native):** Requires Swift 6.2+ and a running PostgreSQL instance.
 
 ```bash
-swift build -c release
-DATABASE_URL=postgres://siming:siming@localhost:5432/siming .build/release/SimingServer
+DATABASE_URL=postgres://siming:siming@localhost:5432/siming swift run -c release SimingServer
 ```
 
 **Docker (Linux release image):**

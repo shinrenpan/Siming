@@ -87,7 +87,7 @@ struct MyPayload: JWTPayload {
 ## Build / run / test
 
 - Build: `swift build`
-- Run server: `swift run SimingServer` — listens on `0.0.0.0:8080`
+- Run server: `swift run -c release SimingServer` — listens on `0.0.0.0:8080`
 - Unit tests: `swift test --filter SimingCoreTests` — no DB required
 - Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests` — requires Postgres
 - Run all tests: `swift test` — integration tests auto-skip if no DB configured
@@ -105,7 +105,7 @@ struct MyPayload: JWTPayload {
 - Rate limit env vars (optional; disabled when absent):
   - `RATE_LIMIT_RPS` — requests per second per IP (token bucket refill rate); enables limiting when set
   - `RATE_LIMIT_BURST` — burst size (default: `2 × RPS`); max tokens in bucket
-- Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run SimingServer`
+- Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run -c release SimingServer`
 - After any series of changes: build + run tests before considering work done
 
 ## Database migrations
@@ -295,7 +295,7 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## Dev workflow
 
-**During active development (macOS):** `scripts/run-dev.sh` — starts Postgres in Docker, then runs `swift run SimingServer` natively. No image rebuild. Use this for all day-to-day iteration.
+**During active development (macOS):** `scripts/run-macOS.sh` — starts Postgres in Docker, then runs `swift run -c release SimingServer` natively. No image rebuild. Use this for all day-to-day iteration.
 
 **Integration / staging validation:** `scripts/run-docker.sh` — builds the release Docker image and starts the full stack. Requires FHIR packages in `packages/` (run `scripts/fetch-packages.sh` first).
 
