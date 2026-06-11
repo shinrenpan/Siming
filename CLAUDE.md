@@ -295,9 +295,11 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## Dev workflow
 
+**Default: always use `scripts/run-macOS.sh`.** Swift runs as a first-class citizen on macOS — no VM overhead, full Foundation stack, faster builds. Do NOT default to Docker for running the server.
+
 **During active development (macOS):** `scripts/run-macOS.sh` — starts Postgres in Docker, then runs `swift run -c release SimingServer` natively. No image rebuild. Use this for all day-to-day iteration.
 
-**Integration / staging validation:** `scripts/run-docker.sh` — builds the release Docker image and starts the full stack. Requires FHIR packages in `packages/` (run `scripts/fetch-packages.sh` first).
+**Docker is for Linux developers or staging validation only:** `scripts/run-docker.sh` — builds the release Docker image and starts the full stack. Do not suggest Docker as the primary run method to a macOS developer.
 
 **Config:** `config.yml` at project root. Secrets (DB password, SMART keys) always stay in env vars — env vars override any config.yml field.
 
