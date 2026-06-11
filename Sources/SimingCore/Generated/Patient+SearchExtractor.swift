@@ -30,10 +30,8 @@ public func extractPatientSearchParams(_ patient: Patient) -> SearchParams {
     extract_Patient_identifier(&p, patient)
     extract_Patient_language(&p, patient)
     extract_Patient_link(&p, patient)
-    extract_Patient_mothersMaidenName(&p, patient)
     extract_Patient_name(&p, patient)
     extract_Patient_organization(&p, patient)
-    extract_Patient_part_agree(&p, patient)
     extract_Patient_phone(&p, patient)
     extract_Patient_phonetic(&p, patient)
     extract_Patient_telecom(&p, patient)
@@ -218,9 +216,6 @@ private func extract_Patient_link(_ p: inout SearchParams, _ patient: Patient) {
     }
 }
 
-// TODO: unhandled — mothersMaidenName [string] Patient.extension('http://hl7.org/fhir/StructureDefinition/patient-extensions-Patient-mothersMaidenName')
-private func extract_Patient_mothersMaidenName(_ p: inout SearchParams, _ patient: Patient) {}
-
 // name [string] — Patient.name
 private func extract_Patient_name(_ p: inout SearchParams, _ patient: Patient) {
     for name in patient.name ?? [] {
@@ -241,9 +236,6 @@ private func extract_Patient_organization(_ p: inout SearchParams, _ patient: Pa
         : (nil, refStr)
     p.references.append(.init(paramName: "organization", refType: refType, refId: refId))
 }
-
-// TODO: unhandled — part-agree [reference] DocumentReference.extension('http://example.org/fhir/StructureDefinition/participation-agreement')
-private func extract_Patient_part_agree(_ p: inout SearchParams, _ patient: Patient) {}
 
 // phone [token] — Patient.telecom
 private func extract_Patient_phone(_ p: inout SearchParams, _ patient: Patient) {

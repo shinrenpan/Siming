@@ -21,7 +21,6 @@ public func extractLocationSearchParams(_ loc: Location) -> SearchParams {
     extract_Location_endpoint(&p, loc)
     extract_Location_identifier(&p, loc)
     extract_Location_name(&p, loc)
-    extract_Location_near(&p, loc)
     extract_Location_operational_status(&p, loc)
     extract_Location_organization(&p, loc)
     extract_Location_partof(&p, loc)
@@ -110,9 +109,6 @@ private func extract_Location_name(_ p: inout SearchParams, _ loc: Location) {
         if let v = alias.value?.string { p.strings.append(.init(paramName: "name", value: v)) }
     }
 }
-
-// TODO: unhandled — near [special] Location.position
-private func extract_Location_near(_ p: inout SearchParams, _ loc: Location) {}
 
 // operational-status [token] — Location.operationalStatus
 private func extract_Location_operational_status(_ p: inout SearchParams, _ loc: Location) {

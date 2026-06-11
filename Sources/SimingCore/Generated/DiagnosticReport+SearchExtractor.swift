@@ -12,7 +12,6 @@ import ModelsR4
 public func extractDiagnosticReportSearchParams(_ dr: DiagnosticReport) -> SearchParams {
     var p = SearchParams()
     extract_DiagnosticReport__id(&p, dr)
-    extract_DiagnosticReport_assessed_condition(&p, dr)
     extract_DiagnosticReport_based_on(&p, dr)
     extract_DiagnosticReport_category(&p, dr)
     extract_DiagnosticReport_code(&p, dr)
@@ -34,9 +33,6 @@ public func extractDiagnosticReportSearchParams(_ dr: DiagnosticReport) -> Searc
 
 // TODO: unhandled — _id [token] DiagnosticReport.id
 private func extract_DiagnosticReport__id(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
-
-// TODO: unhandled — assessed-condition [reference] DiagnosticReport.extension('http://hl7.org/fhir/StructureDefinition/DiagnosticReport-geneticsAssessedCondition')
-private func extract_DiagnosticReport_assessed_condition(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
 
 // based-on [reference] — DiagnosticReport.basedOn
 private func extract_DiagnosticReport_based_on(_ p: inout SearchParams, _ dr: DiagnosticReport) {

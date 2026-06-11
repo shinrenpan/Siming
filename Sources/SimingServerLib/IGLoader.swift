@@ -37,9 +37,9 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
     }
 
     let targetSet = Set(resourceTypes)
-    // code-keyed dict per resource type so later package overrides earlier
     var mergedParams: [String: [String: IGSearchParam]] = [:]
-    // set-keyed profiles per resource type — accumulated across all packages
+    // Track expressions separately to detect specificity during merge (not stored in IGSearchParam)
+    var mergedExpressions: [String: [String: String]] = [:]
     var profileSets: [String: Set<String>] = [:]
     var igURLs: Set<String> = []
 
@@ -60,17 +60,35 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
                 guard let code = obj["code"] as? String,
                       let type_ = obj["type"] as? String,
                       let bases = obj["base"] as? [String],
-                      let expression = obj["expression"] as? String, !expression.isEmpty
+                      let expression = obj["expression"] as? String, !expression.isEmpty,
+                      // Skip geospatial (requires PostGIS) and extension-based (not indexable yet)
+                      type_ != "special",
+                      !expression.contains(".extension(")
                 else { continue }
                 let url = obj["url"] as? String
                 let newTargets = obj["target"] as? [String] ?? []
                 for base in bases where targetSet.contains(base) {
                     let existing = mergedParams[base]?[code]
-                    // Preserve targets from earlier package (e.g. r4.core) if new package has none
+                    let existingExpr = mergedExpressions[base]?[code] ?? ""
                     let targets = newTargets.isEmpty ? (existing?.targets ?? []) : newTargets
+
+                    // Don't replace a more-specific reference path with a shorter one.
+                    // e.g. keep r4.core "Encounter.location.location" over TW Core "Encounter.location"
+                    if type_ == "reference", !existingExpr.isEmpty,
+                       existingExpr.hasPrefix(expression + ".") {
+                        // Keep existing expression; adopt newer url/targets from this package
+                        let param = IGSearchParam(code: code, type: type_,
+                                                  url: url ?? existing?.url, targets: targets)
+                        if mergedParams[base] == nil { mergedParams[base] = [:] }
+                        mergedParams[base]![code] = param
+                        continue  // do NOT update mergedExpressions — keep the specific one
+                    }
+
                     let param = IGSearchParam(code: code, type: type_, url: url, targets: targets)
                     if mergedParams[base] == nil { mergedParams[base] = [:] }
                     mergedParams[base]![code] = param
+                    if mergedExpressions[base] == nil { mergedExpressions[base] = [:] }
+                    mergedExpressions[base]![code] = expression
                 }
 
             case "StructureDefinition":

@@ -13,7 +13,6 @@ public func extractObservationSearchParams(_ obs: Observation) -> SearchParams {
     var p = SearchParams()
     extract_Observation__id(&p, obs)
     extract_Observation__lastUpdated(&p, obs)
-    extract_Observation_amino_acid_change(&p, obs)
     extract_Observation_based_on(&p, obs)
     extract_Observation_category(&p, obs)
     extract_Observation_code(&p, obs)
@@ -37,12 +36,8 @@ public func extractObservationSearchParams(_ obs: Observation) -> SearchParams {
     extract_Observation_date(&p, obs)
     extract_Observation_derived_from(&p, obs)
     extract_Observation_device(&p, obs)
-    extract_Observation_dna_variant(&p, obs)
     extract_Observation_encounter(&p, obs)
     extract_Observation_focus(&p, obs)
-    extract_Observation_gene_amino_acid_change(&p, obs)
-    extract_Observation_gene_dnavariant(&p, obs)
-    extract_Observation_gene_identifier(&p, obs)
     extract_Observation_has_member(&p, obs)
     extract_Observation_identifier(&p, obs)
     extract_Observation_method(&p, obs)
@@ -64,9 +59,6 @@ private func extract_Observation__id(_ p: inout SearchParams, _ obs: Observation
 
 // TODO: unhandled — _lastUpdated [date] Resource.meta.lastUpdated
 private func extract_Observation__lastUpdated(_ p: inout SearchParams, _ obs: Observation) {}
-
-// TODO: unhandled — amino-acid-change [string] Observation.extension('http://hl7.org/fhir/StructureDefinition/observation-geneticsAminoAcidChangeName')
-private func extract_Observation_amino_acid_change(_ p: inout SearchParams, _ obs: Observation) {}
 
 // based-on [reference] — Observation.basedOn
 private func extract_Observation_based_on(_ p: inout SearchParams, _ obs: Observation) {
@@ -391,9 +383,6 @@ private func extract_Observation_device(_ p: inout SearchParams, _ obs: Observat
     p.references.append(.init(paramName: "device", refType: refType, refId: refId))
 }
 
-// TODO: unhandled — dna-variant [string] Observation.extension('http://hl7.org/fhir/StructureDefinition/observation-geneticsDnaVariant')
-private func extract_Observation_dna_variant(_ p: inout SearchParams, _ obs: Observation) {}
-
 // encounter [reference] — Observation.encounter
 private func extract_Observation_encounter(_ p: inout SearchParams, _ obs: Observation) {
     guard let refStr = obs.encounter?.reference?.value?.string else { return }
@@ -415,15 +404,6 @@ private func extract_Observation_focus(_ p: inout SearchParams, _ obs: Observati
         p.references.append(.init(paramName: "focus", refType: refType, refId: refId))
     }
 }
-
-// TODO: unhandled — gene-amino-acid-change [string] Observation.extension('http://hl7.org/fhir/StructureDefinition/observation-geneticsAminoAcidChangeName')
-private func extract_Observation_gene_amino_acid_change(_ p: inout SearchParams, _ obs: Observation) {}
-
-// TODO: unhandled — gene-dnavariant [string] Observation.extension('http://hl7.org/fhir/StructureDefinition/observation-geneticsDnaVariant')
-private func extract_Observation_gene_dnavariant(_ p: inout SearchParams, _ obs: Observation) {}
-
-// TODO: unhandled — gene-identifier [token] Observation.extension('http://hl7.org/fhir/StructureDefinition/observation-geneticsGene')
-private func extract_Observation_gene_identifier(_ p: inout SearchParams, _ obs: Observation) {}
 
 // has-member [reference] — Observation.hasMember
 private func extract_Observation_has_member(_ p: inout SearchParams, _ obs: Observation) {

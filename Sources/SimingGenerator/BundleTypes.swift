@@ -27,11 +27,19 @@ func loadParams(resourceType: String, packagesDir: String) throws -> [ParamSpec]
         )
     }
 
-    var merged: [String: ParamSpec] = [:]  // code → spec; later package wins
+    var merged: [String: ParamSpec] = [:]  // code → spec
 
     for tgzPath in tgzFiles {
         let params = try loadParamsFromTGZ(resourceType: resourceType, tgzPath: tgzPath)
         for spec in params {
+            // Skip geospatial (requires PostGIS) and extension-based params (not indexable yet)
+            guard spec.type != "special",
+                  !spec.expression.contains(".extension(") else { continue }
+            // Don't replace a more-specific reference path with a shorter one.
+            // e.g. keep r4.core "Encounter.location.location" over TW Core "Encounter.location"
+            if let existing = merged[spec.code],
+               spec.type == "reference",
+               existing.expression.hasPrefix(spec.expression + ".") { continue }
             merged[spec.code] = spec
         }
     }
