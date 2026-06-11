@@ -96,7 +96,7 @@ Server listens on `http://localhost:8080`.
 | Chained search (`subject.name=Wang`, `patient.birthdate=ge1990`, etc.) | ✓ |
 | `_has` reverse chaining (`_has:Observation:subject:code=85354-9`) | ✓ |
 
-For the full per-resource search parameter list, see [`docs/search-params.md`](docs/search-params.md).
+For the full per-resource search parameter list, query `GET /metadata` — the CapabilityStatement is the authoritative source, built at runtime from loaded FHIR packages.
 
 ### Security
 
