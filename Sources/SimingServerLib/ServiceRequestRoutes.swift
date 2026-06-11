@@ -132,6 +132,7 @@ public func addServiceRequestRoutes(
         headers[.contentType]  = srFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
+        headers[.contentLocation] = contentLocation(request, versionId: result.versionId)
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: json)))
     }
@@ -145,6 +146,7 @@ public func addServiceRequestRoutes(
         headers[.contentType]  = srFhirJSON
         headers[.eTag]         = "W/\"\(result.versionId)\""
         headers[.lastModified] = httpDate(result.lastUpdated)
+        headers[.contentLocation] = contentLocation(request, versionId: result.versionId)
         return Response(status: .ok, headers: headers,
                         body: ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
     }

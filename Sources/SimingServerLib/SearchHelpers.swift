@@ -217,6 +217,20 @@ private let preferOutcomeJSON: Data = Data("""
 {"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"Operation completed successfully."}]}
 """.utf8)
 
+// ── Content-Location ─────────────────────────────────────────────────────────
+
+/// Builds the Content-Location header value for read and vread responses.
+///
+/// - Read  (`/Patient/123`):            returns `http://host/Patient/123/_history/<versionId>`
+/// - Vread (`/Patient/123/_history/5`): returns `http://host/Patient/123/_history/5` (path already versioned)
+func contentLocation(_ request: Request, versionId: Int64) -> String {
+    let path = "\(request.uri)".components(separatedBy: "?").first ?? ""
+    if path.contains("/_history/") {
+        return "\(serverBaseURL(request))\(path)"
+    }
+    return "\(serverBaseURL(request))\(path)/_history/\(versionId)"
+}
+
 // ── resourceType mismatch validation ─────────────────────────────────────────
 
 /// Validates that the JSON body's `resourceType` field matches the endpoint's expected type.

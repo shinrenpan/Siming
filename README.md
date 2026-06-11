@@ -72,6 +72,7 @@ Server listens on `http://localhost:8080`.
 | `resourceType` mismatch on write → 422 Unprocessable Entity | ✓ |
 | CapabilityStatement `instantiates` + `patchFormat` | ✓ |
 | `link.self` on history bundles (instance / type / system) | ✓ |
+| `Content-Location` on read + vread — versioned URL per FHIR R4 §2.21.0.6 | ✓ |
 
 ### Search
 
