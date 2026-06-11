@@ -12,29 +12,36 @@ struct IGSearchParam {
 struct IGData {
     /// SearchParameters per resource type, merged from all packages (IG overrides base).
     let searchParams: [String: [IGSearchParam]]
-    /// TW Core (or IG) profile canonical URL per resource type.
-    let profiles: [String: String]
+    /// IG-specific profile canonical URLs per resource type (excludes base R4 SDs).
+    /// Multiple profiles per resource are possible (e.g. Observation has 26 TW Core profiles).
+    let profiles: [String: [String]]
+    /// ImplementationGuide canonical URLs declared by loaded IG packages.
+    let implementationGuides: [String]
 }
 
 // ── Loader ────────────────────────────────────────────────────────────────────
 
-/// Loads SearchParameters and StructureDefinition profiles from all .tgz packages
-/// in `packagesDir`. Packages are processed alphabetically so IG packages
-/// (tw.gov.mohw.twcore) override base packages (hl7.fhir.r4.core) for the same param code.
+/// Loads SearchParameters, StructureDefinition profiles, and ImplementationGuide URLs
+/// from all .tgz packages in `packagesDir`. Packages are processed alphabetically so IG
+/// packages override base packages for the same param code.
 /// Never throws — returns empty IGData if packages directory is missing or empty.
 func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
     let fm = FileManager.default
     guard let contents = try? fm.contentsOfDirectory(atPath: packagesDir) else {
-        return IGData(searchParams: [:], profiles: [:])
+        return IGData(searchParams: [:], profiles: [:], implementationGuides: [])
     }
     let tgzFiles = contents.filter { $0.hasSuffix(".tgz") }.sorted()
         .map { "\(packagesDir)/\($0)" }
-    guard !tgzFiles.isEmpty else { return IGData(searchParams: [:], profiles: [:]) }
+    guard !tgzFiles.isEmpty else {
+        return IGData(searchParams: [:], profiles: [:], implementationGuides: [])
+    }
 
     let targetSet = Set(resourceTypes)
     // code-keyed dict per resource type so later package overrides earlier
     var mergedParams: [String: [String: IGSearchParam]] = [:]
-    var profiles: [String: String] = [:]
+    // set-keyed profiles per resource type — accumulated across all packages
+    var profileSets: [String: Set<String>] = [:]
+    var igURLs: Set<String> = []
 
     for tgzPath in tgzFiles {
         guard let tempDir = extractTGZ(tgzPath) else { continue }
@@ -71,9 +78,18 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
                       targetSet.contains(type_),
                       let url = obj["url"] as? String,
                       obj["kind"] as? String == "resource",
-                      obj["abstract"] as? Bool != true
+                      obj["abstract"] as? Bool != true,
+                      // Skip base R4 definitions — only collect IG-specific profiles
+                      !url.hasPrefix("http://hl7.org/fhir/StructureDefinition/")
                 else { continue }
-                profiles[type_] = url
+                profileSets[type_, default: []].insert(url)
+
+            case "ImplementationGuide":
+                guard let url = obj["url"] as? String,
+                      // Skip base R4 IG — only collect external IG canonical URLs
+                      !url.hasPrefix("http://hl7.org/fhir/")
+                else { continue }
+                igURLs.insert(url)
 
             default: break
             }
@@ -83,7 +99,12 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
     let searchParams = mergedParams.mapValues { byCode in
         Array(byCode.values).sorted { $0.code < $1.code }
     }
-    return IGData(searchParams: searchParams, profiles: profiles)
+    let profiles = profileSets.mapValues { Array($0).sorted() }
+    return IGData(
+        searchParams: searchParams,
+        profiles: profiles,
+        implementationGuides: igURLs.sorted()
+    )
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

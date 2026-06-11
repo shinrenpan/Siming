@@ -38,7 +38,7 @@ public func addMetadataRoutes(
 
 // ── CapabilityStatement JSON builder ─────────────────────────────────────────
 
-private let serverVersion = "0.88.0"
+private let serverVersion = "0.89.0"
 
 private func buildCapabilityStatementJSON(
     smartConfig: SmartConfiguration?,
@@ -68,10 +68,8 @@ private func buildCapabilityStatementJSON(
         "rest": [buildRest(smartConfig: smartConfig, igData: igData)],
     ]
 
-    // supportedProfile: IG-specific profiles advertised at server level
-    let allProfiles = igData.profiles.values.sorted()
-    if !allProfiles.isEmpty {
-        cs["implementationGuide"] = allProfiles.map { url -> [String: Any] in ["value": url] }
+    if !igData.implementationGuides.isEmpty {
+        cs["implementationGuide"] = igData.implementationGuides
     }
 
     return (try? JSONSerialization.data(withJSONObject: cs, options: .sortedKeys)) ?? Data()
@@ -180,8 +178,11 @@ private func buildResource(type resourceType: String, igData: IGData) -> [String
         "conditionalDelete": "single",
     ]
 
-    if let profile = igData.profiles[resourceType] {
-        r["profile"] = profile
+    let profileURLs = igData.profiles[resourceType] ?? []
+    if profileURLs.count == 1 {
+        r["profile"] = profileURLs[0]
+    } else if profileURLs.count > 1 {
+        r["supportedProfile"] = profileURLs
     }
     if !searchParams.isEmpty { r["searchParam"] = searchParams }
     if !includes.isEmpty    { r["searchInclude"] = includes }
