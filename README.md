@@ -6,20 +6,28 @@ A high-performance FHIR R4 server written in Swift.
 
 ## Quick start
 
-Requires macOS and a running PostgreSQL instance.
+### macOS (active development)
+
+Requires Swift 6.2+ and Docker (for Postgres).
 
 ```bash
 # Download FHIR packages (one-time setup)
 bash scripts/fetch-packages.sh
 
-# Start PostgreSQL only (Docker)
-docker compose up -d db
-
-# Run server
-PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run SimingServer
+# Start Postgres in Docker, then run server natively (no image rebuild)
+bash scripts/run-dev.sh
 ```
 
 Server listens on `http://localhost:8080`.
+
+### Docker (integration / staging)
+
+Requires Docker and FHIR packages in `packages/`.
+
+```bash
+bash scripts/fetch-packages.sh   # one-time
+bash scripts/run-docker.sh       # builds release image + starts full stack
+```
 
 > **Note:** Linux builds require Swift 6.2+. macOS and Linux (Docker) are both supported as of FHIRModels 0.9.3.
 
@@ -126,31 +134,66 @@ All error responses are `OperationOutcome`.
 
 ## Configuration
 
-| Variable | Default | Description |
+Non-secret settings live in `config.yml` at the project root. Edit it to change ports, pool sizes, log level, and so on. The file ships with defaults that work out of the box.
+
+Secrets and deployment overrides always use environment variables. **Environment variables take precedence over `config.yml`.**
+
+### config.yml keys
+
+| Key | Default | Description |
 |---|---|---|
+| `server.port` | `8080` | TCP port the server listens on |
+| `server.baseUrl` | `http://localhost:8080` | Public base URL — must be set correctly behind a reverse proxy |
+| `fhir.packagesDir` | `./packages` | Directory of FHIR IG `.tgz` packages |
+| `capability.publisher` | `Siming` | `CapabilityStatement.publisher` |
+| `capability.description` | `Siming FHIR R4 Server` | `CapabilityStatement.implementation.description` |
+| `database.migrationsPath` | `./migrations` | Path to SQL migration files |
+| `database.pool.min` | `4` | Minimum idle Postgres connections |
+| `database.pool.max` | `40` | Maximum concurrent Postgres connections |
+| `security.rateLimit.rps` | — | Requests/second per IP; enables rate limiting when set |
+| `security.rateLimit.burst` | `2×rps` | Token bucket burst size |
+| `logging.level` | `info` | Log level: `trace` `debug` `info` `warn` `error` |
+
+### Environment variables
+
+Environment variables override the corresponding `config.yml` field.
+
+| Variable | Overrides | Description |
+|---|---|---|
+| `SERVER_PORT` | `server.port` | TCP port |
+| `SERVER_BASE_URL` | `server.baseUrl` | Public base URL |
+| `PACKAGES_DIR` | `fhir.packagesDir` | FHIR package directory |
+| `MIGRATIONS_PATH` | `database.migrationsPath` | Migration files path |
+| `DB_POOL_MIN` | `database.pool.min` | Min pool size |
+| `DB_POOL_MAX` | `database.pool.max` | Max pool size |
+| `LOG_LEVEL` | `logging.level` | Log level |
+| `RATE_LIMIT_RPS` | `security.rateLimit.rps` | Rate limit RPS |
+| `RATE_LIMIT_BURST` | `security.rateLimit.burst` | Rate limit burst |
 | `DATABASE_URL` | — | Full Postgres URL (takes priority over PG* vars) |
-| `PGHOST` | `localhost` | Postgres host |
-| `PGPORT` | `5432` | Postgres port |
+| `PGHOST` | — | Postgres host (default: `localhost`) |
+| `PGPORT` | — | Postgres port (default: `5432`) |
 | `PGUSER` | — | Postgres user |
 | `PGPASSWORD` | — | Postgres password |
 | `PGDATABASE` | — | Postgres database name |
-| `MIGRATIONS_PATH` | `migrations` | Path to SQL migration files (relative to CWD) |
-| `PACKAGES_DIR` | `packages` | Path to FHIR IG package directory (`*.tgz` files); used to build CapabilityStatement at startup |
-| `SMART_ISSUER` | — | Expected JWT `iss` value; enables SMART bearer auth when set |
-| `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup to load public keys |
-| `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM — alternative to `SMART_JWKS_URL` |
+| `SMART_ISSUER` | — | Expected JWT `iss`; enables SMART bearer auth when set |
+| `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup |
+| `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM (alternative to `SMART_JWKS_URL`) |
 | `SMART_AUDIENCE` | — | Expected JWT `aud` value (optional) |
-| `RATE_LIMIT_RPS` | — | Requests per second per IP; enables rate limiting when set |
-| `RATE_LIMIT_BURST` | `2×RPS` | Token bucket burst size |
 
 ## Building from source
 
-Requires Swift 6.2+ and a running PostgreSQL instance (macOS only).
+**macOS (native):** Requires Swift 6.2+ and a running PostgreSQL instance.
 
 ```bash
 swift build -c release
-PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming \
-  .build/release/SimingServer
+DATABASE_URL=postgres://siming:siming@localhost:5432/siming .build/release/SimingServer
+```
+
+**Docker (Linux release image):**
+
+```bash
+docker build -t siming .
+docker run -e DATABASE_URL=postgres://... -p 8080:8080 siming
 ```
 
 ## Benchmarks
