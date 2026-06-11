@@ -254,13 +254,19 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## FHIR R4 interaction compliance
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`), CORS (`CORSMiddleware` — `OPTIONS` preflight + response headers; credentialed when `Origin` present).
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`), CORS (`CORSMiddleware` — `OPTIONS` preflight + response headers; credentialed when `Origin` present), `resourceType` body mismatch → 422 (via `validateResourceType()` in `SearchHelpers.swift`).
 
 **Location header** on 201/200 write responses is an **absolute URL** (e.g., `http://host/Patient/id/_history/1`) built via `serverBaseURL(request)` from the `Host` header.
 
-**Accept header** validation — 406 when `Accept` is present and contains no JSON-compatible media type. `_format` takes precedence over `Accept`.
+**Content-Location header** on read + vread responses — versioned URL (e.g., `http://host/Patient/id/_history/5`). Use `contentLocation(request, versionId:)` from `SearchHelpers.swift`. Handles both: read (appends `/_history/<vid>` to path) and vread (path already versioned).
 
-**CapabilityStatement coverage (all 23 resources):** `versioning=versioned`, `conditionalCreate=true`, `conditionalRead=fullSupport`, `conditionalUpdate=true`, `conditionalDelete=single`, `updateCreate=true`, `readHistory=true`, plus per-resource `searchInclude`/`searchRevInclude`.
+**Accept header** validation — 406 when `Accept` is present and contains no JSON-compatible media type. `_format` takes precedence over `Accept`. Handled by `FormatMiddleware`.
+
+**Content-Type** on all FHIR responses includes `fhirVersion=4.0` (e.g., `application/fhir+json; fhirVersion=4.0`). Injected by `CORSMiddleware` post-response hook.
+
+**CapabilityStatement coverage (all 23 resources):** `versioning=versioned`, `conditionalCreate=true`, `conditionalRead=fullSupport`, `conditionalUpdate=true`, `conditionalDelete=single`, `updateCreate=true`, `readHistory=true`, plus per-resource `searchInclude`/`searchRevInclude`. Server-level: `instantiates` (base R4 CS URL) + `patchFormat` (`application/json-patch+json`).
+
+**History bundles** (`buildHistoryBundleJSON`) require `selfURL` parameter — always pass `selfURL: "\(baseURL)\(request.uri)"`. All 3 levels (instance, type, system) must include a `link.self` element.
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
@@ -309,6 +315,8 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** For per-resource search param implementation details and known gaps (TODO stubs, compartment membership, `_sort` coverage, edge cases), see `docs/FHIR-implementation-notes.md`.
 - Build and run tests after a series of changes before declaring done.
 - Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
+- Every POST/PUT write handler **must** call `try validateResourceType("ResourceType", from: Data(bodyBuffer.readableBytesView))` before `decodeFHIR()`. Already applied to all 23 resources — copy the pattern for any new resource.
+- Every read + vread handler **must** include `headers[.contentLocation] = contentLocation(request, versionId: result.versionId)`. Already applied to all 23 resources.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
 - **DELETE** returns 204 No Content; subsequent GET on deleted resource returns **410 Gone** (not 404).
 - **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read current resource → apply patch (`JSONPatch.apply`) → decode FHIR model → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
