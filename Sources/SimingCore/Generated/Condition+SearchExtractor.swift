@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractConditionSearchParams(_ cond: Condition) -> SearchParams {
     var p = SearchParams()
-    extract_Condition__id(&p, cond)
     extract_Condition_abatement_age(&p, cond)
     extract_Condition_abatement_date(&p, cond)
     extract_Condition_abatement_string(&p, cond)
@@ -35,9 +34,6 @@ public func extractConditionSearchParams(_ cond: Condition) -> SearchParams {
     extract_Condition_verification_status(&p, cond)
     return p
 }
-
-// TODO: unhandled — _id [token] Condition.id
-private func extract_Condition__id(_ p: inout SearchParams, _ cond: Condition) {}
 
 // abatement-age [quantity] — Condition.abatement.as(Age)
 private func extract_Condition_abatement_age(_ p: inout SearchParams, _ cond: Condition) {

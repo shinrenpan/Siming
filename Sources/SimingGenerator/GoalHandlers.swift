@@ -129,6 +129,22 @@ func goalHandler(spec: ParamSpec, expr: String) -> String? {
         }
         """
 
+    // ── token: description (REQUIRED CodeableConcept — FHIRModels renames to description_fhir) ──
+    case "description":
+        return """
+        \(header)
+        private func \(fn)(_ p: inout SearchParams, _ g: Goal) {
+            for coding in g.description_fhir.coding ?? [] {
+                let v = coding.code?.value?.string ?? ""
+                let sys = coding.system?.value?.url.absoluteString
+                p.tokens.append(.init(paramName: "\(code)", system: sys, code: v))
+            }
+            if let text = g.description_fhir.text?.value?.string {
+                p.tokens.append(.init(paramName: "\(code)", system: nil, code: text))
+            }
+        }
+        """
+
     // ── reference: patient (same field as subject, filtered to Patient) ───────
     case "patient":
         return """

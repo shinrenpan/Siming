@@ -61,8 +61,11 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
                       let type_ = obj["type"] as? String,
                       let bases = obj["base"] as? [String],
                       let expression = obj["expression"] as? String, !expression.isEmpty,
-                      // Skip geospatial (requires PostGIS) and extension-based (not indexable yet)
+                      // Skip geospatial, composite (multi-component), extension-based,
+                      // and _-prefixed meta params (handled globally at query layer)
                       type_ != "special",
+                      type_ != "composite",
+                      !code.hasPrefix("_"),
                       !expression.contains(".extension(")
                 else { continue }
                 let url = obj["url"] as? String

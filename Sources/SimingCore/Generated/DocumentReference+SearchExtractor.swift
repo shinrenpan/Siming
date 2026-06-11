@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> SearchParams {
     var p = SearchParams()
-    extract_DocumentReference__id(&p, d)
     extract_DocumentReference_authenticator(&p, d)
     extract_DocumentReference_author(&p, d)
     extract_DocumentReference_category(&p, d)
@@ -31,7 +30,6 @@ public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> Sear
     extract_DocumentReference_related(&p, d)
     extract_DocumentReference_relatesto(&p, d)
     extract_DocumentReference_relation(&p, d)
-    extract_DocumentReference_relationship(&p, d)
     extract_DocumentReference_security_label(&p, d)
     extract_DocumentReference_setting(&p, d)
     extract_DocumentReference_status(&p, d)
@@ -39,9 +37,6 @@ public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> Sear
     extract_DocumentReference_type(&p, d)
     return p
 }
-
-// TODO: unhandled — _id [token] DocumentReference.id
-private func extract_DocumentReference__id(_ p: inout SearchParams, _ d: DocumentReference) {}
 
 // authenticator [reference] — DocumentReference.authenticator
 private func extract_DocumentReference_authenticator(_ p: inout SearchParams, _ d: DocumentReference) {
@@ -246,17 +241,6 @@ private func extract_DocumentReference_relation(_ p: inout SearchParams, _ d: Do
             p.tokens.append(.init(paramName: "relation",
                                   system: "http://hl7.org/fhir/document-relationship-type", code: v))
         }
-    }
-}
-
-// relationship [composite] — DocumentReference.relatesTo
-private func extract_DocumentReference_relationship(_ p: inout SearchParams, _ d: DocumentReference) {
-    for rel in d.relatesTo ?? [] {
-        guard let relCode = rel.code.value?.rawValue,
-              let refStr  = rel.target.reference?.value?.string else { continue }
-        p.composites.append(.init(paramName: "relationship",
-            code1System: "http://hl7.org/fhir/document-relationship-type",
-            code1Code: relCode, string2: refStr))
     }
 }
 

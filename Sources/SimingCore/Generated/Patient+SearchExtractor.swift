@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractPatientSearchParams(_ patient: Patient) -> SearchParams {
     var p = SearchParams()
-    extract_Patient__id(&p, patient)
     extract_Patient_active(&p, patient)
     extract_Patient_address(&p, patient)
     extract_Patient_address_city(&p, patient)
@@ -37,9 +36,6 @@ public func extractPatientSearchParams(_ patient: Patient) -> SearchParams {
     extract_Patient_telecom(&p, patient)
     return p
 }
-
-// TODO: unhandled — _id [token] Patient.id
-private func extract_Patient__id(_ p: inout SearchParams, _ patient: Patient) {}
 
 // active [token] — Patient.active
 private func extract_Patient_active(_ p: inout SearchParams, _ patient: Patient) {

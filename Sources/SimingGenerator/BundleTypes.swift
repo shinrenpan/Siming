@@ -32,8 +32,11 @@ func loadParams(resourceType: String, packagesDir: String) throws -> [ParamSpec]
     for tgzPath in tgzFiles {
         let params = try loadParamsFromTGZ(resourceType: resourceType, tgzPath: tgzPath)
         for spec in params {
-            // Skip geospatial (requires PostGIS) and extension-based params (not indexable yet)
+            // Skip geospatial, composite (multi-component, not yet indexable), extension-based,
+            // and meta (_-prefixed) params handled globally at query layer, not via extractors.
             guard spec.type != "special",
+                  spec.type != "composite",
+                  !spec.code.hasPrefix("_"),
                   !spec.expression.contains(".extension(") else { continue }
             // Don't replace a more-specific reference path with a shorter one.
             // e.g. keep r4.core "Encounter.location.location" over TW Core "Encounter.location"

@@ -43,8 +43,17 @@ private func extract_Goal_category(_ p: inout SearchParams, _ g: Goal) {
     }
 }
 
-// TODO: unhandled — description [token] Goal.description
-private func extract_Goal_description(_ p: inout SearchParams, _ g: Goal) {}
+// description [token] — Goal.description
+private func extract_Goal_description(_ p: inout SearchParams, _ g: Goal) {
+    for coding in g.description_fhir.coding ?? [] {
+        let v = coding.code?.value?.string ?? ""
+        let sys = coding.system?.value?.url.absoluteString
+        p.tokens.append(.init(paramName: "description", system: sys, code: v))
+    }
+    if let text = g.description_fhir.text?.value?.string {
+        p.tokens.append(.init(paramName: "description", system: nil, code: text))
+    }
+}
 
 // identifier [token] — Goal.identifier
 private func extract_Goal_identifier(_ p: inout SearchParams, _ g: Goal) {

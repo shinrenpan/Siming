@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractEncounterSearchParams(_ enc: Encounter) -> SearchParams {
     var p = SearchParams()
-    extract_Encounter__id(&p, enc)
     extract_Encounter_account(&p, enc)
     extract_Encounter_appointment(&p, enc)
     extract_Encounter_based_on(&p, enc)
@@ -37,9 +36,6 @@ public func extractEncounterSearchParams(_ enc: Encounter) -> SearchParams {
     extract_Encounter_type(&p, enc)
     return p
 }
-
-// TODO: unhandled — _id [token] Encounter.id
-private func extract_Encounter__id(_ p: inout SearchParams, _ enc: Encounter) {}
 
 // account [reference] — Encounter.account
 private func extract_Encounter_account(_ p: inout SearchParams, _ enc: Encounter) {

@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractServiceRequestSearchParams(_ sr: ServiceRequest) -> SearchParams {
     var p = SearchParams()
-    extract_ServiceRequest__id(&p, sr)
     extract_ServiceRequest_authored(&p, sr)
     extract_ServiceRequest_based_on(&p, sr)
     extract_ServiceRequest_body_site(&p, sr)
@@ -35,9 +34,6 @@ public func extractServiceRequestSearchParams(_ sr: ServiceRequest) -> SearchPar
     extract_ServiceRequest_subject(&p, sr)
     return p
 }
-
-// TODO: unhandled — _id [token] ServiceRequest.id
-private func extract_ServiceRequest__id(_ p: inout SearchParams, _ sr: ServiceRequest) {}
 
 // authored [date] — ServiceRequest.authoredOn
 private func extract_ServiceRequest_authored(_ p: inout SearchParams, _ sr: ServiceRequest) {

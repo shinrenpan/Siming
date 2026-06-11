@@ -11,7 +11,6 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractAllergyIntoleranceSearchParams(_ ai: AllergyIntolerance) -> SearchParams {
     var p = SearchParams()
-    extract_AllergyIntolerance__id(&p, ai)
     extract_AllergyIntolerance_asserter(&p, ai)
     extract_AllergyIntolerance_category(&p, ai)
     extract_AllergyIntolerance_clinical_status(&p, ai)
@@ -30,9 +29,6 @@ public func extractAllergyIntoleranceSearchParams(_ ai: AllergyIntolerance) -> S
     extract_AllergyIntolerance_verification_status(&p, ai)
     return p
 }
-
-// TODO: unhandled — _id [token] AllergyIntolerance.id
-private func extract_AllergyIntolerance__id(_ p: inout SearchParams, _ ai: AllergyIntolerance) {}
 
 // asserter [reference] — AllergyIntolerance.asserter
 private func extract_AllergyIntolerance_asserter(_ p: inout SearchParams, _ ai: AllergyIntolerance) {
