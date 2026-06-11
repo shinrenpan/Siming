@@ -20,6 +20,10 @@ public struct CORSMiddleware<Context: RequestContext>: RouterMiddleware {
 
         var response = try await next(request, context)
         addCORSHeaders(origin: request.headers[.origin], to: &response.headers)
+        // FHIR R4 §3.1.0.3 — include fhirVersion in Content-Type for FHIR responses
+        if response.headers[.contentType] == "application/fhir+json" {
+            response.headers[.contentType] = "application/fhir+json; fhirVersion=4.0"
+        }
         return response
     }
 

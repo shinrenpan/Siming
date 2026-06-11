@@ -297,7 +297,8 @@ private func buildTxnResponseJSON(_ results: [TxnResult]) -> Data {
         entries[r.originalIndex] = "{\"response\":\(resp)}"
     }
     let id = UUID().uuidString.lowercased()
+    let ts = txnInstantFormatter.string(from: Date())
     return Data(
-        "{\"resourceType\":\"Bundle\",\"id\":\"\(id)\",\"type\":\"transaction-response\",\"entry\":[\(entries.joined(separator: ","))]}"
+        "{\"resourceType\":\"Bundle\",\"id\":\"\(id)\",\"meta\":{\"lastUpdated\":\"\(ts)\"},\"type\":\"transaction-response\",\"entry\":[\(entries.joined(separator: ","))]}"
         .utf8)
 }

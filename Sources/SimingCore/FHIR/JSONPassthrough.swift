@@ -69,10 +69,12 @@ public func buildBundleJSON(
 
     func s(_ string: String) { out.append(contentsOf: string.utf8) }
 
+    let bundleId = UUID().uuidString.lowercased()
+    let bundleTs = iso8601.string(from: Date())
     if let total {
-        s("{\"resourceType\":\"Bundle\",\"type\":\"searchset\",\"total\":\(total)")
+        s("{\"resourceType\":\"Bundle\",\"id\":\"\(bundleId)\",\"meta\":{\"lastUpdated\":\"\(bundleTs)\"},\"type\":\"searchset\",\"total\":\(total)")
     } else {
-        s("{\"resourceType\":\"Bundle\",\"type\":\"searchset\"")
+        s("{\"resourceType\":\"Bundle\",\"id\":\"\(bundleId)\",\"meta\":{\"lastUpdated\":\"\(bundleTs)\"},\"type\":\"searchset\"")
     }
     s(",\"link\":[{\"relation\":\"self\",\"url\":\"\(escapeJSON(selfURL))\"}")
     if let next = nextURL {
@@ -136,7 +138,9 @@ public func buildHistoryBundleJSON(
 
     func s(_ string: String) { out.append(contentsOf: string.utf8) }
 
-    s("{\"resourceType\":\"Bundle\",\"type\":\"history\",\"total\":\(entries.count)")
+    let historyBundleId = UUID().uuidString.lowercased()
+    let historyBundleTs = iso8601.string(from: Date())
+    s("{\"resourceType\":\"Bundle\",\"id\":\"\(historyBundleId)\",\"meta\":{\"lastUpdated\":\"\(historyBundleTs)\"},\"type\":\"history\",\"total\":\(entries.count)")
     s(",\"entry\":[")
 
     for (i, entry) in entries.enumerated() {
