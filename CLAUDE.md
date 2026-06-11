@@ -52,6 +52,36 @@ let patient = try JSONDecoder().decode(Patient.self, from: requestBodyData)
 let jsonData = try JSONEncoder().encode(patient)
 ```
 
+### JWTKit 5.x API cheatsheet
+
+```swift
+// Create key collection (actor — all methods are async)
+let keys = JWTKeyCollection()
+
+// Load from JWKS JSON string
+try await keys.add(jwksJSON: json)          // @discardableResult
+
+// Load RSA public key from PEM
+let key = try Insecure.RSA.PublicKey(pem: pem)
+await keys.add(rsa: key, digestAlgorithm: .sha256)   // RS256
+
+// Verify token
+let payload = try await keys.verify(token, as: MyPayload.self)
+
+// Payload protocol
+struct MyPayload: JWTPayload {
+    var iss: IssuerClaim          // .value: String
+    var exp: ExpirationClaim      // .value: Date
+    var sub: SubjectClaim?        // .value: String
+    var aud: AudienceClaim?       // .value: [String]; verifyIntendedAudience(includes:)
+    var scope: String?            // custom claim — plain Codable property
+
+    func verify(using algorithm: some JWTAlgorithm) throws {
+        try exp.verifyNotExpired()
+    }
+}
+```
+
 ## Build / run / test
 
 - Build: `swift build`
@@ -65,6 +95,11 @@ let jsonData = try JSONEncoder().encode(patient)
   - `DATABASE_URL=postgres://siming:siming@localhost:5432/siming` (takes priority)
   - or discrete: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
   - `MIGRATIONS_PATH` — path to `migrations/` dir (default: `"migrations"`, relative to CWD)
+- SMART auth env vars (all optional; auth disabled when `SMART_ISSUER` absent):
+  - `SMART_ISSUER` — expected JWT `iss` value; setting this enables bearer auth
+  - `SMART_JWKS_URL` — JWKS endpoint URL; fetched at startup to load public keys
+  - `SMART_PUBLIC_KEY_PEM` — RSA public key PEM (alternative to `SMART_JWKS_URL`)
+  - `SMART_AUDIENCE` — expected JWT `aud` value (optional)
 - Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run SimingServer`
 - After any series of changes: build + run tests before considering work done
 
@@ -216,7 +251,7 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## FHIR R4 interaction compliance
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering).
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`).
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
