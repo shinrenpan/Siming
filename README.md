@@ -93,8 +93,9 @@ For the full per-resource search parameter list, see [`docs/search-params.md`](d
 |---|---|
 | SMART on FHIR JWT Bearer (resource server) — `SMART_ISSUER` + JWKS or PEM | ✓ |
 | `GET /.well-known/smart-configuration` | ✓ |
+| Per-IP token-bucket rate limiting — `RATE_LIMIT_RPS` | ✓ |
 
-Auth is opt-in: set `SMART_ISSUER` to enable. `/health`, `/metadata`, `/metrics`, `/.well-known/smart-configuration` are always public.
+Auth is opt-in: set `SMART_ISSUER` to enable. Rate limiting is opt-in: set `RATE_LIMIT_RPS` to enable. `/health` and `/metrics` are always exempt from rate limiting.
 
 ### Other
 
@@ -121,6 +122,8 @@ All error responses are `OperationOutcome`.
 | `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup to load public keys |
 | `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM — alternative to `SMART_JWKS_URL` |
 | `SMART_AUDIENCE` | — | Expected JWT `aud` value (optional) |
+| `RATE_LIMIT_RPS` | — | Requests per second per IP; enables rate limiting when set |
+| `RATE_LIMIT_BURST` | `2×RPS` | Token bucket burst size |
 
 ## Building from source
 

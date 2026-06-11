@@ -7,10 +7,14 @@ public func buildRouter(
     stores: StoreContainer,
     registry: PrometheusCollectorRegistry,
     logger: Logger,
-    smartConfig: SmartConfiguration? = nil
+    smartConfig: SmartConfiguration? = nil,
+    rateLimitConfig: RateLimitConfiguration? = nil
 ) -> Router<BasicRequestContext> {
     let router = Router()
     router.middlewares.add(MetricsMiddleware())
+    if let rateLimitConfig {
+        router.middlewares.add(RateLimitMiddleware(config: rateLimitConfig))
+    }
     router.middlewares.add(FormatMiddleware())
     if let smartConfig {
         router.middlewares.add(BearerAuthMiddleware(config: smartConfig, logger: logger))

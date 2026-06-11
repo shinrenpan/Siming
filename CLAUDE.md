@@ -10,7 +10,7 @@ Only include information that prevents mistakes.
 
 Server-side Swift FHIR R4 server. Current phase: **B**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **B (now):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, rate limiting, Inferno/Touchstone.
+- **B (now):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, Inferno/Touchstone.
 - **Later:** Core IG, terminology, subscriptions, R5.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
@@ -100,6 +100,9 @@ struct MyPayload: JWTPayload {
   - `SMART_JWKS_URL` — JWKS endpoint URL; fetched at startup to load public keys
   - `SMART_PUBLIC_KEY_PEM` — RSA public key PEM (alternative to `SMART_JWKS_URL`)
   - `SMART_AUDIENCE` — expected JWT `aud` value (optional)
+- Rate limit env vars (optional; disabled when absent):
+  - `RATE_LIMIT_RPS` — requests per second per IP (token bucket refill rate); enables limiting when set
+  - `RATE_LIMIT_BURST` — burst size (default: `2 × RPS`); max tokens in bucket
 - Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run SimingServer`
 - After any series of changes: build + run tests before considering work done
 
@@ -255,7 +258,7 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 
-**B phase (build now):** ~~Transaction bundles~~ ✓, ~~SMART on FHIR (JWT Bearer / Resource Server)~~ ✓, rate limiting, Inferno/Touchstone.
+**B phase (build now):** ~~Transaction bundles~~ ✓, ~~SMART on FHIR (JWT Bearer / Resource Server)~~ ✓, ~~rate limiting~~ ✓, Inferno/Touchstone.
 
 **Deferred (do not build now):** terminology, `$operations`, subscriptions, Core IG.
 

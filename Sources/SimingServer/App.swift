@@ -31,12 +31,14 @@ struct SimingApp {
 
         let stores = StoreContainer(client: postgresClient, logger: logger)
         let smartConfig = try await SmartConfiguration.fromEnvironment(logger: logger)
+        let rateLimitConfig = RateLimitConfiguration.fromEnvironment(logger: logger)
 
         let router = buildRouter(
             stores: stores,
             registry: registry,
             logger: logger,
-            smartConfig: smartConfig
+            smartConfig: smartConfig,
+            rateLimitConfig: rateLimitConfig
         )
 
         let app = Application(
