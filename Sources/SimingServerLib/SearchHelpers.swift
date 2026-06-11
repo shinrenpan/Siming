@@ -193,3 +193,26 @@ private func parseOneIncludeParam(_ raw: String, isIterate: Bool = false) -> Inc
 func includeEntryTuples(from resources: [IncludedResource], baseURL: String) -> [(fullUrl: String, json: Data)] {
     resources.map { r in ("\(baseURL)/\(r.resourceType)/\(r.id)", r.jsonWithMeta) }
 }
+
+// ── Prefer: return=... ────────────────────────────────────────────────────────
+
+enum PreferReturn { case representation, minimal, operationOutcome }
+
+func parsePreferReturn(_ value: String?) -> PreferReturn {
+    let v = value ?? ""
+    if v.contains("return=minimal") { return .minimal }
+    if v.contains("return=OperationOutcome") { return .operationOutcome }
+    return .representation
+}
+
+func preferBody(_ prefer: PreferReturn, resource: Data) -> ResponseBody {
+    switch prefer {
+    case .representation: return ResponseBody(byteBuffer: ByteBuffer(bytes: resource))
+    case .minimal: return .init()
+    case .operationOutcome: return ResponseBody(byteBuffer: ByteBuffer(bytes: preferOutcomeJSON))
+    }
+}
+
+private let preferOutcomeJSON: Data = Data("""
+{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"Operation completed successfully."}]}
+""".utf8)

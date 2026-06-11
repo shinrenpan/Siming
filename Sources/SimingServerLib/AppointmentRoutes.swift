@@ -34,7 +34,7 @@ public func addAppointmentRoutes(
     // POST /Appointment — create
     group.post { request, _ in
         try apptRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[apptPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[apptPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: apptMaxBodyBytes)
         let appt = try apptDecodeFHIR(Appointment.self, from: bodyBuffer)
@@ -54,7 +54,7 @@ public func addAppointmentRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Appointment/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -65,13 +65,13 @@ public func addAppointmentRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Appointment?<search> — conditional update
     group.put { request, _ in
         try apptRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[apptPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[apptPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Appointment requires search parameters for conditional update")
@@ -94,7 +94,7 @@ public func addAppointmentRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, appointment: appt, ifMatch: ifMatch)
@@ -104,7 +104,7 @@ public func addAppointmentRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Appointment")
         }
@@ -176,7 +176,7 @@ public func addAppointmentRoutes(
     // PUT /Appointment/:id — update
     group.put(":id") { request, context in
         try apptRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[apptPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[apptPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = apptParseETag(request.headers[.ifMatch])
         var req = request
@@ -189,7 +189,7 @@ public func addAppointmentRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Appointment/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Appointment/:id — JSON Patch (RFC 6902)

@@ -33,7 +33,7 @@ public func addMedicationRequestRoutes(
     // POST /MedicationRequest — create
     group.post { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let mr = try decodeFHIR(MedicationRequest.self, from: bodyBuffer)
@@ -53,7 +53,7 @@ public func addMedicationRequestRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/MedicationRequest/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -64,13 +64,13 @@ public func addMedicationRequestRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/MedicationRequest/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /MedicationRequest?<search> — conditional update
     group.put { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /MedicationRequest requires search parameters for conditional update")
@@ -93,7 +93,7 @@ public func addMedicationRequestRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/MedicationRequest/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, medicationRequest: mr, ifMatch: ifMatch)
@@ -103,7 +103,7 @@ public func addMedicationRequestRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/MedicationRequest/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "MedicationRequest")
         }
@@ -186,7 +186,7 @@ public func addMedicationRequestRoutes(
     // PUT /MedicationRequest/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -199,7 +199,7 @@ public func addMedicationRequestRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/MedicationRequest/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /MedicationRequest/:id — JSON Patch (RFC 6902)

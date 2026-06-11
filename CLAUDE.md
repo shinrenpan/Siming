@@ -254,7 +254,9 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 ## FHIR R4 interaction compliance
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`).
+**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`).
+
+**CapabilityStatement coverage (all 23 resources):** `versioning=versioned`, `conditionalCreate=true`, `conditionalRead=fullSupport`, `conditionalUpdate=true`, `conditionalDelete=single`, `updateCreate=true`, `readHistory=true`, plus per-resource `searchInclude`/`searchRevInclude`.
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
 

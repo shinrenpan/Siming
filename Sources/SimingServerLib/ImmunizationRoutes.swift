@@ -34,7 +34,7 @@ public func addImmunizationRoutes(
     // POST /Immunization — create
     group.post { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let imm = try decodeFHIR(Immunization.self, from: bodyBuffer)
@@ -54,7 +54,7 @@ public func addImmunizationRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Immunization/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -65,13 +65,13 @@ public func addImmunizationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Immunization/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Immunization?<search> — conditional update
     group.put { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Immunization requires search parameters for conditional update")
@@ -94,7 +94,7 @@ public func addImmunizationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Immunization/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, immunization: imm, ifMatch: ifMatch)
@@ -104,7 +104,7 @@ public func addImmunizationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Immunization/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Immunization")
         }
@@ -187,7 +187,7 @@ public func addImmunizationRoutes(
     // PUT /Immunization/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -200,7 +200,7 @@ public func addImmunizationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Immunization/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Immunization/:id — JSON Patch (RFC 6902)

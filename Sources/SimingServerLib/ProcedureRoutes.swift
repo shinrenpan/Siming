@@ -33,7 +33,7 @@ public func addProcedureRoutes(
     // POST /Procedure — create
     group.post { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let proc = try decodeFHIR(Procedure.self, from: bodyBuffer)
@@ -53,7 +53,7 @@ public func addProcedureRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Procedure/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -64,13 +64,13 @@ public func addProcedureRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Procedure/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Procedure?<search> — conditional update
     group.put { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Procedure requires search parameters for conditional update")
@@ -93,7 +93,7 @@ public func addProcedureRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Procedure/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, procedure: proc, ifMatch: ifMatch)
@@ -103,7 +103,7 @@ public func addProcedureRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Procedure/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Procedure")
         }
@@ -186,7 +186,7 @@ public func addProcedureRoutes(
     // PUT /Procedure/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -199,7 +199,7 @@ public func addProcedureRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Procedure/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Procedure/:id — JSON Patch (RFC 6902)

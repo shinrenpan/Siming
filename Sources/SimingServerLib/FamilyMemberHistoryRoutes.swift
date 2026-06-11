@@ -31,7 +31,7 @@ public func addFamilyMemberHistoryRoutes(
     // POST /FamilyMemberHistory — create
     group.post { request, _ in
         try fmhRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[fmhPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[fmhPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: fmhMaxBodyBytes)
         let fmh = try fmhDecodeFHIR(FamilyMemberHistory.self, from: bodyBuffer)
@@ -51,7 +51,7 @@ public func addFamilyMemberHistoryRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/FamilyMemberHistory/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -62,13 +62,13 @@ public func addFamilyMemberHistoryRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/FamilyMemberHistory/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /FamilyMemberHistory?<search> — conditional update
     group.put { request, _ in
         try fmhRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[fmhPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[fmhPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /FamilyMemberHistory requires search parameters for conditional update")
@@ -91,7 +91,7 @@ public func addFamilyMemberHistoryRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/FamilyMemberHistory/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, familyMemberHistory: fmh, ifMatch: ifMatch)
@@ -101,7 +101,7 @@ public func addFamilyMemberHistoryRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/FamilyMemberHistory/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "FamilyMemberHistory")
         }
@@ -173,7 +173,7 @@ public func addFamilyMemberHistoryRoutes(
     // PUT /FamilyMemberHistory/:id — update
     group.put(":id") { request, context in
         try fmhRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[fmhPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[fmhPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = fmhParseETag(request.headers[.ifMatch])
         var req = request
@@ -186,7 +186,7 @@ public func addFamilyMemberHistoryRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/FamilyMemberHistory/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /FamilyMemberHistory/:id — JSON Patch (RFC 6902)

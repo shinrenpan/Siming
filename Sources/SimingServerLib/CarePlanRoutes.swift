@@ -34,7 +34,7 @@ public func addCarePlanRoutes(
     // POST /CarePlan — create
     group.post { request, _ in
         try cpRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[carePlanPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[carePlanPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: carePlanMaxBodyBytes)
         let carePlan = try cpDecodeFHIR(CarePlan.self, from: bodyBuffer)
@@ -54,7 +54,7 @@ public func addCarePlanRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/CarePlan/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -65,13 +65,13 @@ public func addCarePlanRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/CarePlan/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /CarePlan?<search> — conditional update
     group.put { request, _ in
         try cpRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[carePlanPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[carePlanPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /CarePlan requires search parameters for conditional update")
@@ -94,7 +94,7 @@ public func addCarePlanRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/CarePlan/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, carePlan: carePlan, ifMatch: ifMatch)
@@ -104,7 +104,7 @@ public func addCarePlanRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/CarePlan/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "CarePlan")
         }
@@ -176,7 +176,7 @@ public func addCarePlanRoutes(
     // PUT /CarePlan/:id — update
     group.put(":id") { request, context in
         try cpRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[carePlanPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[carePlanPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = cpParseETag(request.headers[.ifMatch])
         var req = request
@@ -189,7 +189,7 @@ public func addCarePlanRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/CarePlan/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /CarePlan/:id — JSON Patch (RFC 6902)

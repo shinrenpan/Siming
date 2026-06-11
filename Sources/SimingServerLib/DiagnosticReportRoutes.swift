@@ -32,7 +32,7 @@ public func addDiagnosticReportRoutes(
     // POST /DiagnosticReport — create
     group.post { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let dr = try decodeFHIR(DiagnosticReport.self, from: bodyBuffer)
@@ -52,7 +52,7 @@ public func addDiagnosticReportRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/DiagnosticReport/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -63,13 +63,13 @@ public func addDiagnosticReportRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/DiagnosticReport/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /DiagnosticReport?<search> — conditional update
     group.put { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /DiagnosticReport requires search parameters for conditional update")
@@ -92,7 +92,7 @@ public func addDiagnosticReportRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/DiagnosticReport/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, diagnosticReport: dr, ifMatch: ifMatch)
@@ -102,7 +102,7 @@ public func addDiagnosticReportRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/DiagnosticReport/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "DiagnosticReport")
         }
@@ -185,7 +185,7 @@ public func addDiagnosticReportRoutes(
     // PUT /DiagnosticReport/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -198,7 +198,7 @@ public func addDiagnosticReportRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/DiagnosticReport/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /DiagnosticReport/:id — JSON Patch (RFC 6902)

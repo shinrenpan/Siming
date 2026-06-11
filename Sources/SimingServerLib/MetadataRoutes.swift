@@ -25,7 +25,7 @@ public func addMetadataRoutes(
 
 private func buildCapabilityStatement(smartConfig: SmartConfiguration?) -> CapabilityStatement {
     CapabilityStatement(
-        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-10")),
+        date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-11")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
         kind: FHIRPrimitive(.instance),
@@ -34,11 +34,11 @@ private func buildCapabilityStatement(smartConfig: SmartConfiguration?) -> Capab
         rest: [serverRest(smartConfig: smartConfig)],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.79.0"))
+            version: FHIRPrimitive(FHIRString("0.81.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.79.0"))
+        version: FHIRPrimitive(FHIRString("0.81.0"))
     )
 }
 
@@ -291,6 +291,8 @@ private func patientResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchRevInclude = [
         "Observation:subject", "Observation:patient",
         "Encounter:subject", "Encounter:patient",
@@ -567,6 +569,8 @@ private func observationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Observation:subject", "Observation:patient", "Observation:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -742,6 +746,8 @@ private func encounterResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Encounter:subject", "Encounter:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -908,6 +914,8 @@ private func conditionResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Condition:subject", "Condition:patient", "Condition:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -991,6 +999,8 @@ private func medicationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Medication:manufacturer",
         "Medication:ingredient",
@@ -1125,6 +1135,8 @@ private func medicationRequestResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "MedicationRequest:subject", "MedicationRequest:patient", "MedicationRequest:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1258,6 +1270,8 @@ private func allergyIntoleranceResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "AllergyIntolerance:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1391,6 +1405,8 @@ private func procedureResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Procedure:subject", "Procedure:patient", "Procedure:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1524,6 +1540,8 @@ private func diagnosticReportResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "DiagnosticReport:subject", "DiagnosticReport:patient", "DiagnosticReport:encounter",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1657,6 +1675,8 @@ private func immunizationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Immunization:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1780,6 +1800,8 @@ private func practitionerResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     return r
 }
 
@@ -1882,6 +1904,8 @@ private func organizationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Organization:partof",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -1993,6 +2017,8 @@ private func locationResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Location:organization",
         "Location:partof",
@@ -2126,6 +2152,8 @@ private func relatedPersonResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "RelatedPerson:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -2287,6 +2315,8 @@ private func serviceRequestResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "ServiceRequest:patient", "ServiceRequest:subject",
         "ServiceRequest:encounter", "ServiceRequest:requester",
@@ -2395,6 +2425,8 @@ private func specimenResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Specimen:subject", "Specimen:patient", "Specimen:collector", "Specimen:parent",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -2549,6 +2581,8 @@ private func carePlanResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "CarePlan:subject", "CarePlan:patient", "CarePlan:encounter",
         "CarePlan:care-team", "CarePlan:condition", "CarePlan:goal",
@@ -2710,6 +2744,8 @@ private func documentReferenceResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "DocumentReference:subject", "DocumentReference:patient",
         "DocumentReference:author", "DocumentReference:encounter",
@@ -2792,6 +2828,8 @@ private func goalResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Goal:subject", "Goal:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -2891,6 +2929,8 @@ private func medicationStatementResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "MedicationStatement:subject", "MedicationStatement:patient",
         "MedicationStatement:context", "MedicationStatement:medication",
@@ -2979,6 +3019,8 @@ private func familyMemberHistoryResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "FamilyMemberHistory:patient",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -3102,6 +3144,8 @@ private func appointmentResource() -> CapabilityStatementRestResource {
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "Appointment:patient", "Appointment:practitioner", "Appointment:location", "Appointment:actor",
     ].map { FHIRPrimitive(FHIRString($0)) }
@@ -3214,6 +3258,8 @@ private func medicationAdministrationResource() -> CapabilityStatementRestResour
     r.conditionalCreate = FHIRPrimitive(FHIRBool(true))
     r.conditionalUpdate = FHIRPrimitive(FHIRBool(true))
     r.conditionalDelete = FHIRPrimitive(.single)
+    r.conditionalRead = FHIRPrimitive(.fullSupport)
+    r.updateCreate = FHIRPrimitive(FHIRBool(true))
     r.searchInclude = [
         "MedicationAdministration:subject", "MedicationAdministration:patient",
         "MedicationAdministration:context", "MedicationAdministration:request",

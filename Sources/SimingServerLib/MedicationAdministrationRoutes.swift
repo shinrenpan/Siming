@@ -32,7 +32,7 @@ public func addMedicationAdministrationRoutes(
     // POST /MedicationAdministration — create
     group.post { request, _ in
         try maRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[maPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[maPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maMaxBodyBytes)
         let ma = try maDecodeFHIR(MedicationAdministration.self, from: bodyBuffer)
@@ -52,7 +52,7 @@ public func addMedicationAdministrationRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/MedicationAdministration/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -63,13 +63,13 @@ public func addMedicationAdministrationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/MedicationAdministration/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /MedicationAdministration?<search> — conditional update
     group.put { request, _ in
         try maRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[maPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[maPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /MedicationAdministration requires search parameters for conditional update")
@@ -92,7 +92,7 @@ public func addMedicationAdministrationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/MedicationAdministration/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, medicationAdministration: ma, ifMatch: ifMatch)
@@ -102,7 +102,7 @@ public func addMedicationAdministrationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/MedicationAdministration/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "MedicationAdministration")
         }
@@ -174,7 +174,7 @@ public func addMedicationAdministrationRoutes(
     // PUT /MedicationAdministration/:id — update
     group.put(":id") { request, context in
         try maRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[maPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[maPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = maParseETag(request.headers[.ifMatch])
         var req = request
@@ -187,7 +187,7 @@ public func addMedicationAdministrationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/MedicationAdministration/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /MedicationAdministration/:id — JSON Patch (RFC 6902)

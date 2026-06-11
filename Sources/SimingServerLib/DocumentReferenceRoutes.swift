@@ -36,7 +36,7 @@ public func addDocumentReferenceRoutes(
     // POST /DocumentReference — create
     group.post { request, _ in
         try docRefRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[docRefPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[docRefPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: docRefMaxBodyBytes)
         let docRef = try docRefDecodeFHIR(DocumentReference.self, from: bodyBuffer)
@@ -56,7 +56,7 @@ public func addDocumentReferenceRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/DocumentReference/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -67,13 +67,13 @@ public func addDocumentReferenceRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /DocumentReference?<search> — conditional update
     group.put { request, _ in
         try docRefRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[docRefPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[docRefPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /DocumentReference requires search parameters for conditional update")
@@ -96,7 +96,7 @@ public func addDocumentReferenceRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, docRef: docRef, ifMatch: ifMatch)
@@ -106,7 +106,7 @@ public func addDocumentReferenceRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "DocumentReference")
         }
@@ -178,7 +178,7 @@ public func addDocumentReferenceRoutes(
     // PUT /DocumentReference/:id — update
     group.put(":id") { request, context in
         try docRefRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[docRefPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[docRefPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = docRefParseETag(request.headers[.ifMatch])
         var req = request
@@ -191,7 +191,7 @@ public func addDocumentReferenceRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/DocumentReference/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /DocumentReference/:id — JSON Patch (RFC 6902)

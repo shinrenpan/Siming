@@ -42,7 +42,7 @@ public func addObservationRoutes(
     // POST /Observation — create (with optional If-None-Exist conditional create)
     group.post { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
@@ -64,7 +64,7 @@ public func addObservationRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Observation/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
             // 0 matches — fall through to normal create
         }
@@ -76,13 +76,13 @@ public func addObservationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Observation?<search> — conditional update (no id in URL)
     group.put { request, _ in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Observation requires search parameters for conditional update")
@@ -107,7 +107,7 @@ public func addObservationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, observation: obs, ifMatch: ifMatch)
@@ -117,7 +117,7 @@ public func addObservationRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Observation")
         }
@@ -200,7 +200,7 @@ public func addObservationRoutes(
     // PUT /Observation/:id — update
     group.put(":id") { request, context in
         try requireFHIRContentType(request)
-        let returnMinimal = (request.headers[preferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[preferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
@@ -213,7 +213,7 @@ public func addObservationRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Observation/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Observation/:id — JSON Patch (RFC 6902)

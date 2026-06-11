@@ -32,7 +32,7 @@ public func addGoalRoutes(
     // POST /Goal — create
     group.post { request, _ in
         try goalRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[goalPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[goalPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: goalMaxBodyBytes)
         let goal = try goalDecodeFHIR(Goal.self, from: bodyBuffer)
@@ -52,7 +52,7 @@ public func addGoalRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Goal/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -63,13 +63,13 @@ public func addGoalRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Goal/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Goal?<search> — conditional update
     group.put { request, _ in
         try goalRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[goalPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[goalPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Goal requires search parameters for conditional update")
@@ -92,7 +92,7 @@ public func addGoalRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Goal/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, goal: goal, ifMatch: ifMatch)
@@ -102,7 +102,7 @@ public func addGoalRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Goal/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Goal")
         }
@@ -174,7 +174,7 @@ public func addGoalRoutes(
     // PUT /Goal/:id — update
     group.put(":id") { request, context in
         try goalRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[goalPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[goalPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = goalParseETag(request.headers[.ifMatch])
         var req = request
@@ -187,7 +187,7 @@ public func addGoalRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Goal/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Goal/:id — JSON Patch (RFC 6902)

@@ -33,7 +33,7 @@ public func addSpecimenRoutes(
     // POST /Specimen — create
     group.post { request, _ in
         try specRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[specPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[specPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: specMaxBodyBytes)
         let specimen = try specDecodeFHIR(Specimen.self, from: bodyBuffer)
@@ -53,7 +53,7 @@ public func addSpecimenRoutes(
                 headers[.lastModified] = httpDate(existing.lastUpdated)
                 headers[.location]     = "/Specimen/\(existing.id)/_history/\(existing.versionId)"
                 return Response(status: .ok, headers: headers,
-                                body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: existing.jsonWithMeta)))
+                                body: preferBody(preferReturn, resource: existing.jsonWithMeta))
             }
         }
 
@@ -64,13 +64,13 @@ public func addSpecimenRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
         return Response(status: .created, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PUT /Specimen?<search> — conditional update
     group.put { request, _ in
         try specRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[specPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[specPreferHeader])
         let qpPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("PUT /Specimen requires search parameters for conditional update")
@@ -93,7 +93,7 @@ public func addSpecimenRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
             return Response(status: .created, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         case 1:
             let existingId = matches.entries[0].id
             let result = try await store.update(id: existingId, specimen: specimen, ifMatch: ifMatch)
@@ -103,7 +103,7 @@ public func addSpecimenRoutes(
             headers[.lastModified] = httpDate(result.lastUpdated)
             headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
             return Response(status: .ok, headers: headers,
-                            body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                            body: preferBody(preferReturn, resource: result.jsonData))
         default:
             throw FHIRServerError.multipleMatches(resourceType: "Specimen")
         }
@@ -175,7 +175,7 @@ public func addSpecimenRoutes(
     // PUT /Specimen/:id — update
     group.put(":id") { request, context in
         try specRequireFHIRContentType(request)
-        let returnMinimal = (request.headers[specPreferHeader] ?? "").contains("return=minimal")
+        let preferReturn = parsePreferReturn(request.headers[specPreferHeader])
         let id = context.parameters.get("id") ?? ""
         let ifMatch = specParseETag(request.headers[.ifMatch])
         var req = request
@@ -188,7 +188,7 @@ public func addSpecimenRoutes(
         headers[.lastModified] = httpDate(result.lastUpdated)
         headers[.location]     = "/Specimen/\(result.id)/_history/\(result.versionId)"
         return Response(status: .ok, headers: headers,
-                        body: returnMinimal ? .init() : ResponseBody(byteBuffer: ByteBuffer(bytes: result.jsonData)))
+                        body: preferBody(preferReturn, resource: result.jsonData))
     }
 
     // PATCH /Specimen/:id — JSON Patch (RFC 6902)

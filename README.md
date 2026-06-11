@@ -65,6 +65,7 @@ Server listens on `http://localhost:8080`.
 | Conditional read (`If-None-Match` / `If-Modified-Since`) | ✓ |
 | `ETag` / `If-Match` optimistic locking | ✓ |
 | `410 Gone` on deleted resource GET | ✓ |
+| `Prefer: return=representation` / `return=minimal` / `return=OperationOutcome` on write | ✓ |
 
 ### Search
 
