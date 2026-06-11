@@ -293,60 +293,13 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **Not planned:** R5, multi-tenancy, `$operations`.
 
-## Deferred work (do when C Phase stabilises)
+## Dev workflow
 
-### config.yml + Docker setup
+**During active development (macOS):** `scripts/run-dev.sh` — starts Postgres in Docker, then runs `swift run SimingServer` natively. No image rebuild. Use this for all day-to-day iteration.
 
-Not doing during rapid C Phase iteration — config schema will still change. Pick up when feature set is stable.
+**Integration / staging validation:** `scripts/run-docker.sh` — builds the release Docker image and starts the full stack. Requires FHIR packages in `packages/` (run `scripts/fetch-packages.sh` first).
 
-**`config.yml`** (project root) — single non-secret deployment config, replaces all hardcoded values and scattered env vars:
-
-```yaml
-server:
-  port: 8080
-  baseUrl: http://localhost:8080   # used for Location headers; critical behind reverse proxy
-
-fhir:
-  packages:
-    - name: hl7.fhir.r4.core
-      version: 4.0.1
-      url: https://packages.fhir.org/hl7.fhir.r4.core/4.0.1
-    - name: tw.gov.mohw.twcore      # swap for any other country IG here
-      version: 1.0.0
-      url: https://packages.simplifier.net/tw.gov.mohw.twcore/1.0.0
-  resources:                        # currently hardcoded in MetadataRoutes.swift
-    - Patient
-    - Observation
-    # ... or keyword "all"
-
-capability:                         # currently hardcoded in MetadataRoutes.swift
-  publisher: Siming 司命
-  description: FHIR R4 Server
-
-database:
-  pool:
-    min: 4
-    max: 40                         # currently hardcoded in DatabaseConfiguration
-
-search:
-  defaultCount: 20
-  maxCount: 1000
-
-security:
-  rateLimit:
-    rps: 100                        # currently RATE_LIMIT_RPS env var
-    burst: 200
-```
-
-Secrets (DB password, SMART keys) always stay in env vars. Env vars override config.yml for any field.
-
-**`scripts/fetch-packages.sh`** reads `config.yml` instead of hardcoding URLs.
-
-**Docker targets:**
-- Dev: `docker compose up` — `swift build` debug, local DB
-- Prod: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up` — release build, external DB via env var
-
-Ideal developer flow after this work: `git clone` → `docker compose up` → done.
+**Config:** `config.yml` at project root. Secrets (DB password, SMART keys) always stay in env vars — env vars override any config.yml field.
 
 ## Pagination
 

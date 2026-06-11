@@ -4,5 +4,6 @@
 *.md
 benchmarks/
 Tests/
+Sources/SimingGenerator/
 docker-compose*.yml
 .env
