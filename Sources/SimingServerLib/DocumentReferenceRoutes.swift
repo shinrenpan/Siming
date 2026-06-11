@@ -39,6 +39,7 @@ public func addDocumentReferenceRoutes(
         let preferReturn = parsePreferReturn(request.headers[docRefPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: docRefMaxBodyBytes)
+        try validateResourceType("DocumentReference", from: Data(bodyBuffer.readableBytesView))
         let docRef = try docRefDecodeFHIR(DocumentReference.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[docRefIfNoneExistHeader] {
@@ -80,6 +81,7 @@ public func addDocumentReferenceRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: docRefMaxBodyBytes)
+        try validateResourceType("DocumentReference", from: Data(bodyBuffer.readableBytesView))
         let docRef = try docRefDecodeFHIR(DocumentReference.self, from: bodyBuffer)
         let ifMatch = docRefParseETag(request.headers[.ifMatch])
 
@@ -183,6 +185,7 @@ public func addDocumentReferenceRoutes(
         let ifMatch = docRefParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: docRefMaxBodyBytes)
+        try validateResourceType("DocumentReference", from: Data(bodyBuffer.readableBytesView))
         let docRef = try docRefDecodeFHIR(DocumentReference.self, from: bodyBuffer)
         let result = try await store.update(id: id, docRef: docRef, ifMatch: ifMatch)
         var headers = HTTPFields()

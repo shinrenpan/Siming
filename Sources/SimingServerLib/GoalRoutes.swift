@@ -35,6 +35,7 @@ public func addGoalRoutes(
         let preferReturn = parsePreferReturn(request.headers[goalPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: goalMaxBodyBytes)
+        try validateResourceType("Goal", from: Data(bodyBuffer.readableBytesView))
         let goal = try goalDecodeFHIR(Goal.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[goalIfNoneExistHeader] {
@@ -76,6 +77,7 @@ public func addGoalRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: goalMaxBodyBytes)
+        try validateResourceType("Goal", from: Data(bodyBuffer.readableBytesView))
         let goal = try goalDecodeFHIR(Goal.self, from: bodyBuffer)
         let ifMatch = goalParseETag(request.headers[.ifMatch])
 
@@ -179,6 +181,7 @@ public func addGoalRoutes(
         let ifMatch = goalParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: goalMaxBodyBytes)
+        try validateResourceType("Goal", from: Data(bodyBuffer.readableBytesView))
         let goal = try goalDecodeFHIR(Goal.self, from: bodyBuffer)
         let result = try await store.update(id: id, goal: goal, ifMatch: ifMatch)
         var headers = HTTPFields()

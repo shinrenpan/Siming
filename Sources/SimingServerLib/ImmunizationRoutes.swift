@@ -37,6 +37,7 @@ public func addImmunizationRoutes(
         let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Immunization", from: Data(bodyBuffer.readableBytesView))
         let imm = try decodeFHIR(Immunization.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
@@ -78,6 +79,7 @@ public func addImmunizationRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Immunization", from: Data(bodyBuffer.readableBytesView))
         let imm = try decodeFHIR(Immunization.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
@@ -192,6 +194,7 @@ public func addImmunizationRoutes(
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Immunization", from: Data(bodyBuffer.readableBytesView))
         let imm = try decodeFHIR(Immunization.self, from: bodyBuffer)
         let result = try await store.update(id: id, immunization: imm, ifMatch: ifMatch)
         var headers = HTTPFields()

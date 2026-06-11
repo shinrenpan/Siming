@@ -34,6 +34,7 @@ public func addFamilyMemberHistoryRoutes(
         let preferReturn = parsePreferReturn(request.headers[fmhPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: fmhMaxBodyBytes)
+        try validateResourceType("FamilyMemberHistory", from: Data(bodyBuffer.readableBytesView))
         let fmh = try fmhDecodeFHIR(FamilyMemberHistory.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[fmhIfNoneExistHeader] {
@@ -75,6 +76,7 @@ public func addFamilyMemberHistoryRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: fmhMaxBodyBytes)
+        try validateResourceType("FamilyMemberHistory", from: Data(bodyBuffer.readableBytesView))
         let fmh = try fmhDecodeFHIR(FamilyMemberHistory.self, from: bodyBuffer)
         let ifMatch = fmhParseETag(request.headers[.ifMatch])
 
@@ -178,6 +180,7 @@ public func addFamilyMemberHistoryRoutes(
         let ifMatch = fmhParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: fmhMaxBodyBytes)
+        try validateResourceType("FamilyMemberHistory", from: Data(bodyBuffer.readableBytesView))
         let fmh = try fmhDecodeFHIR(FamilyMemberHistory.self, from: bodyBuffer)
         let result = try await store.update(id: id, familyMemberHistory: fmh, ifMatch: ifMatch)
         var headers = HTTPFields()

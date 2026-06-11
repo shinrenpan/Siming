@@ -34,6 +34,7 @@ public func addMedicationStatementRoutes(
         let preferReturn = parsePreferReturn(request.headers[msPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: msMaxBodyBytes)
+        try validateResourceType("MedicationStatement", from: Data(bodyBuffer.readableBytesView))
         let ms = try msDecodeFHIR(MedicationStatement.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[msIfNoneExistHeader] {
@@ -75,6 +76,7 @@ public func addMedicationStatementRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: msMaxBodyBytes)
+        try validateResourceType("MedicationStatement", from: Data(bodyBuffer.readableBytesView))
         let ms = try msDecodeFHIR(MedicationStatement.self, from: bodyBuffer)
         let ifMatch = msParseETag(request.headers[.ifMatch])
 
@@ -178,6 +180,7 @@ public func addMedicationStatementRoutes(
         let ifMatch = msParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: msMaxBodyBytes)
+        try validateResourceType("MedicationStatement", from: Data(bodyBuffer.readableBytesView))
         let ms = try msDecodeFHIR(MedicationStatement.self, from: bodyBuffer)
         let result = try await store.update(id: id, medicationStatement: ms, ifMatch: ifMatch)
         var headers = HTTPFields()

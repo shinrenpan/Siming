@@ -40,6 +40,7 @@ public func addServiceRequestRoutes(
         let preferReturn = parsePreferReturn(request.headers[srPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: srMaxBodyBytes)
+        try validateResourceType("ServiceRequest", from: Data(bodyBuffer.readableBytesView))
         let sr = try srDecodeFHIR(ServiceRequest.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[srIfNoneExistHeader] {
@@ -81,6 +82,7 @@ public func addServiceRequestRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: srMaxBodyBytes)
+        try validateResourceType("ServiceRequest", from: Data(bodyBuffer.readableBytesView))
         let sr = try srDecodeFHIR(ServiceRequest.self, from: bodyBuffer)
         let ifMatch = srParseETag(request.headers[.ifMatch])
 
@@ -184,6 +186,7 @@ public func addServiceRequestRoutes(
         let ifMatch = srParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: srMaxBodyBytes)
+        try validateResourceType("ServiceRequest", from: Data(bodyBuffer.readableBytesView))
         let sr = try srDecodeFHIR(ServiceRequest.self, from: bodyBuffer)
         let result = try await store.update(id: id, sr: sr, ifMatch: ifMatch)
         var headers = HTTPFields()

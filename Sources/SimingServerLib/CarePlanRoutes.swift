@@ -37,6 +37,7 @@ public func addCarePlanRoutes(
         let preferReturn = parsePreferReturn(request.headers[carePlanPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: carePlanMaxBodyBytes)
+        try validateResourceType("CarePlan", from: Data(bodyBuffer.readableBytesView))
         let carePlan = try cpDecodeFHIR(CarePlan.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[carePlanIfNoneExistHeader] {
@@ -78,6 +79,7 @@ public func addCarePlanRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: carePlanMaxBodyBytes)
+        try validateResourceType("CarePlan", from: Data(bodyBuffer.readableBytesView))
         let carePlan = try cpDecodeFHIR(CarePlan.self, from: bodyBuffer)
         let ifMatch = cpParseETag(request.headers[.ifMatch])
 
@@ -181,6 +183,7 @@ public func addCarePlanRoutes(
         let ifMatch = cpParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: carePlanMaxBodyBytes)
+        try validateResourceType("CarePlan", from: Data(bodyBuffer.readableBytesView))
         let carePlan = try cpDecodeFHIR(CarePlan.self, from: bodyBuffer)
         let result = try await store.update(id: id, carePlan: carePlan, ifMatch: ifMatch)
         var headers = HTTPFields()

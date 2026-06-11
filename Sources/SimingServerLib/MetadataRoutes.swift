@@ -28,17 +28,19 @@ private func buildCapabilityStatement(smartConfig: SmartConfiguration?) -> Capab
         date: FHIRPrimitive(DateTime(stringLiteral: "2026-06-11")),
         fhirVersion: FHIRPrimitive(FHIRString("4.0.1")),
         format: [FHIRPrimitive(FHIRString("application/fhir+json"))],
+        instantiates: [FHIRPrimitive(Canonical(stringLiteral: "http://hl7.org/fhir/CapabilityStatement/base"))],
         kind: FHIRPrimitive(.instance),
         name: FHIRPrimitive(FHIRString("SimingCapabilityStatement")),
+        patchFormat: [FHIRPrimitive(FHIRString("application/json-patch+json"))],
         publisher: FHIRPrimitive(FHIRString("Siming 司命")),
         rest: [serverRest(smartConfig: smartConfig)],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.83.0"))
+            version: FHIRPrimitive(FHIRString("0.84.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.83.0"))
+        version: FHIRPrimitive(FHIRString("0.84.0"))
     )
 }
 

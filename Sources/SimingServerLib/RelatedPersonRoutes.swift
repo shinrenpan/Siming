@@ -37,6 +37,7 @@ public func addRelatedPersonRoutes(
         let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("RelatedPerson", from: Data(bodyBuffer.readableBytesView))
         let rp = try decodeFHIR(RelatedPerson.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
@@ -78,6 +79,7 @@ public func addRelatedPersonRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("RelatedPerson", from: Data(bodyBuffer.readableBytesView))
         let rp = try decodeFHIR(RelatedPerson.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
@@ -181,6 +183,7 @@ public func addRelatedPersonRoutes(
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("RelatedPerson", from: Data(bodyBuffer.readableBytesView))
         let rp = try decodeFHIR(RelatedPerson.self, from: bodyBuffer)
         let result = try await store.update(id: id, rp: rp, ifMatch: ifMatch)
         var headers = HTTPFields()

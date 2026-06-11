@@ -69,6 +69,8 @@ Server listens on `http://localhost:8080`.
 | CORS — preflight (`OPTIONS`) + response headers for browser-based Inferno / Touchstone | ✓ |
 | `Content-Type: application/fhir+json; fhirVersion=4.0` on all FHIR responses | ✓ |
 | `Bundle.id` + `Bundle.meta.lastUpdated` on all Bundle types (searchset / history / transaction-response) | ✓ |
+| `resourceType` mismatch on write → 422 Unprocessable Entity | ✓ |
+| CapabilityStatement `instantiates` + `patchFormat` | ✓ |
 
 ### Search
 

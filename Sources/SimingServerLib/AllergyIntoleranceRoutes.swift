@@ -37,6 +37,7 @@ public func addAllergyIntoleranceRoutes(
         let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("AllergyIntolerance", from: Data(bodyBuffer.readableBytesView))
         let ai = try decodeFHIR(AllergyIntolerance.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
@@ -78,6 +79,7 @@ public func addAllergyIntoleranceRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("AllergyIntolerance", from: Data(bodyBuffer.readableBytesView))
         let ai = try decodeFHIR(AllergyIntolerance.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
@@ -192,6 +194,7 @@ public func addAllergyIntoleranceRoutes(
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("AllergyIntolerance", from: Data(bodyBuffer.readableBytesView))
         let ai = try decodeFHIR(AllergyIntolerance.self, from: bodyBuffer)
         let result = try await store.update(id: id, allergyIntolerance: ai, ifMatch: ifMatch)
         var headers = HTTPFields()

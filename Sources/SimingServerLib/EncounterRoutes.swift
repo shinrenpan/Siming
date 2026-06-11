@@ -38,6 +38,7 @@ public func addEncounterRoutes(
         let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Encounter", from: Data(bodyBuffer.readableBytesView))
         let enc = try decodeFHIR(Encounter.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
@@ -81,6 +82,7 @@ public func addEncounterRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Encounter", from: Data(bodyBuffer.readableBytesView))
         let enc = try decodeFHIR(Encounter.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
@@ -197,6 +199,7 @@ public func addEncounterRoutes(
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Encounter", from: Data(bodyBuffer.readableBytesView))
         let enc = try decodeFHIR(Encounter.self, from: bodyBuffer)
         let result = try await store.update(id: id, encounter: enc, ifMatch: ifMatch)
         var headers = HTTPFields()

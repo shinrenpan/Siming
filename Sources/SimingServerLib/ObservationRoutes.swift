@@ -45,6 +45,7 @@ public func addObservationRoutes(
         let preferReturn = parsePreferReturn(request.headers[preferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Observation", from: Data(bodyBuffer.readableBytesView))
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
@@ -89,6 +90,7 @@ public func addObservationRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Observation", from: Data(bodyBuffer.readableBytesView))
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
@@ -205,6 +207,7 @@ public func addObservationRoutes(
         let ifMatch = parseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: maxBodyBytes)
+        try validateResourceType("Observation", from: Data(bodyBuffer.readableBytesView))
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
         let result = try await store.update(id: id, observation: obs, ifMatch: ifMatch)
         var headers = HTTPFields()

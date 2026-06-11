@@ -36,6 +36,7 @@ public func addSpecimenRoutes(
         let preferReturn = parsePreferReturn(request.headers[specPreferHeader])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: specMaxBodyBytes)
+        try validateResourceType("Specimen", from: Data(bodyBuffer.readableBytesView))
         let specimen = try specDecodeFHIR(Specimen.self, from: bodyBuffer)
 
         if let ifNoneExist = request.headers[specIfNoneExistHeader] {
@@ -77,6 +78,7 @@ public func addSpecimenRoutes(
         }
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: specMaxBodyBytes)
+        try validateResourceType("Specimen", from: Data(bodyBuffer.readableBytesView))
         let specimen = try specDecodeFHIR(Specimen.self, from: bodyBuffer)
         let ifMatch = specParseETag(request.headers[.ifMatch])
 
@@ -180,6 +182,7 @@ public func addSpecimenRoutes(
         let ifMatch = specParseETag(request.headers[.ifMatch])
         var req = request
         let bodyBuffer = try await req.collectBody(upTo: specMaxBodyBytes)
+        try validateResourceType("Specimen", from: Data(bodyBuffer.readableBytesView))
         let specimen = try specDecodeFHIR(Specimen.self, from: bodyBuffer)
         let result = try await store.update(id: id, specimen: specimen, ifMatch: ifMatch)
         var headers = HTTPFields()

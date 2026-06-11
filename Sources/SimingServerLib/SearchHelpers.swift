@@ -216,3 +216,18 @@ func preferBody(_ prefer: PreferReturn, resource: Data) -> ResponseBody {
 private let preferOutcomeJSON: Data = Data("""
 {"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"Operation completed successfully."}]}
 """.utf8)
+
+// ── resourceType mismatch validation ─────────────────────────────────────────
+
+/// Validates that the JSON body's `resourceType` field matches the endpoint's expected type.
+/// Returns silently when `resourceType` is absent (let the decoder catch malformed JSON).
+/// Throws 422 Unprocessable Entity when the type is present but wrong.
+func validateResourceType(_ expected: String, from data: Data) throws {
+    guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let rt = obj["resourceType"] as? String else { return }
+    guard rt == expected else {
+        throw FHIRRouteError.unprocessableEntity(
+            "resourceType '\(rt)' does not match endpoint type '\(expected)'"
+        )
+    }
+}
