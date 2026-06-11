@@ -38,7 +38,7 @@ public func addMetadataRoutes(
 
 // ── CapabilityStatement JSON builder ─────────────────────────────────────────
 
-private let serverVersion = "0.89.0"
+private let serverVersion = "0.92.0"
 
 private func buildCapabilityStatementJSON(
     smartConfig: SmartConfiguration?,
@@ -115,6 +115,12 @@ private func buildRest(smartConfig: SmartConfiguration?, igData: IGData) -> [Str
 
 private func globalSearchParams() -> [[String: Any]] {
     [
+        ["name": "_id", "type": "token",
+         "definition": "http://hl7.org/fhir/SearchParameter/Resource-id",
+         "documentation": "Filter by resource logical id. Supports comma-separated OR."],
+        ["name": "_lastUpdated", "type": "date",
+         "definition": "http://hl7.org/fhir/SearchParameter/Resource-lastUpdated",
+         "documentation": "Filter by last write time. Supports date prefixes eq/lt/gt/le/ge/sa/eb/ap."],
         ["name": "_elements", "type": "string",
          "documentation": "Field projection — return only named top-level elements. SUBSETTED tag added to meta."],
         ["name": "_summary", "type": "token",
