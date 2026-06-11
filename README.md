@@ -6,30 +6,30 @@ A high-performance FHIR R4 server written in Swift.
 
 ## Quick start
 
-### macOS (active development)
+### macOS (recommended)
 
-Requires Swift 6.2+ and Docker (for Postgres).
+Swift is a first-class citizen on macOS — no VM overhead, faster builds, and the full Foundation stack. If you're on macOS, run natively.
+
+Requires Swift 6.2+ and Docker (for Postgres only).
 
 ```bash
 # Download FHIR packages (one-time setup)
 bash scripts/fetch-packages.sh
 
-# Start Postgres in Docker, then run server natively in release mode (no image rebuild)
+# Start Postgres in Docker, then run server natively in release mode
 bash scripts/run-macOS.sh
 ```
 
 Server listens on `http://localhost:8080`.
 
-### Docker (integration / staging)
+### Docker (Linux / staging)
 
-Requires Docker and FHIR packages in `packages/`.
+For Linux developers or integration/staging validation.
 
 ```bash
 bash scripts/fetch-packages.sh   # one-time
 bash scripts/run-docker.sh       # builds release image + starts full stack
 ```
-
-> **Note:** Linux builds require Swift 6.2+. macOS and Linux (Docker) are both supported as of FHIRModels 0.9.3.
 
 ## FHIR R4 capabilities
 
