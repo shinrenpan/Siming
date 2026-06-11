@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractProcedureSearchParams(_ proc: Procedure) -> SearchParams {
     var p = SearchParams()
+    extract_Procedure__id(&p, proc)
     extract_Procedure_based_on(&p, proc)
     extract_Procedure_category(&p, proc)
     extract_Procedure_code(&p, proc)
@@ -29,6 +30,9 @@ public func extractProcedureSearchParams(_ proc: Procedure) -> SearchParams {
     extract_Procedure_subject(&p, proc)
     return p
 }
+
+// TODO: unhandled — _id [token] Procedure.id
+private func extract_Procedure__id(_ p: inout SearchParams, _ proc: Procedure) {}
 
 // based-on [reference] — Procedure.basedOn
 private func extract_Procedure_based_on(_ p: inout SearchParams, _ proc: Procedure) {

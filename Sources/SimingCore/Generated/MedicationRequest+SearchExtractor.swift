@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractMedicationRequestSearchParams(_ mr: MedicationRequest) -> SearchParams {
     var p = SearchParams()
+    extract_MedicationRequest__id(&p, mr)
     extract_MedicationRequest_authoredon(&p, mr)
     extract_MedicationRequest_category(&p, mr)
     extract_MedicationRequest_code(&p, mr)
@@ -29,6 +30,9 @@ public func extractMedicationRequestSearchParams(_ mr: MedicationRequest) -> Sea
     extract_MedicationRequest_subject(&p, mr)
     return p
 }
+
+// TODO: unhandled — _id [token] MedicationRequest.id
+private func extract_MedicationRequest__id(_ p: inout SearchParams, _ mr: MedicationRequest) {}
 
 // authoredon [date] — MedicationRequest.authoredOn
 private func extract_MedicationRequest_authoredon(_ p: inout SearchParams, _ mr: MedicationRequest) {

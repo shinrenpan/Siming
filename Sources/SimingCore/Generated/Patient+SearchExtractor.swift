@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractPatientSearchParams(_ patient: Patient) -> SearchParams {
     var p = SearchParams()
+    extract_Patient__id(&p, patient)
     extract_Patient_active(&p, patient)
     extract_Patient_address(&p, patient)
     extract_Patient_address_city(&p, patient)
@@ -29,13 +30,18 @@ public func extractPatientSearchParams(_ patient: Patient) -> SearchParams {
     extract_Patient_identifier(&p, patient)
     extract_Patient_language(&p, patient)
     extract_Patient_link(&p, patient)
+    extract_Patient_mothersMaidenName(&p, patient)
     extract_Patient_name(&p, patient)
     extract_Patient_organization(&p, patient)
+    extract_Patient_part_agree(&p, patient)
     extract_Patient_phone(&p, patient)
     extract_Patient_phonetic(&p, patient)
     extract_Patient_telecom(&p, patient)
     return p
 }
+
+// TODO: unhandled — _id [token] Patient.id
+private func extract_Patient__id(_ p: inout SearchParams, _ patient: Patient) {}
 
 // active [token] — Patient.active
 private func extract_Patient_active(_ p: inout SearchParams, _ patient: Patient) {
@@ -212,6 +218,9 @@ private func extract_Patient_link(_ p: inout SearchParams, _ patient: Patient) {
     }
 }
 
+// TODO: unhandled — mothersMaidenName [string] Patient.extension('http://hl7.org/fhir/StructureDefinition/patient-extensions-Patient-mothersMaidenName')
+private func extract_Patient_mothersMaidenName(_ p: inout SearchParams, _ patient: Patient) {}
+
 // name [string] — Patient.name
 private func extract_Patient_name(_ p: inout SearchParams, _ patient: Patient) {
     for name in patient.name ?? [] {
@@ -232,6 +241,9 @@ private func extract_Patient_organization(_ p: inout SearchParams, _ patient: Pa
         : (nil, refStr)
     p.references.append(.init(paramName: "organization", refType: refType, refId: refId))
 }
+
+// TODO: unhandled — part-agree [reference] DocumentReference.extension('http://example.org/fhir/StructureDefinition/participation-agreement')
+private func extract_Patient_part_agree(_ p: inout SearchParams, _ patient: Patient) {}
 
 // phone [token] — Patient.telecom
 private func extract_Patient_phone(_ p: inout SearchParams, _ patient: Patient) {

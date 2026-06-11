@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -13,6 +13,7 @@ public func extractGoalSearchParams(_ g: Goal) -> SearchParams {
     var p = SearchParams()
     extract_Goal_achievement_status(&p, g)
     extract_Goal_category(&p, g)
+    extract_Goal_description(&p, g)
     extract_Goal_identifier(&p, g)
     extract_Goal_lifecycle_status(&p, g)
     extract_Goal_patient(&p, g)
@@ -41,6 +42,9 @@ private func extract_Goal_category(_ p: inout SearchParams, _ g: Goal) {
         }
     }
 }
+
+// TODO: unhandled — description [token] Goal.description
+private func extract_Goal_description(_ p: inout SearchParams, _ g: Goal) {}
 
 // identifier [token] — Goal.identifier
 private func extract_Goal_identifier(_ p: inout SearchParams, _ g: Goal) {
@@ -91,7 +95,7 @@ private func extract_Goal_subject(_ p: inout SearchParams, _ g: Goal) {
     p.references.append(.init(paramName: "subject", refType: refType, refId: refId))
 }
 
-// target-date [date] — Goal.target.due
+// target-date [date] — Goal.target.due.ofType(date))
 private func extract_Goal_target_date(_ p: inout SearchParams, _ g: Goal) {
     let cal = Calendar(identifier: .gregorian)
     for target in g.target ?? [] {

@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractEncounterSearchParams(_ enc: Encounter) -> SearchParams {
     var p = SearchParams()
+    extract_Encounter__id(&p, enc)
     extract_Encounter_account(&p, enc)
     extract_Encounter_appointment(&p, enc)
     extract_Encounter_based_on(&p, enc)
@@ -36,6 +37,9 @@ public func extractEncounterSearchParams(_ enc: Encounter) -> SearchParams {
     extract_Encounter_type(&p, enc)
     return p
 }
+
+// TODO: unhandled — _id [token] Encounter.id
+private func extract_Encounter__id(_ p: inout SearchParams, _ enc: Encounter) {}
 
 // account [reference] — Encounter.account
 private func extract_Encounter_account(_ p: inout SearchParams, _ enc: Encounter) {
@@ -148,17 +152,8 @@ private func extract_Encounter_length(_ p: inout SearchParams, _ enc: Encounter)
                               value: Decimal(string: decimalVal.description) ?? 0))
 }
 
-// location [reference] — Encounter.location.location
-private func extract_Encounter_location(_ p: inout SearchParams, _ enc: Encounter) {
-    for loc in enc.location ?? [] {
-        guard let refStr = loc.location.reference?.value?.string else { continue }
-        let parts = refStr.split(separator: "/")
-        let (refType, refId): (String?, String) = parts.count == 2
-            ? (String(parts[0]), String(parts[1]))
-            : (nil, refStr)
-        p.references.append(.init(paramName: "location", refType: refType, refId: refId))
-    }
-}
+// TODO: unhandled — location [reference] Encounter.location
+private func extract_Encounter_location(_ p: inout SearchParams, _ enc: Encounter) {}
 
 // location-period [date] — Encounter.location.period
 private func extract_Encounter_location_period(_ p: inout SearchParams, _ enc: Encounter) {

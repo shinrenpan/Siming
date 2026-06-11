@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractPractitionerSearchParams(_ prac: Practitioner) -> SearchParams {
     var p = SearchParams()
+    extract_Practitioner__id(&p, prac)
     extract_Practitioner_active(&p, prac)
     extract_Practitioner_address(&p, prac)
     extract_Practitioner_address_city(&p, prac)
@@ -30,6 +31,9 @@ public func extractPractitionerSearchParams(_ prac: Practitioner) -> SearchParam
     extract_Practitioner_telecom(&p, prac)
     return p
 }
+
+// TODO: unhandled — _id [token] Practitioner.id
+private func extract_Practitioner__id(_ p: inout SearchParams, _ prac: Practitioner) {}
 
 // active [token] — Practitioner.active
 private func extract_Practitioner_active(_ p: inout SearchParams, _ prac: Practitioner) {

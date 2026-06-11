@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> SearchParams {
     var p = SearchParams()
+    extract_DocumentReference__id(&p, d)
     extract_DocumentReference_authenticator(&p, d)
     extract_DocumentReference_author(&p, d)
     extract_DocumentReference_category(&p, d)
@@ -38,6 +39,9 @@ public func extractDocumentReferenceSearchParams(_ d: DocumentReference) -> Sear
     extract_DocumentReference_type(&p, d)
     return p
 }
+
+// TODO: unhandled — _id [token] DocumentReference.id
+private func extract_DocumentReference__id(_ p: inout SearchParams, _ d: DocumentReference) {}
 
 // authenticator [reference] — DocumentReference.authenticator
 private func extract_DocumentReference_authenticator(_ p: inout SearchParams, _ d: DocumentReference) {

@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,8 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractDiagnosticReportSearchParams(_ dr: DiagnosticReport) -> SearchParams {
     var p = SearchParams()
+    extract_DiagnosticReport__id(&p, dr)
+    extract_DiagnosticReport_assessed_condition(&p, dr)
     extract_DiagnosticReport_based_on(&p, dr)
     extract_DiagnosticReport_category(&p, dr)
     extract_DiagnosticReport_code(&p, dr)
@@ -29,6 +31,12 @@ public func extractDiagnosticReportSearchParams(_ dr: DiagnosticReport) -> Searc
     extract_DiagnosticReport_subject(&p, dr)
     return p
 }
+
+// TODO: unhandled — _id [token] DiagnosticReport.id
+private func extract_DiagnosticReport__id(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
+
+// TODO: unhandled — assessed-condition [reference] DiagnosticReport.extension('http://hl7.org/fhir/StructureDefinition/DiagnosticReport-geneticsAssessedCondition')
+private func extract_DiagnosticReport_assessed_condition(_ p: inout SearchParams, _ dr: DiagnosticReport) {}
 
 // based-on [reference] — DiagnosticReport.basedOn
 private func extract_DiagnosticReport_based_on(_ p: inout SearchParams, _ dr: DiagnosticReport) {

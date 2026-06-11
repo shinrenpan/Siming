@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractServiceRequestSearchParams(_ sr: ServiceRequest) -> SearchParams {
     var p = SearchParams()
+    extract_ServiceRequest__id(&p, sr)
     extract_ServiceRequest_authored(&p, sr)
     extract_ServiceRequest_based_on(&p, sr)
     extract_ServiceRequest_body_site(&p, sr)
@@ -22,7 +23,6 @@ public func extractServiceRequestSearchParams(_ sr: ServiceRequest) -> SearchPar
     extract_ServiceRequest_instantiates_uri(&p, sr)
     extract_ServiceRequest_intent(&p, sr)
     extract_ServiceRequest_occurrence(&p, sr)
-    extract_ServiceRequest_order_detail(&p, sr)
     extract_ServiceRequest_patient(&p, sr)
     extract_ServiceRequest_performer(&p, sr)
     extract_ServiceRequest_performer_type(&p, sr)
@@ -35,6 +35,9 @@ public func extractServiceRequestSearchParams(_ sr: ServiceRequest) -> SearchPar
     extract_ServiceRequest_subject(&p, sr)
     return p
 }
+
+// TODO: unhandled — _id [token] ServiceRequest.id
+private func extract_ServiceRequest__id(_ p: inout SearchParams, _ sr: ServiceRequest) {}
 
 // authored [date] — ServiceRequest.authoredOn
 private func extract_ServiceRequest_authored(_ p: inout SearchParams, _ sr: ServiceRequest) {
@@ -165,17 +168,6 @@ private func extract_ServiceRequest_occurrence(_ p: inout SearchParams, _ sr: Se
         p.dates.append(.init(paramName: "occurrence", dateStart: start, dateEnd: end))
     default:
         break
-    }
-}
-
-// order-detail [token] — ServiceRequest.orderDetail
-private func extract_ServiceRequest_order_detail(_ p: inout SearchParams, _ sr: ServiceRequest) {
-    for cc in sr.orderDetail ?? [] {
-        for coding in cc.coding ?? [] {
-            let c = coding.code?.value?.string ?? ""
-            let s = coding.system?.value?.url.absoluteString
-            p.appendToken(paramName: "order-detail", system: s, code: c, display: coding.display?.value?.string)
-        }
     }
 }
 

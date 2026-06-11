@@ -1,5 +1,5 @@
 // GENERATED — do not edit directly.
-// Source: Resources/fhir/search-parameters-r4.json
+// Source: packages/*.tgz (hl7.fhir.r4.core + tw.gov.mohw.twcore)
 // Regenerate: swift run SimingGenerator
 
 import Foundation
@@ -11,6 +11,7 @@ import ModelsR4
 /// Params marked TODO are recognised by the FHIR R4 spec but not yet implemented.
 public func extractSpecimenSearchParams(_ s: Specimen) -> SearchParams {
     var p = SearchParams()
+    extract_Specimen__id(&p, s)
     extract_Specimen_accession(&p, s)
     extract_Specimen_bodysite(&p, s)
     extract_Specimen_collected(&p, s)
@@ -25,6 +26,9 @@ public func extractSpecimenSearchParams(_ s: Specimen) -> SearchParams {
     extract_Specimen_type(&p, s)
     return p
 }
+
+// TODO: unhandled — _id [token] Specimen.id
+private func extract_Specimen__id(_ p: inout SearchParams, _ s: Specimen) {}
 
 // accession [token] — Specimen.accessionIdentifier
 private func extract_Specimen_accession(_ p: inout SearchParams, _ s: Specimen) {
