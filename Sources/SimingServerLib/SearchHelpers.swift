@@ -4,9 +4,14 @@ import Hummingbird
 import NIOCore
 import SimingCore
 
+/// Set once at startup from config.serverBaseURL. Empty = derive from Host header.
+public nonisolated(unsafe) var configuredServerBaseURL: String = ""
+
 /// Returns the server base URL (scheme + authority only), e.g. "http://localhost:8080".
+/// Uses configuredServerBaseURL when set; falls back to the request Host header.
 func serverBaseURL(_ request: Request) -> String {
-    "http://\(request.head.authority ?? "localhost")"
+    if !configuredServerBaseURL.isEmpty { return configuredServerBaseURL }
+    return "http://\(request.head.authority ?? "localhost")"
 }
 
 /// Parses a FHIR instant string (ISO 8601) into a Date. Accepts e.g. "2023-01-01T00:00:00Z".

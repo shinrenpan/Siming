@@ -1,0 +1,98 @@
+# Siming FHIR R4 Server — configuration file
+#
+# Non-secret operational settings only. Secrets (database credentials, SMART
+# keys) must be provided via environment variables — see README.md §Configuration.
+#
+# Environment variables always take precedence over values in this file.
+# Relative paths are resolved from the working directory at startup.
+
+# ── Server ────────────────────────────────────────────────────────────────────
+
+server:
+  # TCP port the server listens on.
+  port: 8080
+
+  # Public base URL of this server. Used to build absolute Location /
+  # Content-Location headers. Must be set correctly when running behind a
+  # reverse proxy (e.g. https://fhir.example.com).
+  baseUrl: http://localhost:8080
+
+# ── FHIR packages ─────────────────────────────────────────────────────────────
+
+fhir:
+  # Directory that holds the downloaded .tgz IG packages. The server loads
+  # CapabilityStatement data from these files at startup. The generator
+  # (swift run SimingGenerator) also reads from this directory.
+  # Override with the PACKAGES_DIR environment variable.
+  packagesDir: ./packages
+
+  # Packages to download when running scripts/fetch-packages.sh.
+  # Always include hl7.fhir.r4.core (required base package).
+  # Add any FHIR R4 Implementation Guide packages below it.
+  packages:
+    - name: hl7.fhir.r4.core
+      version: 4.0.1
+      url: https://packages.fhir.org/hl7.fhir.r4.core/4.0.1
+
+    # Example: Taiwan Core IG. Replace with your country/project IG.
+    # - name: tw.gov.mohw.twcore
+    #   version: 1.0.0
+    #   url: https://packages.simplifier.net/tw.gov.mohw.twcore/1.0.0
+
+# ── CapabilityStatement metadata ──────────────────────────────────────────────
+
+capability:
+  # Organization or individual publishing this server. Appears in
+  # GET /metadata → CapabilityStatement.publisher.
+  publisher: Siming
+
+  # Human-readable description of this deployment. Appears in
+  # GET /metadata → CapabilityStatement.implementation.description.
+  description: Siming FHIR R4 Server
+
+# ── Database ──────────────────────────────────────────────────────────────────
+
+database:
+  # Path to the directory containing ordered SQL migration files
+  # (e.g. migrations/0001_init.sql). Applied automatically at startup.
+  # Override with the MIGRATIONS_PATH environment variable.
+  migrationsPath: ./migrations
+
+  pool:
+    # Minimum number of idle PostgreSQL connections kept open.
+    min: 4
+
+    # Maximum number of concurrent PostgreSQL connections.
+    # Tune based on your Postgres server's max_connections setting.
+    max: 40
+
+# ── Search ────────────────────────────────────────────────────────────────────
+
+search:
+  # Number of results returned per page when the client omits _count.
+  defaultCount: 20
+
+  # Hard upper limit on _count. Requests above this value are clamped.
+  maxCount: 1000
+
+# ── Security ──────────────────────────────────────────────────────────────────
+
+security:
+  # Per-IP token-bucket rate limiting. Remove or comment out this entire
+  # section to disable rate limiting (default: disabled).
+  # The RATE_LIMIT_RPS environment variable overrides rps when set.
+  #
+  # rateLimit:
+  #   # Sustained requests per second per IP address (token refill rate).
+  #   rps: 100
+  #
+  #   # Maximum burst size. Clients can exceed rps briefly up to this limit.
+  #   # Defaults to 2 × rps when omitted.
+  #   burst: 200
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+
+logging:
+  # Minimum log level. One of: trace | debug | info | warn | error
+  # Use debug or trace during development; info or warn in production.
+  level: info

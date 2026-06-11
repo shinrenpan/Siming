@@ -17,6 +17,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/jwt-kit.git", from: "5.0.0"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.11.0"),
         .package(url: "https://github.com/swift-server/swift-prometheus.git", from: "2.3.0"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -39,6 +40,7 @@ let package = Package(
                 .product(name: "Prometheus", package: "swift-prometheus"),
                 .product(name: "ModelsR4", package: "FHIRModels"),
                 .product(name: "JWTKit", package: "jwt-kit"),
+                .product(name: "Yams", package: "Yams"),
             ]
         ),
         .target(

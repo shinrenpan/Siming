@@ -7,6 +7,7 @@ public func buildRouter(
     stores: StoreContainer,
     registry: PrometheusCollectorRegistry,
     logger: Logger,
+    config: SimingConfig = SimingConfig(),
     smartConfig: SmartConfiguration? = nil,
     rateLimitConfig: RateLimitConfiguration? = nil
 ) -> Router<BasicRequestContext> {
@@ -22,7 +23,13 @@ public func buildRouter(
         addSmartRoutes(to: router, config: smartConfig)
     }
     router.get("health") { _, _ in HTTPResponse.Status.ok }
-    addMetadataRoutes(to: router, smartConfig: smartConfig)
+    addMetadataRoutes(
+        to: router,
+        smartConfig: smartConfig,
+        packagesDir: config.fhirPackagesDir,
+        capabilityPublisher: config.capabilityPublisher,
+        capabilityDescription: config.capabilityDescription
+    )
     addMetricsRoute(to: router, registry: registry)
     addPatientRoutes(to: router, store: stores.patient, logger: logger)
     addObservationRoutes(to: router, store: stores.observation, logger: logger)

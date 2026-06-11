@@ -10,40 +10,47 @@ import SimingServerLib
 @main
 struct SimingApp {
     static func main() async throws {
+        let config = SimingConfig.load()
+
         var logger = Logger(label: "siming")
-        logger.logLevel = .info
+        logger.logLevel = Logger.Level(configString: config.logLevel)
 
         let registry = PrometheusCollectorRegistry()
         MetricsSystem.bootstrap(PrometheusMetricsFactory(registry: registry))
 
-        let dbConfig = try DatabaseConfiguration.fromEnvironment()
+        // Wire configurable base URL for Location / Content-Location headers.
+        configuredServerBaseURL = config.serverBaseURL
+
+        var dbConfig = try DatabaseConfiguration.fromEnvironment()
+        dbConfig.poolMin = config.dbPoolMin
+        dbConfig.poolMax = config.dbPoolMax
         let postgresClient = PostgresClient(
             configuration: dbConfig.postgresClientConfiguration,
             backgroundLogger: logger
         )
 
-        let migrationsPath = ProcessInfo.processInfo.environment["MIGRATIONS_PATH"] ?? "migrations"
         let migrationRunner = MigrationRunner(
             client: postgresClient,
             logger: logger,
-            migrationsPath: migrationsPath
+            migrationsPath: config.dbMigrationsPath
         )
 
         let stores = StoreContainer(client: postgresClient, logger: logger)
         let smartConfig = try await SmartConfiguration.fromEnvironment(logger: logger)
-        let rateLimitConfig = RateLimitConfiguration.fromEnvironment(logger: logger)
+        let rateLimitConfig = RateLimitConfiguration.from(config: config, logger: logger)
 
         let router = buildRouter(
             stores: stores,
             registry: registry,
             logger: logger,
+            config: config,
             smartConfig: smartConfig,
             rateLimitConfig: rateLimitConfig
         )
 
         let app = Application(
             router: router,
-            configuration: .init(address: .hostname("0.0.0.0", port: 8080)),
+            configuration: .init(address: .hostname("0.0.0.0", port: config.serverPort)),
             logger: logger
         )
 

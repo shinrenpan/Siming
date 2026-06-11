@@ -20,10 +20,17 @@ private let supportedResourceTypes: [String] = [
 public func addMetadataRoutes(
     to router: Router<BasicRequestContext>,
     smartConfig: SmartConfiguration? = nil,
-    packagesDir: String = ProcessInfo.processInfo.environment["PACKAGES_DIR"] ?? "packages"
+    packagesDir: String = ProcessInfo.processInfo.environment["PACKAGES_DIR"] ?? "packages",
+    capabilityPublisher: String = "Siming",
+    capabilityDescription: String = "Siming FHIR R4 Server"
 ) {
     let igData = loadIG(packagesDir: packagesDir, resourceTypes: supportedResourceTypes)
-    let csData = buildCapabilityStatementJSON(smartConfig: smartConfig, igData: igData)
+    let csData = buildCapabilityStatementJSON(
+        smartConfig: smartConfig,
+        igData: igData,
+        publisher: capabilityPublisher,
+        description: capabilityDescription
+    )
 
     router.get("metadata") { _, _ in
         var headers = HTTPFields()
@@ -42,7 +49,9 @@ private let serverVersion = "0.92.0"
 
 private func buildCapabilityStatementJSON(
     smartConfig: SmartConfiguration?,
-    igData: IGData
+    igData: IGData,
+    publisher: String = "Siming",
+    description: String = "Siming FHIR R4 Server"
 ) -> Data {
     var cs: [String: Any] = [
         "resourceType": "CapabilityStatement",
@@ -52,18 +61,18 @@ private func buildCapabilityStatementJSON(
         "date": isoDate(),
         "name": "SimingCapabilityStatement",
         "title": "Siming FHIR R4 Server",
-        "publisher": "Siming 司命",
+        "publisher": publisher,
         "version": serverVersion,
         "fhirVersion": "4.0.1",
         "format": ["application/fhir+json"],
         "patchFormat": ["application/json-patch+json"],
         "instantiates": ["http://hl7.org/fhir/CapabilityStatement/base"],
         "software": [
-            "name": "Siming 司命",
+            "name": "Siming",
             "version": serverVersion,
         ],
         "implementation": [
-            "description": "Siming FHIR R4 Server",
+            "description": description,
         ],
         "rest": [buildRest(smartConfig: smartConfig, igData: igData)],
     ]

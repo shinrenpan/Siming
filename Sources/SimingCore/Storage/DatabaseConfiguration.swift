@@ -7,13 +7,21 @@ public struct DatabaseConfiguration {
     public var username: String
     public var password: String
     public var database: String
+    public var poolMin: Int
+    public var poolMax: Int
 
-    public init(host: String, port: Int, username: String, password: String, database: String) {
-        self.host = host
-        self.port = port
+    public init(
+        host: String, port: Int,
+        username: String, password: String, database: String,
+        poolMin: Int = 4, poolMax: Int = 40
+    ) {
+        self.host     = host
+        self.port     = port
         self.username = username
         self.password = password
         self.database = database
+        self.poolMin  = poolMin
+        self.poolMax  = poolMax
     }
 
     public var postgresClientConfiguration: PostgresClient.Configuration {
@@ -25,8 +33,8 @@ public struct DatabaseConfiguration {
             database: database,
             tls: .disable
         )
-        config.options.minimumConnections = 4
-        config.options.maximumConnections = 40
+        config.options.minimumConnections = poolMin
+        config.options.maximumConnections = poolMax
         return config
     }
 
