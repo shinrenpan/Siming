@@ -131,7 +131,8 @@ public struct HistoryRawEntry: Sendable {
 ///   - baseURL: Server base URL (no trailing slash), e.g. "http://localhost:8080"
 public func buildHistoryBundleJSON(
     entries: [HistoryRawEntry],
-    baseURL: String
+    baseURL: String,
+    selfURL: String
 ) -> Data {
     var out = Data()
     out.reserveCapacity(512 + entries.reduce(0) { $0 + ($1.jsonData?.count ?? 0) + 200 })
@@ -141,6 +142,7 @@ public func buildHistoryBundleJSON(
     let historyBundleId = UUID().uuidString.lowercased()
     let historyBundleTs = iso8601.string(from: Date())
     s("{\"resourceType\":\"Bundle\",\"id\":\"\(historyBundleId)\",\"meta\":{\"lastUpdated\":\"\(historyBundleTs)\"},\"type\":\"history\",\"total\":\(entries.count)")
+    s(",\"link\":[{\"relation\":\"self\",\"url\":\"\(escapeJSON(selfURL))\"}]")
     s(",\"entry\":[")
 
     for (i, entry) in entries.enumerated() {

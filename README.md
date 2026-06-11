@@ -71,6 +71,7 @@ Server listens on `http://localhost:8080`.
 | `Bundle.id` + `Bundle.meta.lastUpdated` on all Bundle types (searchset / history / transaction-response) | ✓ |
 | `resourceType` mismatch on write → 422 Unprocessable Entity | ✓ |
 | CapabilityStatement `instantiates` + `patchFormat` | ✓ |
+| `link.self` on history bundles (instance / type / system) | ✓ |
 
 ### Search
 

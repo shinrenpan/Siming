@@ -153,7 +153,7 @@ public func addSpecimenRoutes(
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, specMaxCount)
         let entries = try await store.history(id: id, since: since, count: count)
         let baseURL = serverBaseURL(request)
-        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
         var headers = HTTPFields()
         headers[.contentType] = specFhirJSON
         return Response(status: .ok, headers: headers,
@@ -167,7 +167,7 @@ public func addSpecimenRoutes(
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, 100)
         let entries = try await store.typeHistory(since: since, count: count)
         let baseURL = serverBaseURL(request)
-        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL)
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
         var headers = HTTPFields()
         headers[.contentType] = specFhirJSON
         return Response(status: .ok, headers: headers,

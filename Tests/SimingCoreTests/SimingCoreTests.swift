@@ -102,7 +102,7 @@ struct JSONPassthroughTests {
                                     lastUpdated: Date(timeIntervalSince1970: 0),
                                     jsonData: Data(#"{"resourceType":"Patient","id":"p1"}"#.utf8),
                                     deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost")
+        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost", selfURL: "http://localhost/_history")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(json["type"] as? String == "history")
         #expect(json["total"] as? Int == 1)
@@ -113,7 +113,7 @@ struct JSONPassthroughTests {
         let entry = HistoryRawEntry(resourceType: "Patient", id: "x", versionId: 1,
                                     lastUpdated: Date(),
                                     jsonData: Data(#"{"resourceType":"Patient"}"#.utf8), deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost")
+        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost", selfURL: "http://localhost/_history")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])
         let req = try #require(entries[0]["request"] as? [String: Any])
@@ -124,7 +124,7 @@ struct JSONPassthroughTests {
     func historyDeleteMarker() throws {
         let entry = HistoryRawEntry(resourceType: "Patient", id: "x", versionId: 3,
                                     lastUpdated: Date(), jsonData: nil, deleted: true)
-        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost")
+        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost", selfURL: "http://localhost/_history")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])
         let req = try #require(entries[0]["request"] as? [String: Any])
@@ -137,7 +137,7 @@ struct JSONPassthroughTests {
         let entry = HistoryRawEntry(resourceType: "Patient", id: "x", versionId: 2,
                                     lastUpdated: Date(),
                                     jsonData: Data(#"{"resourceType":"Patient"}"#.utf8), deleted: false)
-        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost")
+        let data = buildHistoryBundleJSON(entries: [entry], baseURL: "http://localhost", selfURL: "http://localhost/_history")
         let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let entries = try #require(json["entry"] as? [[String: Any]])
         let req = try #require(entries[0]["request"] as? [String: Any])

@@ -36,11 +36,11 @@ private func buildCapabilityStatement(smartConfig: SmartConfiguration?) -> Capab
         rest: [serverRest(smartConfig: smartConfig)],
         software: CapabilityStatementSoftware(
             name: FHIRPrimitive(FHIRString("Siming 司命")),
-            version: FHIRPrimitive(FHIRString("0.84.0"))
+            version: FHIRPrimitive(FHIRString("0.85.0"))
         ),
         status: FHIRPrimitive(.active),
         title: FHIRPrimitive(FHIRString("Siming FHIR R4 Server")),
-        version: FHIRPrimitive(FHIRString("0.84.0"))
+        version: FHIRPrimitive(FHIRString("0.85.0"))
     )
 }
 
