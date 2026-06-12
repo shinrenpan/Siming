@@ -50,3 +50,7 @@ Release build · 5 000 patients · both servers on PostgreSQL. See [`benchmarks/
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+Built with [Claude Code](https://claude.ai/claude-code)
