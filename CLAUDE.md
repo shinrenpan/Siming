@@ -16,7 +16,7 @@ Current phase: **A–E mostly complete; F next**.
 - **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
 - **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
 - **E (done E1–E3; E4 backlog):** TW Core formal compliance — ~~HL7 Validator integration (`$validate` + session caching)~~ ✓, ~~9/9 TW Core profiles pass (docs/tw-core-conformance.md)~~ ✓. E4 (public deployment for demonstrable conformance record) deferred — will ship together with F Phase.
-- **F (next):** Deployment simplification — ~~one-command `docker compose up`~~ (F1), web-based resource browser (F2), health dashboard (F3). Small clinics have no IT staff; friction here blocks adoption. F1 first; F2/F3 via Grafana where possible.
+- **F (next):** Deployment simplification — ~~one-command `docker compose up`~~ (F1), web-based resource browser (F2), health dashboard (F3). Small clinics have no IT staff; friction here blocks adoption. F1 done. F2/F3 direction: **ClinicCore** (`~/Documents/github/ClinicCore`) — a separate FHIR-native clinic management web UI targeting the same small-clinic audience; Siming replaces HAPI as its FHIR backend. No standalone admin UI needed in Siming itself.
 - **G (planned):** NHI integration — NHI drug codes, Taiwan ICD-10 edition, NHI API connectivity. This is the moat HAPI cannot close from its US-centric baseline.
 - **Not planned:** R5 (explicitly out of scope), multi-tenancy, external terminology server (Ontoserver / tx.fhir.org), Subscriptions/Notifications (polling sufficient for most deployments).
 
