@@ -1158,3 +1158,69 @@ struct JSONPatchTests {
         #expect(obj["b"] == nil)
     }
 }
+
+// ── TerminologyIndex ──────────────────────────────────────────────────────────
+
+@Suite("TerminologyIndex")
+struct TerminologyIndexTests {
+    let index: TerminologyIndex = {
+        let cs = "http://hl7.org/fhir/observation-status"
+        let vsURL = "http://hl7.org/fhir/ValueSet/observation-status"
+        let codes: Set<TermCode> = [
+            TermCode(system: cs, code: "registered"),
+            TermCode(system: cs, code: "preliminary"),
+            TermCode(system: cs, code: "final"),
+            TermCode(system: cs, code: "amended"),
+        ]
+        return TerminologyIndex(
+            codeSystems: [cs: ["registered", "preliminary", "final", "amended"]],
+            valueSets: [vsURL: codes],
+            intensionalValueSets: ["http://snomed.info/sct?fhir_vs=isa/404684003"]
+        )
+    }()
+
+    @Test("valid code passes")
+    func validCode() {
+        #expect(index.isValid(
+            valueSet: "http://hl7.org/fhir/ValueSet/observation-status",
+            system: "http://hl7.org/fhir/observation-status",
+            code: "final"
+        ))
+    }
+
+    @Test("invalid code fails")
+    func invalidCode() {
+        #expect(!index.isValid(
+            valueSet: "http://hl7.org/fhir/ValueSet/observation-status",
+            system: "http://hl7.org/fhir/observation-status",
+            code: "bogus"
+        ))
+    }
+
+    @Test("unknown ValueSet passes (conservative)")
+    func unknownValueSet() {
+        #expect(index.isValid(
+            valueSet: "http://example.com/ValueSet/unknown",
+            system: "http://example.com/cs",
+            code: "anything"
+        ))
+    }
+
+    @Test("intensional ValueSet passes (skip validation)")
+    func intensionalValueSet() {
+        #expect(index.isValid(
+            valueSet: "http://snomed.info/sct?fhir_vs=isa/404684003",
+            system: "http://snomed.info/sct",
+            code: "any-snomed-code"
+        ))
+    }
+
+    @Test("wrong system fails even with valid code string")
+    func wrongSystem() {
+        #expect(!index.isValid(
+            valueSet: "http://hl7.org/fhir/ValueSet/observation-status",
+            system: "http://wrong.system/",
+            code: "final"
+        ))
+    }
+}
