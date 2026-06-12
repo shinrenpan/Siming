@@ -8,11 +8,11 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Current phase: **D**.
+Server-side Swift FHIR R4 server. Current phase: **complete (A–D done)**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
 - **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
 - **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
-- **D (now):** Terminology binding — local ValueSet/CodeSystem validation on write; `$validate` operation.
+- **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
 - **Not planned:** R5 (explicitly out of scope), multi-tenancy, Subscriptions/Notifications (deprioritised — polling is sufficient for most deployments), external terminology server (Ontoserver / tx.fhir.org).
 
 Rule: **don't build future features early, but don't weld future doors shut.**

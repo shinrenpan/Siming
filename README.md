@@ -116,6 +116,17 @@ For the full per-resource search parameter list, query `GET /metadata` — the C
 
 Auth is opt-in: set `SMART_ISSUER` to enable. Rate limiting is opt-in: set `RATE_LIMIT_RPS` to enable. `/health` and `/metrics` are always exempt from rate limiting.
 
+### Terminology
+
+Terminology validation is powered by the FHIR packages in `packages/`. At startup, the server indexes all CodeSystems and extensional ValueSets; intensional ValueSets (filter-based, e.g. SNOMED CT hierarchies) are conservatively skipped — those codes always pass.
+
+| Feature | Status |
+|---|---|
+| `required` binding validation on write → 422 if code not in ValueSet | ✓ |
+| `POST /[ResourceType]/$validate` — validate without storing; returns `OperationOutcome` | ✓ |
+| 106 binding rules across all 23 resource types (R4 core + TW Core IG) | ✓ |
+| Intensional ValueSets: conservative pass-through (no external terminology server needed) | ✓ |
+
 ### Other
 
 | Feature | Status |
