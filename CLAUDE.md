@@ -10,9 +10,11 @@ Only include information that prevents mistakes.
 
 Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default FHIR server in Taiwan, targeting small clinics first** — lower resource requirements, native TW Core IG support, simpler deployment.
 
+**Siming is a clinical data server, not a terminology server.** It stores and searches clinical resources. It does not host CodeSystem/ValueSet nor implement `$expand`/`$lookup` — those belong to a separate terminology service layer. Do not add terminology server features.
+
 **Current state: v1.0.0 — feature complete.** Phases A–F done. No active feature development planned in this repo.
 - **G (planned):** NHI terminology as external FHIR packages — Siming needs no code changes; existing package loader handles them. G Phase work belongs in a separate package project.
-- **Not planned:** R5, multi-tenancy, external terminology server, Subscriptions/Notifications.
+- **Not planned:** R5, multi-tenancy, terminology server (CodeSystem/ValueSet CRUD + operations), Subscriptions/Notifications.
 - **Ecosystem:** ClinicCore (`~/Documents/github/ClinicCore`) is the planned clinical workflow frontend; connects via standard FHIR API.
 
 Rule: **don't build future features early, but don't weld future doors shut.**

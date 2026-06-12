@@ -29,6 +29,10 @@ bash scripts/fetch-packages.sh   # one-time
 bash scripts/run-macOS.sh
 ```
 
+## Scope
+
+Siming is a **clinical data server** — it stores and searches clinical resources for small clinics. It is not a terminology server: CodeSystem/ValueSet CRUD and operations (`$expand`, `$lookup`) are out of scope. Terminology validation is handled by the optional HL7 Validator sidecar.
+
 ## Capabilities
 
 - **23 FHIR R4 resource types** — CRUD, search, history, compartment, transaction bundle
