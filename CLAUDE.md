@@ -17,7 +17,7 @@ Current phase: **A–E mostly complete; F next**.
 - **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
 - **E (done E1–E3; E4 backlog):** TW Core formal compliance — ~~HL7 Validator integration (`$validate` + session caching)~~ ✓, ~~9/9 TW Core profiles pass (docs/tw-core-conformance.md)~~ ✓. E4 (public deployment for demonstrable conformance record) deferred — will ship together with F Phase.
 - **F (mostly done):** Deployment simplification — ~~one-command `docker compose up`~~ (F1) ✓, ~~web FHIR resource browser~~ (F2) ✓. `GET /ui` serves a built-in SPA: CRUD for all 23 resource types, JSON editor, search, pagination, response-time indicator. F3 (health dashboard) deferred — Grafana covers this; no custom UI needed. ClinicCore (`~/Documents/github/ClinicCore`) is the planned clinical workflow layer on top of Siming.
-- **G (planned):** NHI integration — NHI drug codes, Taiwan ICD-10 edition, NHI API connectivity. This is the moat HAPI cannot close from its US-centric baseline.
+- **G (planned):** NHI terminology packages — NHI drug codes and Taiwan ICD-10-CM as standalone FHIR packages (`tw.gov.nhi.drugcodes-x.x.x.tgz`). **Siming needs no code changes** — existing package loader handles them automatically. G Phase work is in the separate package project, not here. NHI API connectivity (申報, IC card) requires government VPN access; long-term external dependency, not planned in this repo.
 - **Not planned:** R5 (explicitly out of scope), multi-tenancy, external terminology server (Ontoserver / tx.fhir.org), Subscriptions/Notifications (polling sufficient for most deployments).
 
 Rule: **don't build future features early, but don't weld future doors shut.**
