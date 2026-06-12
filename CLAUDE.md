@@ -10,15 +10,10 @@ Only include information that prevents mistakes.
 
 Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default FHIR server in Taiwan, targeting small clinics first** — lower resource requirements, native TW Core IG support, simpler deployment.
 
-Current phase: **A–E mostly complete; F next**.
-- **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
-- **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
-- **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
-- **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
-- **E (done E1–E3; E4 backlog):** TW Core formal compliance — ~~HL7 Validator integration (`$validate` + session caching)~~ ✓, ~~9/9 TW Core profiles pass (docs/tw-core-conformance.md)~~ ✓. E4 (public deployment for demonstrable conformance record) deferred — will ship together with F Phase.
-- **F (mostly done):** Deployment simplification — ~~one-command `docker compose up`~~ (F1) ✓, ~~web FHIR resource browser~~ (F2) ✓. `GET /ui` serves a built-in SPA: CRUD for all 23 resource types, JSON editor, search, pagination, response-time indicator. F3 (health dashboard) deferred — Grafana covers this; no custom UI needed. ClinicCore (`~/Documents/github/ClinicCore`) is the planned clinical workflow layer on top of Siming.
-- **G (planned):** NHI terminology packages — NHI drug codes and Taiwan ICD-10-CM as standalone FHIR packages (`tw.gov.nhi.drugcodes-x.x.x.tgz`). **Siming needs no code changes** — existing package loader handles them automatically. G Phase work is in the separate package project, not here. NHI API connectivity (申報, IC card) requires government VPN access; long-term external dependency, not planned in this repo.
-- **Not planned:** R5 (explicitly out of scope), multi-tenancy, external terminology server (Ontoserver / tx.fhir.org), Subscriptions/Notifications (polling sufficient for most deployments).
+**Current state: v1.0.0 — feature complete.** Phases A–F done. No active feature development planned in this repo.
+- **G (planned):** NHI terminology as external FHIR packages — Siming needs no code changes; existing package loader handles them. G Phase work belongs in a separate package project.
+- **Not planned:** R5, multi-tenancy, external terminology server, Subscriptions/Notifications.
+- **Ecosystem:** ClinicCore (`~/Documents/github/ClinicCore`) is the planned clinical workflow frontend; connects via standard FHIR API.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
@@ -27,7 +22,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
 - **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=40 (set in `DatabaseConfiguration.postgresClientConfiguration`).
 - **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.3`. Linux builds supported.
-- **FHIR version:** R4 only. R5 is explicitly out of scope — R4 and R5 are different enough to warrant a separate project.
+- **FHIR version:** R4 only. R5 is explicitly out of scope.
 
 ### FHIRModels API cheatsheet
 
@@ -94,22 +89,8 @@ struct MyPayload: JWTPayload {
 - Build: `swift build`
 - Run server: `swift run -c release SimingServer` — listens on `0.0.0.0:8080`
 - Unit tests: `swift test --filter SimingCoreTests` — no DB required
-- Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests` — requires Postgres
-- Run all tests: `swift test` — integration tests auto-skip if no DB configured
+- Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests`
 - Regenerate search extractors: `swift run SimingGenerator` — reads `packages/*.tgz`, writes `Sources/SimingCore/Generated/`
-- Local Postgres only: `docker compose up -d db`
-- DB connection env vars (defaults match docker-compose):
-  - `DATABASE_URL=postgres://siming:siming@localhost:5432/siming` (takes priority)
-  - or discrete: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
-  - `MIGRATIONS_PATH` — path to `migrations/` dir (default: `"migrations"`, relative to CWD)
-- SMART auth env vars (all optional; auth disabled when `SMART_ISSUER` absent):
-  - `SMART_ISSUER` — expected JWT `iss` value; setting this enables bearer auth
-  - `SMART_JWKS_URL` — JWKS endpoint URL; fetched at startup to load public keys
-  - `SMART_PUBLIC_KEY_PEM` — RSA public key PEM (alternative to `SMART_JWKS_URL`)
-  - `SMART_AUDIENCE` — expected JWT `aud` value (optional)
-- Rate limit env vars (optional; disabled when absent):
-  - `RATE_LIMIT_RPS` — requests per second per IP (token bucket refill rate); enables limiting when set
-  - `RATE_LIMIT_BURST` — burst size (default: `2 × RPS`); max tokens in bucket
 - Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run -c release SimingServer`
 - After any series of changes: build + run tests before considering work done
 
@@ -161,20 +142,12 @@ Checklist (in addition to generator + extractor + SQL migration):
 
 **Do NOT hand-write search-param definitions.** `SimingGenerator` consumes FHIR packages from `packages/*.tgz` and emits extractors into `Sources/SimingCore/Generated/`. This generator is the architectural moat. Regenerate: `swift run SimingGenerator`.
 
-### C Phase: Hybrid IG architecture
-
-Search extractors are **compile-time** (type-safe Swift, performance-critical). CapabilityStatement is **runtime** (built at server startup from `packages/*.tgz`, like HAPI).
+Search extractors are **compile-time** (type-safe Swift, performance-critical). CapabilityStatement is **runtime** (built at server startup from `packages/*.tgz`).
 
 ```
 packages/*.tgz  ──→  swift run SimingGenerator  ──→  Generated/extractors.swift  (commit to git)
 packages/*.tgz  ──→  server startup             ──→  /metadata  (dynamic, reflects loaded IGs)
 ```
-
-Place packages in `packages/` before running generator or starting the server:
-- `hl7.fhir.r4.core-4.0.1.tgz` — base R4 (always required)
-- `tw.gov.mohw.twcore-x.x.x.tgz` — TW Core IG (for TW Core compliance)
-
-Without IG packages (only r4.core): generic FHIR R4 server. With TW Core: TW Core-compliant server. Same binary, different packages directory.
 
 ## Hummingbird 2 handler patterns
 
@@ -264,7 +237,7 @@ FROM paged p CROSS JOIN total_count t
 JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` — it auto-selects LATERAL (when filterCTEs non-empty, uses `resources_live_idx` Index Only Scans) vs DISTINCT ON (full scan fallback when no filters). Filter CTEs hit GIN/b-tree indexes directly. `ids AS MATERIALIZED` is evaluated exactly once even though referenced by both `total_count` and `paged`. Content is fetched only for the final page (deferred-content pattern).
+**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
 
 ## FHIR wire-format rules
 
@@ -274,64 +247,40 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 - **Status codes:** 201 + `Location` on create; 410 Gone on deleted-resource GET; 412 on `If-Match` failure.
 - **`id` semantics:** server-assigned UUID on create; client-provided on PUT; reject malformed ids.
 
-## FHIR R4 interaction compliance
+## FHIR R4 implementation rules
 
-**Implemented:** read, vread, create, update, delete, search-type, `_history` (instance / type / system — all support `_since` and `_count`), `_include`, `_revinclude`, `_summary`, `_elements`, `Prefer: handling=strict`, `Prefer: return=representation|minimal|OperationOutcome` (on all write responses), `_has` reverse chaining, chained search, compartment search, `_total=none|estimate|accurate`, transaction bundle (`POST /` type=transaction — atomic, urn:uuid resolution, DELETE→POST→PUT ordering), SMART on FHIR JWT Bearer (resource server — `BearerAuthMiddleware`, opt-in via `SMART_ISSUER`, exempt paths: `/health` `/metadata` `/metrics` `/.well-known/smart-configuration`), CORS (`CORSMiddleware` — `OPTIONS` preflight + response headers; credentialed when `Origin` present), `resourceType` body mismatch → 422 (via `validateResourceType()` in `SearchHelpers.swift`).
+**Location header** on 201/200 write responses is an **absolute URL** built via `serverBaseURL(request)` from the `Host` header.
 
-**Location header** on 201/200 write responses is an **absolute URL** (e.g., `http://host/Patient/id/_history/1`) built via `serverBaseURL(request)` from the `Host` header.
+**Content-Location header** on read + vread responses — versioned URL. Use `contentLocation(request, versionId:)` from `SearchHelpers.swift`.
 
-**Content-Location header** on read + vread responses — versioned URL (e.g., `http://host/Patient/id/_history/5`). Use `contentLocation(request, versionId:)` from `SearchHelpers.swift`. Handles both: read (appends `/_history/<vid>` to path) and vread (path already versioned).
+**Accept header** — 406 when `Accept` present with no JSON-compatible type. `_format` takes precedence. Handled by `FormatMiddleware`.
 
-**Accept header** validation — 406 when `Accept` is present and contains no JSON-compatible media type. `_format` takes precedence over `Accept`. Handled by `FormatMiddleware`.
+**Content-Type** on all FHIR responses includes `fhirVersion=4.0`. Injected by `CORSMiddleware` post-response hook.
 
-**Content-Type** on all FHIR responses includes `fhirVersion=4.0` (e.g., `application/fhir+json; fhirVersion=4.0`). Injected by `CORSMiddleware` post-response hook.
+**History bundles** (`buildHistoryBundleJSON`) require `selfURL` parameter — always pass `selfURL: "\(baseURL)\(request.uri)"`.
 
-**CapabilityStatement coverage (all 23 resources):** `versioning=versioned`, `conditionalCreate=true`, `conditionalRead=fullSupport`, `conditionalUpdate=true`, `conditionalDelete=single`, `updateCreate=true`, `readHistory=true`, plus per-resource `searchInclude`/`searchRevInclude`. Server-level: `instantiates` (base R4 CS URL) + `patchFormat` (`application/json-patch+json`).
+**`_total` semantics:** `accurate` (default) — exact `COUNT(*)`; `estimate` — skips count, returns exact only when page is last; `none` — omits `Bundle.total`. `_summary=count` forces `count=0 + totalMode=.accurate`.
 
-**History bundles** (`buildHistoryBundleJSON`) require `selfURL` parameter — always pass `selfURL: "\(baseURL)\(request.uri)"`. All 3 levels (instance, type, system) must include a `link.self` element.
-
-**`_total` semantics:** `accurate` (default) — exact `COUNT(*)` via `total_count` CTE; `estimate` — skips `COUNT(*)`, returns exact total only when the page is the last one (result count < `_count`), `nil` otherwise; `none` — omits `Bundle.total` entirely. `_summary=count` forces `count=0 + totalMode=.accurate` at the route level for efficiency (uses `buildCountSQL` path instead of fetching page entries).
-
-**C phase (build now):** IG-First Architecture — `SimingGenerator` reads `packages/*.tgz`, CapabilityStatement built at runtime from packages, TW Core IG compliance.
-
-**D phase (build now):** Terminology binding — local ValueSet/CodeSystem validation on write, `$validate` operation.
-
-### D Phase implementation plan
-
-**D1 — ValueSet/CodeSystem index:** At startup, extract ValueSet and CodeSystem JSON resources from `packages/*.tgz` and build an in-memory index `ValueSet URL → Set<(system, code)>`. Extensional ValueSets only (explicit code lists). Skip intensional (filter-based) ValueSets — those require an external terminology server which is out of scope.
-
-**D2 — Generator: emit binding metadata:** Extend `SimingGenerator` to parse StructureDefinition elements and emit `required` binding metadata per resource type (field path → ValueSet URL). `extensible` / `preferred` / `example` bindings are skipped. This is the hardest round — StructureDefinition JSON is deeply nested. Fallback: hand-author binding lists for the most common resources if generator parsing proves intractable.
-
-**D3 — validate() hook:** Fill in the `validate(resource)` no-op in each Store using D2 metadata + D1 index. Invalid code → 422 + OperationOutcome naming the field and code. Valid → proceed to write.
-
-**D4 — `$validate` operation:** `POST /[ResourceType]/$validate` — validate without storing, return OperationOutcome. FHIR R4 standard operation.
-
-**D Phase explicit non-goals:** external terminology server, `$expand`, intensional ValueSets, full StructureDefinition shape validation (cardinality / type checking), Subscriptions.
-
-**Not planned:** R5, multi-tenancy, `$operations`.
+**`If-None-Match` takes precedence** over `If-Modified-Since` when both present (RFC 7232 §6).
 
 ## Dev workflow
 
-**Default: always use `scripts/run-macOS.sh`.** Swift runs as a first-class citizen on macOS — no VM overhead, full Foundation stack, faster builds. Do NOT default to Docker for running the server.
+**Default: always use `scripts/run-macOS.sh`.** Do NOT default to Docker for running the server on macOS.
 
-**During active development (macOS):** `scripts/run-macOS.sh` — starts Postgres in Docker, then runs `swift run -c release SimingServer` natively. No image rebuild. Use this for all day-to-day iteration.
-
-**Docker is for Linux developers or staging validation only:** `scripts/run-docker.sh` — builds the release Docker image and starts the full stack. Do not suggest Docker as the primary run method to a macOS developer.
-
-**Config:** `config.yml` at project root. Secrets (DB password, SMART keys) always stay in env vars — env vars override any config.yml field.
+**Config:** `config.yml` at project root. Secrets always stay in env vars — env vars override `config.yml`.
 
 ## Pagination
 
 Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
 
 ## Conventions
+
 - **Generated code IS committed to git** — reviewable, diffable. Never hand-edit; change the generator instead.
-- Generator inputs live under `packages/*.tgz`. The old `Resources/fhir/search-parameters-r4.json` is superseded by C Phase package loading.
 - SQL migrations under `migrations/`. Filename without `.sql` = migration version in `schema_migrations`.
 
 ## The three doors to keep open
 
-1. **Validation hook** — `validate(resource)` no-op in write path. Never remove this call. This is the profile validation door (D Phase).
+1. **Validation hook** — `validate(resource)` no-op in write path. Never remove this call.
 2. **Auth as middleware** — never hardwire auth into handlers.
 3. **Search via generator** — generator reads packages, emits Swift. Changing the IG = swap package + regenerate, no handler rewrites.
 
@@ -343,9 +292,7 @@ R5 is NOT a door to keep open. Do not design for R5 compatibility.
 
 **`GET /metrics`** — Prometheus text format: `http_requests_total{method,path,status}` counter + `http_request_duration_seconds{method,path}` histogram. Path normalised (`/Patient/:id`) to prevent label cardinality explosion.
 
-**`MetricsMiddleware`** — `X-Request-ID` trace ID on every request; structured logs on arrival and completion.
-
-Adding new metrics anywhere in the codebase (Prometheus backend is global):
+Adding new metrics (Prometheus backend is global):
 ```swift
 import Metrics
 Counter(label: "fhir_validation_errors_total", dimensions: [("resource", "Patient")]).increment()
@@ -354,20 +301,19 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 
 ## Working rules for Claude Code
 
-- **Model escalation:** Default to current model (Sonnet). Before starting a round, proactively flag to the user if Opus + xHigh is recommended — specifically when: (1) SQL query logic has significant uncertainty or correctness risk, (2) the change spans 3+ architectural layers with non-trivial interdependencies, (3) an architectural decision has multiple valid approaches with real tradeoffs, or (4) a root cause is not fully understood. Do NOT switch models or invoke `/code-review ultra` unilaterally — always ask the user first.
+- **Model escalation:** Default to Sonnet. Flag Opus if: SQL logic has correctness risk, change spans 3+ architectural layers, architectural decision has real tradeoffs, or root cause is unclear. Never switch unilaterally.
 - Verify package versions against GitHub/registry before pinning — never from memory.
 - Hand-tuned SQL over ORM abstractions; this project's whole value is storage/search performance.
 - Make minimal changes; don't refactor unrelated code.
 - Never hand-edit generated files; change the generator instead.
 - Keep the three doors unwelded in every change — apply the weld test above.
-- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** For per-resource search param implementation details and known gaps (TODO stubs, compartment membership, `_sort` coverage, edge cases), see `docs/FHIR-implementation-notes.md`.
+- **Before implementing or changing any FHIR behaviour, look up the R4 spec first.** For per-resource search param details and known gaps, see `docs/FHIR-implementation-notes.md`.
 - Build and run tests after a series of changes before declaring done.
-- Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error — no exceptions.
-- Every POST/PUT write handler **must** call `try validateResourceType("ResourceType", from: Data(bodyBuffer.readableBytesView))` before `decodeFHIR()`. Already applied to all 23 resources — copy the pattern for any new resource.
-- Every read + vread handler **must** include `headers[.contentLocation] = contentLocation(request, versionId: result.versionId)`. Already applied to all 23 resources.
+- Every FHIR endpoint **must** check/set `Content-Type: application/fhir+json` and return `OperationOutcome` on error.
+- Every POST/PUT write handler **must** call `try validateResourceType("ResourceType", from: Data(bodyBuffer.readableBytesView))` before `decodeFHIR()`.
+- Every read + vread handler **must** include `headers[.contentLocation] = contentLocation(request, versionId: result.versionId)`.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
-- **DELETE** returns 204 No Content; subsequent GET on deleted resource returns **410 Gone** (not 404).
-- **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read current resource → apply patch (`JSONPatch.apply`) → decode FHIR model → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
-- **`If-None-Match` takes precedence** over `If-Modified-Since` when both headers are present (RFC 7232 §6).
-- **Compartment constraint** (`GET /Patient/:id/[ResourceType]` — all 19 compartment resources; excludes Patient, Medication, Location, Practitioner, Organization) is injected server-side; client cannot override the subject filter.
-- Benchmarking: compare under the same feature set only — state what's supported alongside any number. See `benchmarks/README.md`.
+- **DELETE** returns 204 No Content; subsequent GET returns **410 Gone** (not 404).
+- **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read → apply patch → decode → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
+- **Compartment constraint** (`GET /Patient/:id/[ResourceType]`) is injected server-side; client cannot override.
+- Benchmarking: compare under the same feature set only. See `benchmarks/README.md`.
