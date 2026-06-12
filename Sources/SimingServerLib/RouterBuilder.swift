@@ -60,5 +60,6 @@ public func buildRouter(
     addCompartmentRoutes(to: router, stores: stores, logger: logger)
     addSystemRoutes(to: router, stores: stores, logger: logger)
     addValidateRoutes(to: router, terminology: terminology, externalValidator: externalValidator)
+    addUIRoutes(to: router)
     return router
 }

@@ -152,6 +152,7 @@ curl -X POST "http://localhost:8080/Patient/\$validate?profile=https://twcore.mo
 | CapabilityStatement (`GET /metadata`) — built at runtime from FHIR packages; reflects SearchParameters and profiles from any loaded FHIR R4 IG | ✓ |
 | Prometheus metrics (`GET /metrics`) | ✓ |
 | `X-Request-ID` trace header | ✓ |
+| Built-in FHIR browser (`GET /ui`) — CRUD for all 23 resource types, JSON editor, search, response-time indicator | ✓ |
 
 All error responses are `OperationOutcome`.
 
