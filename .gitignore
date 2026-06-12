@@ -3,5 +3,6 @@
 *.d
 .env
 .DS_Store
+.claude/
 benchmarks/results/
 packages/*.tgz
