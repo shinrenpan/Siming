@@ -8,12 +8,17 @@ Only include information that prevents mistakes.
 
 ## Project
 
-Server-side Swift FHIR R4 server. Current phase: **complete (A–D done)**.
+Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default FHIR server in Taiwan, targeting small clinics first** — lower resource requirements, native TW Core IG support, simpler deployment.
+
+Current phase: **A–D complete; E next**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
 - **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
 - **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
 - **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
-- **Not planned:** R5 (explicitly out of scope), multi-tenancy, Subscriptions/Notifications (deprioritised — polling is sufficient for most deployments), external terminology server (Ontoserver / tx.fhir.org).
+- **E (next):** TW Core formal compliance — pass Touchstone TW Core test suite; obtain a publicly demonstrable conformance record. This is the trust gate for clinic adoption.
+- **F (planned):** Deployment simplification + admin UI — one-command setup, web-based resource browser and health dashboard. Small clinics have no IT staff; friction here blocks adoption.
+- **G (planned):** NHI integration — NHI drug codes, Taiwan ICD-10 edition, NHI API connectivity. This is the moat HAPI cannot close from its US-centric baseline.
+- **Not planned:** R5 (explicitly out of scope), multi-tenancy, external terminology server (Ontoserver / tx.fhir.org), Subscriptions/Notifications (polling sufficient for most deployments).
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
