@@ -7,7 +7,7 @@ RUN swift build -c release --product SimingServer
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM ubuntu:24.04
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libssl3 libcurl4t64 \
+    && apt-get install -y --no-install-recommends libssl3 libcurl4t64 curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /usr/lib/swift/linux/ /usr/lib/swift/linux/

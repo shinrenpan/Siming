@@ -22,14 +22,19 @@ bash scripts/run-macOS.sh
 
 Server listens on `http://localhost:8080`.
 
-### Docker (Linux / staging)
+### Docker (one-command)
 
-For Linux developers or integration/staging validation.
+Requires Docker Desktop. Works on macOS, Linux, and Windows.
 
 ```bash
-bash scripts/fetch-packages.sh   # one-time
-bash scripts/run-docker.sh       # builds release image + starts full stack
+bash scripts/setup.sh
 ```
+
+Downloads FHIR packages, copies `.env.example` → `.env`, builds the image, and starts the full stack. Server ready at `http://localhost:8080`.
+
+To enable TW Core profile validation, uncomment the `validator` block in `docker-compose.yml` and set `VALIDATOR_URL=http://validator:4567` in `.env`.
+
+To stop: `docker compose down`. Logs: `docker compose logs -f app`.
 
 ## FHIR R4 capabilities
 

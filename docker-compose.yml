@@ -1,19 +1,23 @@
 services:
   db:
     image: postgres:16-alpine
+    env_file:
+      - path: .env
+        required: false
     environment:
-      POSTGRES_USER: siming
-      POSTGRES_PASSWORD: siming
-      POSTGRES_DB: siming
+      POSTGRES_USER: ${PGUSER:-siming}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-siming}
+      POSTGRES_DB: ${PGDATABASE:-siming}
     ports:
       - "5432:5432"
     volumes:
       - siming_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U siming"]
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-siming}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   app:
     build: .
@@ -21,12 +25,33 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_URL: postgres://siming:siming@db:5432/siming
+      DATABASE_URL: postgres://${PGUSER:-siming}:${PGPASSWORD:-siming}@db:5432/${PGDATABASE:-siming}
+      MIGRATIONS_PATH: /app/migrations
     volumes:
       - ./config.yml:/app/config.yml:ro
       - ./packages:/app/packages:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Optional: HL7 FHIR Validator for deep TW Core profile validation.
+  # Uncomment to enable $validate with StructureDefinition profile checks.
+  # Then set VALIDATOR_URL=http://validator:4567 in your .env file.
+  #
+  # validator:
+  #   image: infernocommunity/inferno-resource-validator:1.0.78
+  #   ports:
+  #     - "3500:4567"
+  #   restart: unless-stopped
 
 volumes:
   siming_pgdata:
