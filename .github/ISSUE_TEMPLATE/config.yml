@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Wiki & Documentation
+    url: https://github.com/shinrenpan/Siming/wiki
+    about: Getting started, configuration, API examples, and TW Core conformance
