@@ -316,7 +316,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                     end = cal.date(from: dc) ?? Date.distantFuture
                 } else { end = Date.distantFuture }
                 p.dates.append(.init(paramName: "occurrence", dateStart: start, dateEnd: end))
-            @unknown default:
+            default:
                 break
             }
         }

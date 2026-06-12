@@ -27,7 +27,7 @@ actor TestDatabase {
         )
         _client = c
         // run() drives the connection pool — keep it alive for the whole process.
-        Swift.Task { await c.run() }
+        Task { await c.run() }
 
         let migrationsPath = env["MIGRATIONS_PATH"] ?? "migrations"
         let runner = MigrationRunner(client: c, logger: logger, migrationsPath: migrationsPath)

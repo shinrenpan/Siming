@@ -72,7 +72,7 @@ private func extract_Specimen_collected(_ p: inout SearchParams, _ s: Specimen) 
             end = cal.date(from: dc) ?? Date.distantFuture
         } else { end = Date.distantFuture }
         p.dates.append(.init(paramName: "collected", dateStart: start, dateEnd: end))
-    @unknown default:
+    default:
         break
     }
 }

@@ -115,7 +115,7 @@ func immunizationHandler(spec: ParamSpec, expr: String) -> String? {
                 dc.timeZone = dt.timeZone
                 let d = cal.date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
-            @unknown default:
+            default:
                 break
             }
         }
