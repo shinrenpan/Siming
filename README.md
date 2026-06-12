@@ -126,6 +126,19 @@ Terminology validation is powered by the FHIR packages in `packages/`. At startu
 | `POST /[ResourceType]/$validate` — validate without storing; returns `OperationOutcome` | ✓ |
 | 106 binding rules across all 23 resource types (R4 core + TW Core IG) | ✓ |
 | Intensional ValueSets: conservative pass-through (no external terminology server needed) | ✓ |
+| HL7 FHIR Validator integration — deep StructureDefinition / TW Core profile validation | ✓ |
+
+`$validate` runs in two layers: local terminology binding checks (always), plus full StructureDefinition profile validation when an external HL7 Validator service is configured. Pass `?profile=<url>` to validate against a specific TW Core profile. Session caching keeps subsequent calls under 15 ms. See `docs/tw-core-conformance.md` for TW Core v1.0.0 conformance results (9/9 profiles pass).
+
+```bash
+# Run the HL7 Validator sidecar
+docker run -d -p 3500:4567 infernocommunity/inferno-resource-validator:1.0.78
+
+# Validate a Patient against TW Core profile
+curl -X POST "http://localhost:8080/Patient/\$validate?profile=https://twcore.mohw.gov.tw/ig/twcore/StructureDefinition/Patient-twcore" \
+  -H "Content-Type: application/fhir+json" \
+  -d @patient.json
+```
 
 ### Other
 
@@ -163,6 +176,7 @@ Secrets and deployment overrides always use environment variables. **Environment
 | `database.pool.max` | `40` | Maximum concurrent Postgres connections |
 | `security.rateLimit.rps` | — | Requests/second per IP; enables rate limiting when set |
 | `security.rateLimit.burst` | `2×rps` | Token bucket burst size |
+| `validator.url` | — | HL7 FHIR Validator service base URL (e.g. `http://localhost:3500`); enables deep profile validation when set |
 | `logging.level` | `info` | Log level: `trace` `debug` `info` `warn` `error` |
 
 ### Environment variables
@@ -190,6 +204,7 @@ Environment variables override the corresponding `config.yml` field.
 | `SMART_JWKS_URL` | — | JWKS endpoint URL — fetched at startup |
 | `SMART_PUBLIC_KEY_PEM` | — | RSA public key PEM (alternative to `SMART_JWKS_URL`) |
 | `SMART_AUDIENCE` | — | Expected JWT `aud` value (optional) |
+| `VALIDATOR_URL` | `validator.url` | HL7 FHIR Validator service base URL; enables deep profile validation when set |
 
 ## Building from source
 

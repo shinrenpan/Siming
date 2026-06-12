@@ -10,13 +10,13 @@ Only include information that prevents mistakes.
 
 Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default FHIR server in Taiwan, targeting small clinics first** — lower resource requirements, native TW Core IG support, simpler deployment.
 
-Current phase: **A–D complete; E next**.
+Current phase: **A–E mostly complete; F next**.
 - **A (done):** Technically excellent, high-performance FHIR R4 server — clean architecture, honest benchmarks.
 - **B (done):** Production readiness — ~~Transaction Bundle~~ ✓, ~~SMART on FHIR JWT Bearer~~ ✓, ~~rate limiting~~ ✓, ~~Inferno baseline run~~ ✓.
 - **C (done):** IG-First Architecture — ~~package.tgz loading~~ ✓, ~~TW Core IG compliance~~ ✓, ~~runtime CapabilityStatement~~ ✓, ~~config.yml~~ ✓, ~~Docker~~ ✓.
 - **D (done):** Terminology binding — ~~ValueSet/CodeSystem index~~ ✓, ~~required binding validation on write (422)~~ ✓, ~~`$validate` operation~~ ✓.
-- **E (next):** TW Core formal compliance — pass Touchstone TW Core test suite; obtain a publicly demonstrable conformance record. This is the trust gate for clinic adoption.
-- **F (planned):** Deployment simplification + admin UI — one-command setup, web-based resource browser and health dashboard. Small clinics have no IT staff; friction here blocks adoption.
+- **E (done E1–E3; E4 backlog):** TW Core formal compliance — ~~HL7 Validator integration (`$validate` + session caching)~~ ✓, ~~9/9 TW Core profiles pass (docs/tw-core-conformance.md)~~ ✓. E4 (public deployment for demonstrable conformance record) deferred — will ship together with F Phase.
+- **F (next):** Deployment simplification — ~~one-command `docker compose up`~~ (F1), web-based resource browser (F2), health dashboard (F3). Small clinics have no IT staff; friction here blocks adoption. F1 first; F2/F3 via Grafana where possible.
 - **G (planned):** NHI integration — NHI drug codes, Taiwan ICD-10 edition, NHI API connectivity. This is the moat HAPI cannot close from its US-centric baseline.
 - **Not planned:** R5 (explicitly out of scope), multi-tenancy, external terminology server (Ontoserver / tx.fhir.org), Subscriptions/Notifications (polling sufficient for most deployments).
 
