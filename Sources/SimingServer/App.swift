@@ -39,6 +39,10 @@ struct SimingApp {
         let stores = StoreContainer(client: postgresClient, logger: logger, terminology: terminology)
         let smartConfig = try await SmartConfiguration.fromEnvironment(logger: logger)
         let rateLimitConfig = RateLimitConfiguration.from(config: config, logger: logger)
+        let externalValidator = config.validatorURL.map { ExternalValidator(baseURL: $0) }
+        if let v = externalValidator {
+            logger.info("External validator enabled", metadata: ["url": "\(v.baseURL)"])
+        }
 
         let router = buildRouter(
             stores: stores,
@@ -47,7 +51,8 @@ struct SimingApp {
             config: config,
             smartConfig: smartConfig,
             rateLimitConfig: rateLimitConfig,
-            terminology: terminology
+            terminology: terminology,
+            externalValidator: externalValidator
         )
 
         let app = Application(

@@ -16,6 +16,7 @@ public struct SimingConfig: Sendable {
     public var rateLimitRPS: Double?          // nil = disabled
     public var rateLimitBurst: Int?           // nil = 2 × rps
     public var logLevel: String
+    public var validatorURL: String?          // nil = disabled; set to hl7_validator_service base URL
 
     // MARK: - Load
 
@@ -46,6 +47,7 @@ public struct SimingConfig: Sendable {
         rateLimitRPS           = nil
         rateLimitBurst         = nil
         logLevel               = "info"
+        validatorURL           = nil
     }
 
     // MARK: - YAML mapping
@@ -78,6 +80,9 @@ public struct SimingConfig: Sendable {
         if let log = root["logging"] as? [String: Any] {
             if let v = log["level"] as? String { logLevel = v }
         }
+        if let val = root["validator"] as? [String: Any] {
+            if let v = val["url"] as? String, !v.isEmpty { validatorURL = v }
+        }
     }
 
     // MARK: - Environment variable overrides
@@ -96,6 +101,7 @@ public struct SimingConfig: Sendable {
             rateLimitRPS = rps
             if let burst = env["RATE_LIMIT_BURST"].flatMap(Int.init) { rateLimitBurst = burst }
         }
+        if let v = env["VALIDATOR_URL"], !v.isEmpty { validatorURL = v }
     }
 }
 

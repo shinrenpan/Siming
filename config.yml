@@ -90,6 +90,16 @@ security:
   #   # Defaults to 2 × rps when omitted.
   #   burst: 200
 
+# ── External validator ────────────────────────────────────────────────────────
+
+validator:
+  # Base URL of the HL7 FHIR Validator service (inferno-resource-validator).
+  # When set, POST /[ResourceType]/$validate also runs deep StructureDefinition
+  # profile validation against the TW Core IG. Leave empty to disable.
+  # Override with the VALIDATOR_URL environment variable.
+  # Example: http://localhost:3500
+  url: ""
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 logging:
