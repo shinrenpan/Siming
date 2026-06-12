@@ -46,7 +46,8 @@ struct SimingApp {
             logger: logger,
             config: config,
             smartConfig: smartConfig,
-            rateLimitConfig: rateLimitConfig
+            rateLimitConfig: rateLimitConfig,
+            terminology: terminology
         )
 
         let app = Application(

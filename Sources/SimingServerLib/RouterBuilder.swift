@@ -9,7 +9,8 @@ public func buildRouter(
     logger: Logger,
     config: SimingConfig = SimingConfig(),
     smartConfig: SmartConfiguration? = nil,
-    rateLimitConfig: RateLimitConfiguration? = nil
+    rateLimitConfig: RateLimitConfiguration? = nil,
+    terminology: TerminologyIndex = .empty
 ) -> Router<BasicRequestContext> {
     let router = Router()
     router.middlewares.add(CORSMiddleware())
@@ -57,5 +58,6 @@ public func buildRouter(
     addTransactionRoutes(to: router, stores: stores, logger: logger)
     addCompartmentRoutes(to: router, stores: stores, logger: logger)
     addSystemRoutes(to: router, stores: stores, logger: logger)
+    addValidateRoutes(to: router, terminology: terminology)
     return router
 }

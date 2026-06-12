@@ -35,6 +35,15 @@ public struct TerminologyIndex: Sendable {
         guard let codes = valueSets[url] else { return true }
         return codes.contains(TermCode(system: system, code: code))
     }
+
+    /// Returns `true` when the ValueSet contains `code` in any system.
+    /// Used for FHIR `code` type fields where the system is implicit.
+    /// Unknown and intensional ValueSets always return `true`.
+    public func hasCode(valueSet url: String, code: String) -> Bool {
+        if intensionalValueSets.contains(url) { return true }
+        guard let codes = valueSets[url] else { return true }
+        return codes.contains(where: { $0.code == code })
+    }
 }
 
 public struct TermCode: Hashable, Sendable {
