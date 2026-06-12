@@ -89,7 +89,7 @@ private func extract_Procedure_date(_ p: inout SearchParams, _ proc: Procedure) 
             end = cal.date(from: dc) ?? Date.distantFuture
         } else { end = Date.distantFuture }
         p.dates.append(.init(paramName: "date", dateStart: start, dateEnd: end))
-    default:
+    @unknown default:
         break
     }
 }

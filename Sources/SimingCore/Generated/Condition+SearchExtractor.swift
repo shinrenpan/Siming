@@ -73,7 +73,7 @@ private func extract_Condition_abatement_date(_ p: inout SearchParams, _ cond: C
             end = cal.date(from: dc) ?? Date.distantFuture
         } else { end = Date.distantFuture }
         p.dates.append(.init(paramName: "abatement-date", dateStart: start, dateEnd: end))
-    default:
+    @unknown default:
         break
     }
 }
@@ -219,7 +219,7 @@ private func extract_Condition_onset_date(_ p: inout SearchParams, _ cond: Condi
             end = cal.date(from: dc) ?? Date.distantFuture
         } else { end = Date.distantFuture }
         p.dates.append(.init(paramName: "onset-date", dateStart: start, dateEnd: end))
-    default:
+    @unknown default:
         break
     }
 }

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Optional sidecar for deep StructureDefinition / profile validation.
 /// Calls the HL7 FHIR Validator service (inferno-resource-validator).

@@ -148,7 +148,7 @@ func conditionHandler(spec: ParamSpec, expr: String) -> String? {
                     end = cal.date(from: dc) ?? Date.distantFuture
                 } else { end = Date.distantFuture }
                 p.dates.append(.init(paramName: "\(code)", dateStart: start, dateEnd: end))
-            default:
+            @unknown default:
                 break
             }
         }
@@ -185,7 +185,7 @@ func conditionHandler(spec: ParamSpec, expr: String) -> String? {
                     end = cal.date(from: dc) ?? Date.distantFuture
                 } else { end = Date.distantFuture }
                 p.dates.append(.init(paramName: "\(code)", dateStart: start, dateEnd: end))
-            default:
+            @unknown default:
                 break
             }
         }

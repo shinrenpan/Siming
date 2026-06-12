@@ -9,7 +9,7 @@ nonisolated(unsafe) private let iso8601: ISO8601DateFormatter = {
 }()
 
 // RFC 7231 HTTP-date formatter for Last-Modified header.
-nonisolated(unsafe) private let httpDateFormatter: DateFormatter = {
+private let httpDateFormatter: DateFormatter = {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US_POSIX")
     f.timeZone = TimeZone(abbreviation: "GMT")

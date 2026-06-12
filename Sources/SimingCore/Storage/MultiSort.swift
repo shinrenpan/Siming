@@ -28,7 +28,7 @@ public func buildIdsInner(
     guard !filterCTEs.isEmpty else {
         // No index-backed filters — full scan via DISTINCT ON.
         var fromLines = ["FROM resources r"]
-        var conds = ["r.resource_type = '\(resourceType)'", "r.deleted = false"] + extraConditions
+        let conds = ["r.resource_type = '\(resourceType)'", "r.deleted = false"] + extraConditions
         fromLines.append("WHERE " + conds.joined(separator: " AND "))
         fromLines.append("ORDER BY r.id, r.version_id DESC")
         return (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]

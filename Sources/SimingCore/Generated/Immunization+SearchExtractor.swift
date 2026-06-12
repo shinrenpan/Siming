@@ -42,7 +42,7 @@ private func extract_Immunization_date(_ p: inout SearchParams, _ imm: Immunizat
         dc.timeZone = dt.timeZone
         let d = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
-    default:
+    @unknown default:
         break
     }
 }

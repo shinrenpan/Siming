@@ -162,7 +162,7 @@ private func extract_ServiceRequest_occurrence(_ p: inout SearchParams, _ sr: Se
             end = cal.date(from: dc) ?? Date.distantFuture
         } else { end = Date.distantFuture }
         p.dates.append(.init(paramName: "occurrence", dateStart: start, dateEnd: end))
-    default:
+    @unknown default:
         break
     }
 }
