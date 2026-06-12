@@ -6,10 +6,12 @@ import PostgresNIO
 public struct MedicationStatementStore: Sendable {
     public let client: PostgresClient
     public let logger: Logger
+    let terminology: TerminologyIndex
 
-    public init(client: PostgresClient, logger: Logger) {
+    public init(client: PostgresClient, logger: Logger, terminology: TerminologyIndex = .empty) {
         self.client = client
         self.logger = logger
+        self.terminology = terminology
     }
 
     // ── Result types ──────────────────────────────────────────────────────────
@@ -244,6 +246,9 @@ public struct MedicationStatementStore: Sendable {
         ms.meta = nil
 
         let jsonData   = try JSONEncoder().encode(ms)
+        if let _jsonObj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+            try validateCodes(resourceType: "MedicationStatement", json: _jsonObj, terminology: terminology)
+        }
         let jsonString = String(data: jsonData, encoding: .utf8)!
         var searchParams = extractMedicationStatementSearchParams(ms)
         appendMetaParams(&searchParams, meta: medicationStatement.meta)

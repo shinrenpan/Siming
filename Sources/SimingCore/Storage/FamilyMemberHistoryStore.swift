@@ -6,10 +6,12 @@ import PostgresNIO
 public struct FamilyMemberHistoryStore: Sendable {
     public let client: PostgresClient
     public let logger: Logger
+    let terminology: TerminologyIndex
 
-    public init(client: PostgresClient, logger: Logger) {
+    public init(client: PostgresClient, logger: Logger, terminology: TerminologyIndex = .empty) {
         self.client = client
         self.logger = logger
+        self.terminology = terminology
     }
 
     // ── Result types ──────────────────────────────────────────────────────────
@@ -244,6 +246,9 @@ public struct FamilyMemberHistoryStore: Sendable {
         fmh.meta = nil
 
         let jsonData   = try JSONEncoder().encode(fmh)
+        if let _jsonObj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+            try validateCodes(resourceType: "FamilyMemberHistory", json: _jsonObj, terminology: terminology)
+        }
         let jsonString = String(data: jsonData, encoding: .utf8)!
         var searchParams = extractFamilyMemberHistorySearchParams(fmh)
         appendMetaParams(&searchParams, meta: familyMemberHistory.meta)

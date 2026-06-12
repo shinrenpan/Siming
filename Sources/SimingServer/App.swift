@@ -35,9 +35,8 @@ struct SimingApp {
             migrationsPath: config.dbMigrationsPath
         )
 
-        let stores = StoreContainer(client: postgresClient, logger: logger)
         let terminology = loadTerminology(packagesDir: config.fhirPackagesDir, logger: logger)
-        _ = terminology  // D3 will wire this into stores via StoreContainer
+        let stores = StoreContainer(client: postgresClient, logger: logger, terminology: terminology)
         let smartConfig = try await SmartConfiguration.fromEnvironment(logger: logger)
         let rateLimitConfig = RateLimitConfiguration.from(config: config, logger: logger)
 

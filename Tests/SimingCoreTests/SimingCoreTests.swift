@@ -1223,4 +1223,93 @@ struct TerminologyIndexTests {
             code: "final"
         ))
     }
+
+    @Test("hasCode matches any system for code type fields")
+    func hasCodeAnySystem() {
+        #expect(index.hasCode(
+            valueSet: "http://hl7.org/fhir/ValueSet/observation-status",
+            code: "final"
+        ))
+        #expect(!index.hasCode(
+            valueSet: "http://hl7.org/fhir/ValueSet/observation-status",
+            code: "bogus"
+        ))
+    }
+}
+
+// ── TerminologyValidator ──────────────────────────────────────────────────────
+
+@Suite("TerminologyValidator")
+struct TerminologyValidatorTests {
+    // Index with Observation.status binding
+    let index: TerminologyIndex = {
+        let vsURL = "http://hl7.org/fhir/ValueSet/observation-status"
+        let cs    = "http://hl7.org/fhir/observation-status"
+        return TerminologyIndex(
+            codeSystems: [cs: ["final", "preliminary", "registered"]],
+            valueSets: [vsURL: [
+                TermCode(system: cs, code: "final"),
+                TermCode(system: cs, code: "preliminary"),
+                TermCode(system: cs, code: "registered"),
+            ]],
+            intensionalValueSets: []
+        )
+    }()
+
+    @Test("valid status passes validateCodes")
+    func validStatusPasses() throws {
+        let json: [String: Any] = ["status": "final", "resourceType": "Observation"]
+        try validateCodes(resourceType: "Observation", json: json, terminology: index)
+    }
+
+    @Test("invalid status throws TerminologyValidationError")
+    func invalidStatusThrows() {
+        let json: [String: Any] = ["status": "not-a-real-status", "resourceType": "Observation"]
+        #expect(throws: TerminologyValidationError.self) {
+            try validateCodes(resourceType: "Observation", json: json, terminology: index)
+        }
+    }
+
+    @Test("absent optional field does not throw")
+    func absentFieldSkipped() throws {
+        // status field missing → no codes to check → passes
+        let json: [String: Any] = ["resourceType": "Observation"]
+        try validateCodes(resourceType: "Observation", json: json, terminology: index)
+    }
+
+    @Test("unknown resource type passes (no rules)")
+    func unknownResourceType() throws {
+        let json: [String: Any] = ["status": "anything"]
+        try validateCodes(resourceType: "UnknownResource", json: json, terminology: index)
+    }
+
+    @Test("empty terminology index is always valid")
+    func emptyIndexPasses() throws {
+        let json: [String: Any] = ["status": "bogus-code", "resourceType": "Observation"]
+        try validateCodes(resourceType: "Observation", json: json, terminology: .empty)
+    }
+
+    @Test("nested code in array of objects validated")
+    func nestedArrayPath() throws {
+        // Simulate Encounter.statusHistory.status path with a valid value
+        // TerminologyValidator traverses arrays at each level
+        let vsURL = "http://hl7.org/fhir/ValueSet/encounter-status"
+        let cs    = "http://hl7.org/fhir/encounter-status"
+        let idx = TerminologyIndex(
+            codeSystems: [cs: ["active", "finished"]],
+            valueSets: [vsURL: [
+                TermCode(system: cs, code: "active"),
+                TermCode(system: cs, code: "finished"),
+            ]],
+            intensionalValueSets: []
+        )
+        let json: [String: Any] = [
+            "status": "active",
+            "statusHistory": [
+                ["status": "active"],
+                ["status": "finished"],
+            ]
+        ]
+        try validateCodes(resourceType: "Encounter", json: json, terminology: idx)
+    }
 }

@@ -6,6 +6,26 @@ private let generatedHeader = """
 // Regenerate: swift run SimingGenerator
 """
 
+func generateBindingsTable(allBindings: [String: [GeneratorBindingSpec]]) -> String {
+    let sorted = allBindings.sorted { $0.key < $1.key }
+
+    let entries = sorted.map { (resourceType, specs) -> String in
+        let rules = specs.map { spec -> String in
+            let kindSwift = spec.kind == .codeableConcept ? ".codeableConcept" : ".code"
+            return "        BindingRule(path: \"\(spec.path)\", valueSet: \"\(spec.valueSet)\", kind: \(kindSwift), isArray: \(spec.isArray))"
+        }.joined(separator: ",\n")
+        return "    \"\(resourceType)\": [\n\(rules)\n    ]"
+    }.joined(separator: ",\n")
+
+    return """
+    \(generatedHeader)
+
+    public let fhirRequiredBindings: [String: [BindingRule]] = [
+    \(entries)
+    ]
+    """
+}
+
 func generateMedicationAdministrationExtractor(params: [ParamSpec]) -> String {
     let fnPrefix = "extract_MedicationAdministration_"
 

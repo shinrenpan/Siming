@@ -238,6 +238,23 @@ func contentLocation(_ request: Request, versionId: Int64) -> String {
 
 // ── resourceType mismatch validation ─────────────────────────────────────────
 
+// ── TerminologyValidationError → HTTP 422 ────────────────────────────────────
+
+extension TerminologyValidationError: HTTPResponseError {
+    public var status: HTTPResponse.Status { .unprocessableContent }
+
+    public func response(from request: Request, context: some RequestContext) throws -> Response {
+        let diagnostics = violations.joined(separator: "; ")
+        let outcome = buildOutcome(severity: .error, code: .codeInvalid,
+                                   diagnostics: "Terminology binding violation: \(diagnostics)")
+        let data = (try? JSONEncoder().encode(outcome)) ?? Data()
+        var headers = HTTPFields()
+        headers[.contentType] = "application/fhir+json"
+        return Response(status: status, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: data)))
+    }
+}
+
 /// Validates that the JSON body's `resourceType` field matches the endpoint's expected type.
 /// Returns silently when `resourceType` is absent (let the decoder catch malformed JSON).
 /// Throws 422 Unprocessable Entity when the type is present but wrong.

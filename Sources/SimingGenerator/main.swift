@@ -13,6 +13,26 @@ try FileManager.default.createDirectory(
     withIntermediateDirectories: true
 )
 
+// ── Terminology bindings ───────────────────────────────────────────────────
+
+let allResourceTypes = [
+    "AllergyIntolerance", "Appointment", "CarePlan", "Condition",
+    "DiagnosticReport", "DocumentReference", "Encounter",
+    "FamilyMemberHistory", "Goal", "Immunization", "Location",
+    "Medication", "MedicationAdministration", "MedicationRequest",
+    "MedicationStatement", "Observation", "Organization", "Patient",
+    "Practitioner", "Procedure", "RelatedPerson", "ServiceRequest", "Specimen"
+]
+
+let allBindings = loadAllBindings(resourceTypes: allResourceTypes, packagesDir: packagesDir)
+let bindingsCode = generateBindingsTable(allBindings: allBindings)
+let bindingsOut  = "\(outputDir)/TerminologyBindings.swift"
+try bindingsCode.write(toFile: bindingsOut, atomically: true, encoding: .utf8)
+let totalRules = allBindings.values.reduce(0) { $0 + $1.count }
+print("Generated \(bindingsOut) — \(totalRules) required binding rules across \(allBindings.count) resource types")
+
+// ── Search extractors ──────────────────────────────────────────────────────
+
 let medicationAdministrationParams = try loadParams(resourceType: "MedicationAdministration", packagesDir: packagesDir)
     .sorted { $0.code < $1.code }
 
