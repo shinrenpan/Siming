@@ -1,5 +1,7 @@
 # Siming
 
+[![CI](https://github.com/shinrenpan/Siming/actions/workflows/ci.yml/badge.svg)](https://github.com/shinrenpan/Siming/actions/workflows/ci.yml)
+
 A high-performance FHIR R4 server written in Swift. Designed for Taiwan healthcare — TW Core IG compliant, one-command deployment, built-in resource browser.
 
 **Stack:** [Hummingbird 2](https://github.com/hummingbird-project/hummingbird) (SwiftNIO) · [PostgresNIO](https://github.com/vapor/postgres-nio) (no ORM) · [FHIRModels](https://github.com/apple/FHIRModels)
