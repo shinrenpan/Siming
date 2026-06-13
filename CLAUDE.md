@@ -16,7 +16,7 @@ Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default 
 - **G (planned):** NHI terminology as external FHIR packages — Siming needs no code changes; existing package loader handles them. G Phase work belongs in a separate package project.
 - **Backlog (implement if GitHub issues are filed):** `MedicationDispense` (completes medication workflow), `PractitionerRole` (completes provider model). Both follow existing store/route patterns — low implementation cost, high clinical value.
 - **Not planned:** `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`, `Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`, R5, multi-tenancy, terminology server (CodeSystem/ValueSet CRUD + operations), Subscriptions/Notifications.
-- **Ecosystem:** [Jujing](https://github.com/shinrenpan/Jujing) is the clinic staff web UI (React); FHIRpass is the patient iOS app. Both connect via standard FHIR API. Currently backed by HAPI FHIR; migration to Siming planned when MedicationDispense + PractitionerRole + Composition are added.
+- **Ecosystem:** Downstream clients connect via standard FHIR API. No first-party frontend planned.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
