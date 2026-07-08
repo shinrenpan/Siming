@@ -143,7 +143,7 @@ Checklist (in addition to generator + extractor + SQL migration):
 
 ## Search parameters
 
-**Do NOT hand-write search-param definitions.** `SimingGenerator` consumes FHIR packages from `packages/*.tgz` and emits extractors into `Sources/SimingCore/Generated/`. This generator is the architectural moat. Regenerate: `swift run SimingGenerator`.
+**Do NOT hand-write search-param definitions.** `SimingGenerator` consumes FHIR packages from `packages/*.tgz` and emits extractors into `Sources/SimingCore/Generated/`. This generator is the architectural moat. Regenerate: `swift run SimingGenerator`. Full rationale (why it exists, why compile-time, IG-swap workflow): `docs/generator.md`.
 
 Search extractors are **compile-time** (type-safe Swift, performance-critical). CapabilityStatement is **runtime** (built at server startup from `packages/*.tgz`).
 
