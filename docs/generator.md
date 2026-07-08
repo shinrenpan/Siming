@@ -111,6 +111,28 @@ No handler is touched. No SQL is touched (unless the change introduces a search
 param of a *type* not yet covered by the five index tables). The IG change lands
 as a package swap plus a generated-code diff.
 
+### Docker never runs the generator
+
+`SimingGenerator` is a dev-time tool — it does **not** run during a Docker build
+or at container startup. The Docker image is built with `swift build` over the
+**already-committed** `Sources/SimingCore/Generated/` code, so the image only
+ever compiles what is in git.
+
+Two consequences:
+
+- **A plain deploy needs nothing extra.** `bash scripts/setup.sh` /
+  `docker compose up --build` compiles the committed extractors as-is. You do not
+  run the generator to deploy.
+- **After regenerating, you must rebuild the image.** Regeneration only changes
+  source files; an image built before the regenerate is stale. Commit the new
+  `Generated/` code, then `docker compose up --build`.
+
+Note: `scripts/fetch-packages.sh` appears in the Docker flow too, but there it
+serves a *different* purpose — the `.tgz` files are gitignored, and the Dockerfile
+copies `packages/` into the runtime image so the server can build its
+CapabilityStatement (`GET /metadata`) at startup. That runtime use is unrelated
+to the generator.
+
 ---
 
 ## Adding a new resource type
