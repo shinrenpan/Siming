@@ -41,6 +41,7 @@ Siming is a **clinical data server** — it stores and searches clinical resourc
 - **Security** — SMART on FHIR JWT bearer (opt-in), per-IP rate limiting (opt-in), CORS
 - **Built-in browser** — `GET /ui` — CRUD for all resource types, JSON editor, response-time indicator
 - **Observability** — Prometheus metrics (`GET /metrics`), `X-Request-ID` trace header
+- **Generated search** — search extractors are generated from the loaded FHIR packages, not hand-written; changing the IG is a package swap + regenerate, no handler rewrites ([details](docs/generator.md))
 
 → **[Full documentation](https://github.com/shinrenpan/Siming/wiki)**
 
