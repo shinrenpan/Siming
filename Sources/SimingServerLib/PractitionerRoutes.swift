@@ -39,7 +39,7 @@ public func addPractitionerRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parsePractitionerQuery(from: pairs)
+            var checkQuery = try parsePractitionerQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -80,7 +80,7 @@ public func addPractitionerRoutes(
         let prac = try decodeFHIR(Practitioner.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parsePractitionerQuery(from: qpPairs)
+        var checkQuery = try parsePractitionerQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -245,7 +245,7 @@ public func addPractitionerRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Practitioner requires search parameters for conditional delete")
         }
-        var checkQuery = parsePractitionerQuery(from: qpPairs)
+        var checkQuery = try parsePractitionerQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -281,7 +281,7 @@ public func addPractitionerRoutes(
             let bad = unknownParams(in: pairs, known: knownPractitionerParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePractitionerQuery(from: pairs)
+        var query = try parsePractitionerQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -332,7 +332,7 @@ public func addPractitionerRoutes(
             let bad = unknownParams(in: pairs, known: knownPractitionerParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePractitionerQuery(from: pairs)
+        var query = try parsePractitionerQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -372,7 +372,7 @@ public func addPractitionerRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PractitionerSearchQuery {
+func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> PractitionerSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -411,7 +411,7 @@ func parsePractitionerQuery(from pairs: some Collection<(key: Substring, value: 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { PractitionerSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", PractitionerSearchQuery.DateParam.parse)
     let sortKeys = PractitionerSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

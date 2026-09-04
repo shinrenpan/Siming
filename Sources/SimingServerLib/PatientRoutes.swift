@@ -26,7 +26,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parsePatientQuery(from: pairs)
+            var checkQuery = try parsePatientQuery(from: pairs)
             checkQuery.count = 2
             checkQuery.totalMode = .none
             checkQuery.cursor = nil
@@ -70,7 +70,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         let patient = try decodeFHIR(Patient.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parsePatientQuery(from: qpPairs)
+        var checkQuery = try parsePatientQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -108,7 +108,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             let bad = unknownParams(in: qpPairs, known: knownPatientParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePatientQuery(from: qpPairs)
+        var query = try parsePatientQuery(from: qpPairs)
         let elements = parseElements(from: qpPairs)
         let summary = parseSummary(from: qpPairs)
         let includes = parseIncludes(from: qpPairs)
@@ -162,7 +162,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
             let bad = unknownParams(in: pairs, known: knownPatientParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePatientQuery(from: pairs)
+        var query = try parsePatientQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -348,7 +348,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Patient requires search parameters for conditional delete")
         }
-        var checkQuery = parsePatientQuery(from: qpPairs)
+        var checkQuery = try parsePatientQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -382,7 +382,7 @@ public func addPatientRoutes(to router: Router<BasicRequestContext>, store: Pati
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-private func parsePatientQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PatientSearchQuery {
+private func parsePatientQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> PatientSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -419,7 +419,7 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     let deceased: Bool? = first("deceased").flatMap { v -> Bool? in
         switch String(v).lowercased() { case "true": return true; case "false": return false; default: return nil }
     }
-    let deathDates = all("death-date").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
+    let deathDates = try parseDateParams(all("death-date"), "death-date", PatientSearchQuery.BirthdateParam.parse)
     let identifierNot = first("identifier:not").map { PatientSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let genderNot = all("gender:not").flatMap { v in
         String(v).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -428,8 +428,8 @@ private func parsePatientQuery(from pairs: some Collection<(key: Substring, valu
     let id         = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let birthdates  = all("birthdate").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
-    let lastUpdated = all("_lastUpdated").compactMap { PatientSearchQuery.BirthdateParam.parse(String($0)) }
+    let birthdates  = try parseDateParams(all("birthdate"), "birthdate", PatientSearchQuery.BirthdateParam.parse)
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", PatientSearchQuery.BirthdateParam.parse)
     let sortKeys    = PatientSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
@@ -557,6 +557,7 @@ enum FHIRRouteError: Error {
     case invalidBody(String)
     case unknownParams([String])
     case unprocessableEntity(String)
+    case invalidSearchValue(param: String, value: String)
 }
 
 extension FHIRRouteError: HTTPResponseError {
@@ -566,6 +567,7 @@ extension FHIRRouteError: HTTPResponseError {
         case .invalidBody:           .badRequest
         case .unknownParams:         .badRequest
         case .unprocessableEntity:   .unprocessableContent
+        case .invalidSearchValue:    .badRequest
         }
     }
 
@@ -579,6 +581,8 @@ extension FHIRRouteError: HTTPResponseError {
             (.error, .notSupported, "Unknown search parameter(s): \(names.joined(separator: ", "))")
         case .unprocessableEntity(let msg):
             (.error, .invalid, msg)
+        case .invalidSearchValue(let param, let value):
+            (.error, .invalid, "Invalid value for search parameter '\(param)': '\(value)'")
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()

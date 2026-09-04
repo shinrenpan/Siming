@@ -40,7 +40,7 @@ public func addGoalRoutes(
 
         if let ifNoneExist = request.headers[goalIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseGoalQuery(from: pairs)
+            var checkQuery = try parseGoalQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -81,7 +81,7 @@ public func addGoalRoutes(
         let goal = try goalDecodeFHIR(Goal.self, from: bodyBuffer)
         let ifMatch = goalParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseGoalQuery(from: qpPairs)
+        var checkQuery = try parseGoalQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -245,7 +245,7 @@ public func addGoalRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Goal requires search parameters for conditional delete")
         }
-        var checkQuery = parseGoalQuery(from: qpPairs)
+        var checkQuery = try parseGoalQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -269,7 +269,7 @@ public func addGoalRoutes(
             let bad = unknownParams(in: pairs, known: knownGoalParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseGoalQuery(from: pairs)
+        var query = try parseGoalQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -320,7 +320,7 @@ public func addGoalRoutes(
             let bad = unknownParams(in: pairs, known: knownGoalParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseGoalQuery(from: pairs)
+        var query = try parseGoalQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -360,7 +360,7 @@ public func addGoalRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> GoalSearchQuery {
+func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> GoalSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -378,8 +378,8 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
     let identifier         = first("identifier").map { GoalSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot      = first("identifier:not").map { GoalSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
-    let startDate  = all("start-date").compactMap { GoalSearchQuery.DateParam.parse(String($0)) }
-    let targetDate = all("target-date").compactMap { GoalSearchQuery.DateParam.parse(String($0)) }
+    let startDate  = try parseDateParams(all("start-date"), "start-date", GoalSearchQuery.DateParam.parse)
+    let targetDate = try parseDateParams(all("target-date"), "target-date", GoalSearchQuery.DateParam.parse)
 
     let subject = first("subject").map(String.init)
     let patient = first("patient").map(String.init)
@@ -387,7 +387,7 @@ func parseGoalQuery(from pairs: some Collection<(key: Substring, value: Substrin
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { GoalSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", GoalSearchQuery.DateParam.parse)
     let sortKeys = GoalSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, goalMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

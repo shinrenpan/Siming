@@ -39,7 +39,7 @@ public func addFamilyMemberHistoryRoutes(
 
         if let ifNoneExist = request.headers[fmhIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseFamilyMemberHistoryQuery(from: pairs)
+            var checkQuery = try parseFamilyMemberHistoryQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -80,7 +80,7 @@ public func addFamilyMemberHistoryRoutes(
         let fmh = try fmhDecodeFHIR(FamilyMemberHistory.self, from: bodyBuffer)
         let ifMatch = fmhParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseFamilyMemberHistoryQuery(from: qpPairs)
+        var checkQuery = try parseFamilyMemberHistoryQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -244,7 +244,7 @@ public func addFamilyMemberHistoryRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /FamilyMemberHistory requires search parameters for conditional delete")
         }
-        var checkQuery = parseFamilyMemberHistoryQuery(from: qpPairs)
+        var checkQuery = try parseFamilyMemberHistoryQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -268,7 +268,7 @@ public func addFamilyMemberHistoryRoutes(
             let bad = unknownParams(in: pairs, known: knownFamilyMemberHistoryParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseFamilyMemberHistoryQuery(from: pairs)
+        var query = try parseFamilyMemberHistoryQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -319,7 +319,7 @@ public func addFamilyMemberHistoryRoutes(
             let bad = unknownParams(in: pairs, known: knownFamilyMemberHistoryParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseFamilyMemberHistoryQuery(from: pairs)
+        var query = try parseFamilyMemberHistoryQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -359,7 +359,7 @@ public func addFamilyMemberHistoryRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> FamilyMemberHistorySearchQuery {
+func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> FamilyMemberHistorySearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -379,7 +379,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let identifier      = first("identifier").map { FamilyMemberHistorySearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot   = first("identifier:not").map { FamilyMemberHistorySearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
-    let date                  = all("date").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
+    let date                  = try parseDateParams(all("date"), "date", FamilyMemberHistorySearchQuery.DateParam.parse)
     let instantiatesCanonical = all("instantiates-canonical").map(String.init)
     let instantiatesUri       = all("instantiates-uri").map(String.init)
     let patient               = first("patient").map(String.init)
@@ -387,7 +387,7 @@ func parseFamilyMemberHistoryQuery(from pairs: some Collection<(key: Substring, 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { FamilyMemberHistorySearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", FamilyMemberHistorySearchQuery.DateParam.parse)
     let sortKeys = FamilyMemberHistorySearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, fmhMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

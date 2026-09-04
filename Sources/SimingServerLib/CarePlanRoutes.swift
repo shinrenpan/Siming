@@ -42,7 +42,7 @@ public func addCarePlanRoutes(
 
         if let ifNoneExist = request.headers[carePlanIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseCarePlanQuery(from: pairs)
+            var checkQuery = try parseCarePlanQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -83,7 +83,7 @@ public func addCarePlanRoutes(
         let carePlan = try cpDecodeFHIR(CarePlan.self, from: bodyBuffer)
         let ifMatch = cpParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseCarePlanQuery(from: qpPairs)
+        var checkQuery = try parseCarePlanQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -247,7 +247,7 @@ public func addCarePlanRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /CarePlan requires search parameters for conditional delete")
         }
-        var checkQuery = parseCarePlanQuery(from: qpPairs)
+        var checkQuery = try parseCarePlanQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -271,7 +271,7 @@ public func addCarePlanRoutes(
             let bad = unknownParams(in: pairs, known: knownCarePlanParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseCarePlanQuery(from: pairs)
+        var query = try parseCarePlanQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -322,7 +322,7 @@ public func addCarePlanRoutes(
             let bad = unknownParams(in: pairs, known: knownCarePlanParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseCarePlanQuery(from: pairs)
+        var query = try parseCarePlanQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -362,7 +362,7 @@ public func addCarePlanRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> CarePlanSearchQuery {
+func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> CarePlanSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -382,9 +382,9 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
     let activityCode    = all("activity-code").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
     let activityCodeNot = all("activity-code:not").flatMap { CarePlanSearchQuery.TokenParam.parseList(String($0)) }
 
-    let date              = all("date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
-    let activityDate      = all("activity-date").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
-    let activityDateNot   = all("activity-date:not").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let date              = try parseDateParams(all("date"), "date", CarePlanSearchQuery.DateParam.parse)
+    let activityDate      = try parseDateParams(all("activity-date"), "activity-date", CarePlanSearchQuery.DateParam.parse)
+    let activityDateNot   = try parseDateParams(all("activity-date:not"), "activity-date:not", CarePlanSearchQuery.DateParam.parse)
     let instantiatesCanonical = all("instantiates-canonical").map(String.init)
     let instantiatesUri       = all("instantiates-uri").map(String.init)
 
@@ -403,7 +403,7 @@ func parseCarePlanQuery(from pairs: some Collection<(key: Substring, value: Subs
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { CarePlanSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", CarePlanSearchQuery.DateParam.parse)
     let sortKeys = CarePlanSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, carePlanMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

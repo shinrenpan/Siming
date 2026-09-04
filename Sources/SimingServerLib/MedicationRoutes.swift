@@ -40,7 +40,7 @@ public func addMedicationRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseMedicationQuery(from: pairs)
+            var checkQuery = try parseMedicationQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -81,7 +81,7 @@ public func addMedicationRoutes(
         let med = try decodeFHIR(Medication.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseMedicationQuery(from: qpPairs)
+        var checkQuery = try parseMedicationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -244,7 +244,7 @@ public func addMedicationRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Medication requires search parameters for conditional delete")
         }
-        var checkQuery = parseMedicationQuery(from: qpPairs)
+        var checkQuery = try parseMedicationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -268,7 +268,7 @@ public func addMedicationRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationQuery(from: pairs)
+        var query = try parseMedicationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -319,7 +319,7 @@ public func addMedicationRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationQuery(from: pairs)
+        var query = try parseMedicationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -359,7 +359,7 @@ public func addMedicationRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> MedicationSearchQuery {
+func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> MedicationSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -382,12 +382,12 @@ func parseMedicationQuery(from pairs: some Collection<(key: Substring, value: Su
     let identifierNot  = first("identifier:not").map { MedicationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let manufacturer   = first("manufacturer").map(String.init)
     let ingredient     = first("ingredient").map(String.init)
-    let expirationDate = all("expiration-date").compactMap { MedicationSearchQuery.DateParam.parse(String($0)) }
+    let expirationDate = try parseDateParams(all("expiration-date"), "expiration-date", MedicationSearchQuery.DateParam.parse)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { MedicationSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", MedicationSearchQuery.DateParam.parse)
     let sortKeys = MedicationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

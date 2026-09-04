@@ -473,6 +473,81 @@ struct PatientSearchQueryTests {
         #expect(p.prefix == .lt)
     }
 
+    // ── dateTime precision (FHIR R4 §2.4.0.1) ────────────────────────────────
+    // Before these, anything with a time component failed to parse and the
+    // route dropped the parameter, silently returning an unfiltered result set.
+
+    private static func utc(_ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int, _ s: Int) -> Date {
+        var dc = DateComponents()
+        dc.year = y; dc.month = mo; dc.day = d
+        dc.hour = h; dc.minute = mi; dc.second = s
+        dc.timeZone = TimeZone(secondsFromGMT: 0)!
+        return Calendar(identifier: .gregorian).date(from: dc)!
+    }
+
+    @Test("BirthdateParam dateTime with Z is second-precision, not a whole day")
+    func birthdateDateTimeZulu() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("ge2026-09-04T08:30:00Z"))
+        #expect(p.prefix == .ge)
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+        #expect(p.dateEnd   == Self.utc(2026, 9, 4, 8, 30, 0))
+    }
+
+    @Test("BirthdateParam dateTime honours a positive UTC offset")
+    func birthdateDateTimePositiveOffset() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:00:00+08:00"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 0, 0, 0))
+    }
+
+    @Test("BirthdateParam dateTime honours a negative UTC offset")
+    func birthdateDateTimeNegativeOffset() throws {
+        // The "-" in the offset must not be read as a date separator.
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("lt2026-09-04T00:00:00-05:00"))
+        #expect(p.prefix == .lt)
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 5, 0, 0))
+    }
+
+    @Test("BirthdateParam minute precision expands to the whole minute")
+    func birthdateDateTimeMinutePrecision() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30Z"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+        #expect(p.dateEnd   == Self.utc(2026, 9, 4, 8, 30, 59))
+    }
+
+    @Test("BirthdateParam dateTime without a timezone is read as UTC")
+    func birthdateDateTimeNoZone() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30:00"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+    }
+
+    @Test("BirthdateParam accepts and truncates fractional seconds")
+    func birthdateDateTimeFractional() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30:15.250Z"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 15))
+    }
+
+    @Test("BirthdateParam rejects impossible civil dates instead of rolling them over")
+    func birthdateRejectsRolloverDates() {
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-02-30") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-13-01") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T25:00:00Z") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:70:00Z") == nil)
+    }
+
+    @Test("BirthdateParam rejects malformed dateTime rather than parsing a partial value")
+    func birthdateRejectsMalformedDateTime() {
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09T08:00:00Z") == nil)   // time needs a full date
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08") == nil)       // hour alone
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:00:00+5:00") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("26-09-04") == nil)            // 2-digit year
+    }
+
+    @Test("BirthdateParam leap day is valid, non-leap 29 Feb is not")
+    func birthdateLeapDay() throws {
+        _ = try #require(PatientSearchQuery.BirthdateParam.parse("2024-02-29"))
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-02-29") == nil)
+    }
+
     @Test("BirthdateParam invalid returns nil")
     func birthdateInvalid() {
         #expect(PatientSearchQuery.BirthdateParam.parse("invalid") == nil)

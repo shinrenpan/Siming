@@ -43,7 +43,7 @@ public func addEncounterRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseEncounterQuery(from: pairs)
+            var checkQuery = try parseEncounterQuery(from: pairs)
             checkQuery.count = 2
             checkQuery.totalMode = .none
             checkQuery.cursor = nil
@@ -86,7 +86,7 @@ public func addEncounterRoutes(
         let enc = try decodeFHIR(Encounter.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseEncounterQuery(from: qpPairs)
+        var checkQuery = try parseEncounterQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -253,7 +253,7 @@ public func addEncounterRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Encounter requires search parameters for conditional delete")
         }
-        var checkQuery = parseEncounterQuery(from: qpPairs)
+        var checkQuery = try parseEncounterQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -291,7 +291,7 @@ public func addEncounterRoutes(
             let bad = unknownParams(in: pairs, known: knownEncounterParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseEncounterQuery(from: pairs)
+        var query = try parseEncounterQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -344,7 +344,7 @@ public func addEncounterRoutes(
             let bad = unknownParams(in: pairs, known: knownEncounterParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseEncounterQuery(from: pairs)
+        var query = try parseEncounterQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -386,7 +386,7 @@ public func addEncounterRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> EncounterSearchQuery {
+func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> EncounterSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -421,17 +421,17 @@ func parseEncounterQuery(from pairs: some Collection<(key: Substring, value: Sub
     let appointment    = first("appointment").map(String.init)
     let episodeOfCare  = first("episode-of-care").map(String.init)
     let reasonReference = first("reason-reference").map(String.init)
-    let locationPeriod  = all("location-period").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
+    let locationPeriod  = try parseDateParams(all("location-period"), "location-period", EncounterSearchQuery.DateParam.parse)
     let participantType    = first("participant-type").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let participantTypeNot = first("participant-type:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let specialArrangement    = first("special-arrangement").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let specialArrangementNot = first("special-arrangement:not").map { EncounterSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let length             = first("length").map { EncounterSearchQuery.QuantityParam.parseList(String($0)) } ?? []
-    let dates          = all("date").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
+    let dates          = try parseDateParams(all("date"), "date", EncounterSearchQuery.DateParam.parse)
     let id             = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated    = all("_lastUpdated").compactMap { EncounterSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated    = try parseDateParams(all("_lastUpdated"), "_lastUpdated", EncounterSearchQuery.DateParam.parse)
     let sortKeys = EncounterSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count          = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor         = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

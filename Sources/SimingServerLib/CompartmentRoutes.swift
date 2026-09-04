@@ -24,7 +24,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseObservationQuery(from: pairs)
+        var query = try parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -72,7 +72,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseObservationQuery(from: pairs)
+        var query = try parseObservationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -113,7 +113,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownEncounterParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseEncounterQuery(from: pairs)
+        var query = try parseEncounterQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -159,7 +159,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownEncounterParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseEncounterQuery(from: pairs)
+        var query = try parseEncounterQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -198,7 +198,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownConditionParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseConditionQuery(from: pairs)
+        var query = try parseConditionQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -244,7 +244,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownConditionParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseConditionQuery(from: pairs)
+        var query = try parseConditionQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -290,7 +290,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationRequestQuery(from: pairs)
+        var query = try parseMedicationRequestQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -329,7 +329,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationRequestQuery(from: pairs)
+        var query = try parseMedicationRequestQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -375,7 +375,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAllergyIntoleranceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseAllergyIntoleranceQuery(from: pairs)
+        var query = try parseAllergyIntoleranceQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -414,7 +414,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAllergyIntoleranceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseAllergyIntoleranceQuery(from: pairs)
+        var query = try parseAllergyIntoleranceQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -453,7 +453,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownProcedureParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseProcedureQuery(from: pairs)
+        var query = try parseProcedureQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -499,7 +499,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownProcedureParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseProcedureQuery(from: pairs)
+        var query = try parseProcedureQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -538,7 +538,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDiagnosticReportQuery(from: pairs)
+        var query = try parseDiagnosticReportQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -584,7 +584,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDiagnosticReportQuery(from: pairs)
+        var query = try parseDiagnosticReportQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -623,7 +623,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownImmunizationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseImmunizationQuery(from: pairs)
+        var query = try parseImmunizationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -669,7 +669,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownImmunizationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseImmunizationQuery(from: pairs)
+        var query = try parseImmunizationQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -708,7 +708,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownRelatedPersonParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseRelatedPersonQuery(from: pairs)
+        var query = try parseRelatedPersonQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -754,7 +754,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownRelatedPersonParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseRelatedPersonQuery(from: pairs)
+        var query = try parseRelatedPersonQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -793,7 +793,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownServiceRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseServiceRequestQuery(from: pairs)
+        var query = try parseServiceRequestQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -832,7 +832,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownServiceRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseServiceRequestQuery(from: pairs)
+        var query = try parseServiceRequestQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -864,7 +864,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownSpecimenParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseSpecimenQuery(from: pairs)
+        var query = try parseSpecimenQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -903,7 +903,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownSpecimenParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseSpecimenQuery(from: pairs)
+        var query = try parseSpecimenQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -935,7 +935,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownDocumentReferenceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDocumentReferenceQuery(from: pairs)
+        var query = try parseDocumentReferenceQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -974,7 +974,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownDocumentReferenceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDocumentReferenceQuery(from: pairs)
+        var query = try parseDocumentReferenceQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1006,7 +1006,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownCarePlanParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseCarePlanQuery(from: pairs)
+        var query = try parseCarePlanQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1045,7 +1045,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownCarePlanParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseCarePlanQuery(from: pairs)
+        var query = try parseCarePlanQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1077,7 +1077,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownGoalParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseGoalQuery(from: pairs)
+        var query = try parseGoalQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1123,7 +1123,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownGoalParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseGoalQuery(from: pairs)
+        var query = try parseGoalQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1162,7 +1162,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationStatementParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationStatementQuery(from: pairs)
+        var query = try parseMedicationStatementQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1201,7 +1201,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownFamilyMemberHistoryParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseFamilyMemberHistoryQuery(from: pairs)
+        var query = try parseFamilyMemberHistoryQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1247,7 +1247,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownFamilyMemberHistoryParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseFamilyMemberHistoryQuery(from: pairs)
+        var query = try parseFamilyMemberHistoryQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1293,7 +1293,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationStatementParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationStatementQuery(from: pairs)
+        var query = try parseMedicationStatementQuery(from: pairs)
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1332,7 +1332,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAppointmentParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseAppointmentQuery(from: pairs)
+        var query = try parseAppointmentQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1378,7 +1378,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownAppointmentParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseAppointmentQuery(from: pairs)
+        var query = try parseAppointmentQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1417,7 +1417,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationAdministrationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationAdministrationQuery(from: pairs)
+        var query = try parseMedicationAdministrationQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
@@ -1463,7 +1463,7 @@ public func addCompartmentRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationAdministrationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationAdministrationQuery(from: pairs)
+        var query = try parseMedicationAdministrationQuery(from: pairs)
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)

@@ -167,6 +167,42 @@ struct RouteTests {
         }
     }
 
+    // ── Malformed date values ─────────────────────────────────────────────────
+    //
+    // These used to be dropped by a compactMap, so the server ran an unfiltered
+    // search and returned 200 with the wrong result set. FHIR R4 §3.1.1 lets a
+    // server ignore a search parameter it does not recognise — not a malformed
+    // value for one it does — so this is a 400 regardless of Prefer: handling.
+
+    @Test("GET /Observation with an unparseable date returns 400 OperationOutcome")
+    func testMalformedDateValueRejected() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(uri: "/Observation?date=ge2026-99-99", method: .get) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("GET /Observation with a malformed dateTime returns 400, not an unfiltered 200")
+    func testMalformedDateTimeValueRejected() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(uri: "/Observation?date=ge2026-09-04T08", method: .get) { response in
+                #expect(response.status == .badRequest)
+            }
+        }
+    }
+
+    @Test("GET /Patient with an unparseable _lastUpdated returns 400")
+    func testMalformedLastUpdatedRejected() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(uri: "/Patient?_lastUpdated=gtnot-a-date", method: .get) { response in
+                #expect(response.status == .badRequest)
+            }
+        }
+    }
+
     // ── Prefer: handling=strict ───────────────────────────────────────────────
 
     @Test("GET /Patient with unknown param + handling=strict returns 400 OperationOutcome")

@@ -46,7 +46,7 @@ public func addConditionRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseConditionQuery(from: pairs)
+            var checkQuery = try parseConditionQuery(from: pairs)
             checkQuery.count = 2
             checkQuery.totalMode = .none
             checkQuery.cursor = nil
@@ -89,7 +89,7 @@ public func addConditionRoutes(
         let cond = try decodeFHIR(Condition.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseConditionQuery(from: qpPairs)
+        var checkQuery = try parseConditionQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -256,7 +256,7 @@ public func addConditionRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Condition requires search parameters for conditional delete")
         }
-        var checkQuery = parseConditionQuery(from: qpPairs)
+        var checkQuery = try parseConditionQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -294,7 +294,7 @@ public func addConditionRoutes(
             let bad = unknownParams(in: pairs, known: knownConditionParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseConditionQuery(from: pairs)
+        var query = try parseConditionQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -347,7 +347,7 @@ public func addConditionRoutes(
             let bad = unknownParams(in: pairs, known: knownConditionParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseConditionQuery(from: pairs)
+        var query = try parseConditionQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -389,7 +389,7 @@ public func addConditionRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ConditionSearchQuery {
+func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> ConditionSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -410,9 +410,9 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let codeNot            = first("code:not").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
     let identifier         = first("identifier").map { ConditionSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot      = first("identifier:not").map { ConditionSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let onsetDate          = all("onset-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
-    let abatementDate      = all("abatement-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
-    let recordedDate       = all("recorded-date").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
+    let onsetDate          = try parseDateParams(all("onset-date"), "onset-date", ConditionSearchQuery.DateParam.parse)
+    let abatementDate      = try parseDateParams(all("abatement-date"), "abatement-date", ConditionSearchQuery.DateParam.parse)
+    let recordedDate       = try parseDateParams(all("recorded-date"), "recorded-date", ConditionSearchQuery.DateParam.parse)
     let asserter           = first("asserter").map(String.init)
     let evidenceDetail     = first("evidence-detail").map(String.init)
     let bodySite           = first("body-site").map { ConditionSearchQuery.TokenParam.parseList(String($0)) } ?? []
@@ -430,7 +430,7 @@ func parseConditionQuery(from pairs: some Collection<(key: Substring, value: Sub
     let id                 = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated        = all("_lastUpdated").compactMap { ConditionSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated        = try parseDateParams(all("_lastUpdated"), "_lastUpdated", ConditionSearchQuery.DateParam.parse)
     let sortKeys = ConditionSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count              = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor             = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

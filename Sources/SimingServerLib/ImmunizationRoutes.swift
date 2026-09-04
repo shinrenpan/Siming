@@ -42,7 +42,7 @@ public func addImmunizationRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseImmunizationQuery(from: pairs)
+            var checkQuery = try parseImmunizationQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -83,7 +83,7 @@ public func addImmunizationRoutes(
         let imm = try decodeFHIR(Immunization.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseImmunizationQuery(from: qpPairs)
+        var checkQuery = try parseImmunizationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -248,7 +248,7 @@ public func addImmunizationRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Immunization requires search parameters for conditional delete")
         }
-        var checkQuery = parseImmunizationQuery(from: qpPairs)
+        var checkQuery = try parseImmunizationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -284,7 +284,7 @@ public func addImmunizationRoutes(
             let bad = unknownParams(in: pairs, known: knownImmunizationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseImmunizationQuery(from: pairs)
+        var query = try parseImmunizationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -335,7 +335,7 @@ public func addImmunizationRoutes(
             let bad = unknownParams(in: pairs, known: knownImmunizationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseImmunizationQuery(from: pairs)
+        var query = try parseImmunizationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -375,7 +375,7 @@ public func addImmunizationRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ImmunizationSearchQuery {
+func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> ImmunizationSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -395,7 +395,7 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let location    = first("location").map(String.init)
     let manufacturer = first("manufacturer").map(String.init)
     let reaction    = first("reaction").map(String.init)
-    let reactionDate = all("reaction-date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
+    let reactionDate = try parseDateParams(all("reaction-date"), "reaction-date", ImmunizationSearchQuery.DateParam.parse)
     let reasonCode    = all("reason-code").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let reasonCodeNot = all("reason-code:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let reasonReference = first("reason-reference").map(String.init)
@@ -405,11 +405,11 @@ func parseImmunizationQuery(from pairs: some Collection<(key: Substring, value: 
     let targetDisease    = all("target-disease").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let targetDiseaseNot = all("target-disease:not").flatMap { ImmunizationSearchQuery.TokenParam.parseList(String($0)) }
     let lotNumber   = ImmunizationSearchQuery.StringParam.parse(key: "lot-number", from: pairs)
-    let date        = all("date").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
+    let date        = try parseDateParams(all("date"), "date", ImmunizationSearchQuery.DateParam.parse)
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { ImmunizationSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", ImmunizationSearchQuery.DateParam.parse)
     let sortKeys = ImmunizationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
