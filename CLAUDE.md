@@ -12,12 +12,11 @@ Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default 
 
 **Siming is a clinical data server, not a terminology server.** It stores and searches clinical resources. It does not host CodeSystem/ValueSet nor implement `$expand`/`$lookup` — those belong to a separate terminology service layer. Do not add terminology server features.
 
-**Current state: v1.0.0 — feature complete.** Phases A–F done. No active feature development planned in this repo.
-- **G (planned):** NHI terminology as external FHIR packages — Siming needs no code changes; existing package loader handles them. G Phase work belongs in a separate package project.
-- **Backlog (implement if GitHub issues are filed):** `MedicationDispense` (completes medication workflow). Follows existing store/route patterns — low implementation cost, high clinical value.
-- **`PractitionerRole` is deliberately partial:** only the `practitioner` reference param is indexed. The other 12 R4 params are live `// TODO: unhandled` markers in `Generated/PractitionerRole+SearchExtractor.swift`. Add one by writing its case in `SimingGenerator/PractitionerRoleHandlers.swift` and regenerating — never by hand-editing the generated file.
-- **Not planned:** `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`, `Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`, R5, multi-tenancy, terminology server (CodeSystem/ValueSet CRUD + operations), Subscriptions/Notifications.
-- **Ecosystem:** Downstream clients connect via standard FHIR API. No first-party frontend planned.
+**Current state: v1.1.0 — feature complete.** No active feature development planned in this repo.
+
+**What is not done, and why, lives in one place: [`docs/roadmap.md`](docs/roadmap.md).**
+Read it before proposing a feature, filing a gap, or re-investigating a known defect —
+it records what was already ruled out. Do not restate its contents here.
 
 Rule: **don't build future features early, but don't weld future doors shut.**
 
