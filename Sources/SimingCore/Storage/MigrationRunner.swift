@@ -86,10 +86,15 @@ public struct MigrationRunner: Sendable {
     /// Splits a SQL file into executable statements on `;`.
     ///
     /// A `;` only terminates a statement outside of: dollar-quoted strings
-    /// (`$$...$$`, `$tag$...$tag$`) for PL/pgSQL bodies, single-quoted literals,
-    /// and `--` line comments. Getting any of those wrong hands PostgreSQL a
-    /// fragment, and the server dies at startup with a syntax error pointing at
-    /// the fragment rather than at the real cause.
+    /// (`$$...$$`, `$tag$...$tag$`) for PL/pgSQL bodies, single-quoted literals
+    /// (including the `''` escape), and `--` line comments. Getting any of those
+    /// wrong hands PostgreSQL a fragment, and the server dies at startup with a
+    /// syntax error pointing at the fragment rather than at the real cause.
+    ///
+    /// Known gaps, deliberately not handled because no migration uses them:
+    /// `/* ... */` block comments and `E'...\'...'` escape-string literals. A
+    /// migration containing either will split wrongly — add handling here before
+    /// writing one, do not discover it at startup.
     ///
     /// `internal`, not `private`, so the three cases can be tested directly —
     /// a migration that fails to parse means the server does not boot.

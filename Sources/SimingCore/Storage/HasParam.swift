@@ -129,7 +129,9 @@ public func hasFilterCTE(
         // rule the direct date params follow. Returning nil here drops the whole CTE
         // and answers with an unfiltered result set.
         guard let dp = PatientSearchQuery.BirthdateParam.parse(param.value) else {
-            throw FHIRServerError.invalidSearchValue(param: "\(param.childParam)", value: param.value)
+            throw FHIRServerError.invalidSearchValue(
+                param: "_has:\(param.referencedType):\(param.refParam):\(param.childParam)",
+                value: param.value)
         }
         let dateClause = hasDateClause(dp: dp, bindDate: bindDate)
         joinSQL = """
