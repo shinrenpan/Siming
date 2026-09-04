@@ -79,6 +79,10 @@ actor TestDatabase {
         PractitionerStore(client: try requiredClient(), logger: logger)
     }
 
+    func makePractitionerRoleStore() throws -> PractitionerRoleStore {
+        PractitionerRoleStore(client: try requiredClient(), logger: logger)
+    }
+
     func makeOrganizationStore() throws -> OrganizationStore {
         OrganizationStore(client: try requiredClient(), logger: logger)
     }
@@ -540,6 +544,23 @@ func makePractitioner(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Practitioner.self, from: Data(json.utf8))
+}
+
+func makePractitionerRole(
+    practitionerId: String,
+    roleCode: String = "doctor",
+    roleDisplay: String = "主治醫師",
+    roleSystem: String = "http://terminology.hl7.org/CodeSystem/practitioner-role",
+    active: Bool? = nil
+) throws -> ModelsR4.PractitionerRole {
+    var json = #"""
+    {"resourceType":"PractitionerRole",
+     "practitioner":{"reference":"Practitioner/\#(practitionerId)"},
+     "code":[{"coding":[{"system":"\#(roleSystem)","code":"\#(roleCode)","display":"\#(roleDisplay)"}]}]
+    """#
+    if let a = active { json += #","active":\#(a)"# }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.PractitionerRole.self, from: Data(json.utf8))
 }
 
 func makeOrganization(

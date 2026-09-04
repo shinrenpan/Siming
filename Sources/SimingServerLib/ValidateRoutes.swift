@@ -13,10 +13,11 @@ private let validateSupportedTypes: Set<String> = [
     "FamilyMemberHistory", "Goal", "Immunization", "Location",
     "Medication", "MedicationAdministration", "MedicationRequest",
     "MedicationStatement", "Observation", "Organization", "Patient",
-    "Practitioner", "Procedure", "RelatedPerson", "ServiceRequest", "Specimen",
+    "Practitioner", "PractitionerRole", "Procedure", "RelatedPerson",
+    "ServiceRequest", "Specimen",
 ]
 
-/// Registers `POST /{ResourceType}/$validate` for all 23 resource types.
+/// Registers `POST /{ResourceType}/$validate` for all 24 resource types.
 /// Validates terminology bindings (always) and StructureDefinition profiles
 /// (when externalValidator is configured). Returns OperationOutcome.
 /// HTTP 200 OK always (per FHIR R4 §3.6.2); 400/415 only for malformed requests.

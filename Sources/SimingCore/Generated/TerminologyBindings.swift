@@ -128,6 +128,14 @@ public let fhirRequiredBindings: [String: [BindingRule]] = [
         BindingRule(path: "Practitioner.telecom.use", valueSet: "http://hl7.org/fhir/ValueSet/contact-point-use", kind: .code, isArray: false),
         BindingRule(path: "Practitioner.gender", valueSet: "http://hl7.org/fhir/ValueSet/administrative-gender", kind: .code, isArray: false)
     ],
+    "PractitionerRole": [
+        BindingRule(path: "PractitionerRole.specialty.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/medical-department-sct-tw", kind: .code, isArray: false),
+        BindingRule(path: "PractitionerRole.specialty.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/medical-consultation-department-tw", kind: .code, isArray: false),
+        BindingRule(path: "PractitionerRole.specialty.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/medical-treatment-department-tw", kind: .code, isArray: false),
+        BindingRule(path: "PractitionerRole.telecom.system", valueSet: "http://hl7.org/fhir/ValueSet/contact-point-system", kind: .code, isArray: false),
+        BindingRule(path: "PractitionerRole.telecom.use", valueSet: "http://hl7.org/fhir/ValueSet/contact-point-use", kind: .code, isArray: false),
+        BindingRule(path: "PractitionerRole.availableTime.daysOfWeek", valueSet: "http://hl7.org/fhir/ValueSet/days-of-week", kind: .code, isArray: true)
+    ],
     "Procedure": [
         BindingRule(path: "Procedure.status", valueSet: "http://hl7.org/fhir/ValueSet/event-status", kind: .code, isArray: false),
         BindingRule(path: "Procedure.code.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/icd-10-pcs-2023-tw", kind: .code, isArray: false),
