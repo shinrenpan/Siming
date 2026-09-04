@@ -1424,7 +1424,7 @@ struct DateExtractionTests {
          "period":{"start":"2026-09-04T20:13:47+08:00","end":"2026-09-04T21:00:00+08:00"}}
         """#)
         let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
-        #expect(row.dateStart == instant("2026-09-04T12:13:00Z"))
+        #expect(row.dateStart == instant("2026-09-04T12:13:47Z"))
         #expect(row.dateEnd   == instant("2026-09-04T13:00:00Z"))
     }
 
@@ -1436,7 +1436,7 @@ struct DateExtractionTests {
         """#)
         let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
         #expect(row.dateStart == instant("2026-09-01T00:00:00Z"))
-        #expect(row.dateEnd   == instant("2026-09-02T23:59:00Z"))
+        #expect(row.dateEnd   == instant("2026-09-02T23:59:59Z"))
     }
 
     @Test("Observation.effectiveDateTime keeps its time")
@@ -1456,7 +1456,24 @@ struct DateExtractionTests {
          "issued":"2026-09-04T20:13:47+08:00"}
         """#)
         let row = try #require(extractDiagnosticReportSearchParams(dr).dates.first { $0.paramName == "issued" })
-        #expect(row.dateStart == instant("2026-09-04T12:13:00Z"))
+        #expect(row.dateStart == instant("2026-09-04T12:13:47Z"))
+    }
+
+    @Test("Seconds survive into the index — a search value at second precision must be able to match")
+    func secondsAreIndexed() throws {
+        // The parser resolves a second-precision search value to that exact instant.
+        // If the extractor truncated to the minute, `date=eq...T08:30:45Z` could never
+        // match the resource that actually carries 08:30:45.
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-09-04T08:30:45Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:45Z"))
+
+        let q = try #require(ObservationSearchQuery.DateParam.parse("eq2026-09-04T08:30:45Z"))
+        #expect(q.dateStart == row.dateStart)
+        #expect(q.dateEnd   == row.dateEnd)
     }
 
     @Test("Condition.onsetDateTime without an offset is read as UTC, not as host-local")

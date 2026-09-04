@@ -284,6 +284,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
             // stored value depend on where the server happens to run.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 12
             dc.minute = dt.time.map { Int($0.minute) } ?? 0
+            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = cal.date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "authored", dateStart: d, dateEnd: d))
@@ -309,6 +310,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                 // stored value depend on where the server happens to run.
                 dc.hour   = dt.time.map { Int($0.hour) } ?? 12
                 dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
                 dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 let d = cal.date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "occurrence", dateStart: d, dateEnd: d))
@@ -325,6 +327,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                     // host's UTC offset — right in a UTC container, wrong anywhere else.
                     dc.hour   = dt.time.map { Int($0.hour) } ?? 0
                     dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                    dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
                     dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                     start = cal.date(from: dc) ?? Date.distantPast
                 } else { start = Date.distantPast }
@@ -338,6 +341,7 @@ func serviceRequestHandler(spec: ParamSpec, expr: String) -> String? {
                     // host's UTC offset — right in a UTC container, wrong anywhere else.
                     dc.hour   = dt.time.map { Int($0.hour) } ?? 23
                     dc.minute = dt.time.map { Int($0.minute) } ?? 59
+                    dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 59
                     dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                     end = cal.date(from: dc) ?? Date.distantFuture
                 } else { end = Date.distantFuture }

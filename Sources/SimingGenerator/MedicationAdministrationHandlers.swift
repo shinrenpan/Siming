@@ -209,6 +209,7 @@ func medicationAdministrationHandler(spec: ParamSpec, expr: String) -> String? {
                 // stored value depend on where the server happens to run.
                 dc.hour   = dt.time.map { Int($0.hour) } ?? 12
                 dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
                 dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "\(code)", dateStart: d, dateEnd: d))
@@ -217,13 +218,23 @@ func medicationAdministrationHandler(spec: ParamSpec, expr: String) -> String? {
                 var startDC = DateComponents(); var endDC = DateComponents()
                 if let startStr = period.start?.value {
                     startDC.year = startStr.date.year; startDC.month = startStr.date.month.map(Int.init)
-                    startDC.day  = startStr.date.day.map(Int.init); startDC.hour = 0
-                    startDC.timeZone = startStr.timeZone
+                    startDC.day  = startStr.date.day.map(Int.init)
+                    // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                    // The zone must be explicit — `startStr.timeZone` is nil for a date-only value, and
+                    // DateComponents then falls through to the host's zone.
+                    startDC.hour   = startStr.time.map { Int($0.hour) } ?? 0
+                    startDC.minute = startStr.time.map { Int($0.minute) } ?? 0
+                    startDC.second = startStr.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+                    startDC.timeZone = startStr.timeZone ?? TimeZone(secondsFromGMT: 0)
                 }
                 if let endStr = period.end?.value {
                     endDC.year = endStr.date.year; endDC.month = endStr.date.month.map(Int.init)
-                    endDC.day  = endStr.date.day.map(Int.init); endDC.hour = 23
-                    endDC.timeZone = endStr.timeZone
+                    endDC.day  = endStr.date.day.map(Int.init)
+                    // Mirror of the above; an unset minute would silently cut the last hour off the day.
+                    endDC.hour   = endStr.time.map { Int($0.hour) } ?? 23
+                    endDC.minute = endStr.time.map { Int($0.minute) } ?? 59
+                    endDC.second = endStr.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 59
+                    endDC.timeZone = endStr.timeZone ?? TimeZone(secondsFromGMT: 0)
                 }
                 let dateStart = cal.date(from: startDC) ?? Date.distantPast
                 let dateEnd   = cal.date(from: endDC)   ?? Date.distantFuture

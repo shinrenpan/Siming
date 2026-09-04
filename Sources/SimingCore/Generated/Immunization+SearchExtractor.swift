@@ -45,6 +45,7 @@ private func extract_Immunization_date(_ p: inout SearchParams, _ imm: Immunizat
         // stored value depend on where the server happens to run.
         dc.hour   = dt.time.map { Int($0.hour) } ?? 12
         dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
         dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
@@ -137,6 +138,7 @@ private func extract_Immunization_reaction_date(_ p: inout SearchParams, _ imm: 
         // stored value depend on where the server happens to run.
         dc.hour   = dt.time.map { Int($0.hour) } ?? 12
         dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
         dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "reaction-date", dateStart: d, dateEnd: d))
