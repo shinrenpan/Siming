@@ -76,6 +76,28 @@ The deleted-row half of this path is already fixed — both builders now go thro
 
 ---
 
+### A `Period` with neither bound matches every date search
+
+`{"effectivePeriod": {}}` — a Period carrying neither `start` nor `end` — is
+indexed as `distantPast .. distantFuture`, so the resource is returned by every
+`date=` query, including ones it has no business matching
+(`?effective=eq1900-01-01` finds it). All twelve period extractors behave this
+way; it is consistent, not a two-resource anomaly.
+
+The fix is a guard before the append: emit no row when both bounds are absent —
+a resource with no date should be absent from date searches, which is also what
+`:missing=true` already means.
+
+Not done yet, deliberately. It needs the same edit at twelve sites in
+`Sources/SimingGenerator/`, each with different surrounding control flow
+(`return` / `continue` / `switch` case), and that shape of per-site hand-editing
+is where two regressions were introduced during the search-correctness round —
+including one in a block that had just been edited. Weighed against an input that
+does not occur in real data, the change is not worth making unforced. Do it when
+a period extractor is being touched for another reason.
+
+---
+
 ---
 
 ## Gaps with a decision still open
