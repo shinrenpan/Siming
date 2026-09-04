@@ -217,6 +217,7 @@ func relatedPersonHandler(spec: ParamSpec, expr: String) -> String? {
             var dc = DateComponents()
             dc.year = bd.year; dc.month = bd.month.map(Int.init)
             dc.day  = bd.day.map(Int.init)
+            dc.timeZone = TimeZone(secondsFromGMT: 0)   // FHIR date: fix the zone, never inherit the host's
             let cal = Calendar(identifier: .gregorian)
             let start = cal.date(from: dc) ?? Date()
             var endDc = dc

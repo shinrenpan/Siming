@@ -218,7 +218,7 @@ private func extract_Observation_date(_ p: inout SearchParams, _ obs: Observatio
         dc.day      = dt.date.day.map(Int.init)
         dc.hour     = dt.time.map { Int($0.hour) } ?? 12
         dc.minute   = dt.time.map { Int($0.minute) }
-        dc.timeZone = dt.timeZone
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
     case .period(let period):
@@ -226,14 +226,28 @@ private func extract_Observation_date(_ p: inout SearchParams, _ obs: Observatio
             guard let dt = prim.value else { return nil }
             var dc = DateComponents()
             dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-            dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+            dc.day  = dt.date.day.map(Int.init)
+            // A date-only bound widens to the start of the day; one carrying a time keeps it.
+            // dc.timeZone is mandatory: without it the components are read in
+            // the server's local zone and every indexed period shifts by the
+            // host's UTC offset — right in a UTC container, wrong anywhere else.
+            dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+            dc.minute = dt.time.map { Int($0.minute) } ?? 0
+            dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             return Calendar(identifier: .gregorian).date(from: dc)
         } ?? Date.distantPast
         let end = period.end.flatMap { prim -> Date? in
             guard let dt = prim.value else { return nil }
             var dc = DateComponents()
             dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-            dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+            dc.day  = dt.date.day.map(Int.init)
+            // A date-only bound widens to the end of the day; one carrying a time keeps it.
+            // dc.timeZone is mandatory: without it the components are read in
+            // the server's local zone and every indexed period shifts by the
+            // host's UTC offset — right in a UTC container, wrong anywhere else.
+            dc.hour   = dt.time.map { Int($0.hour) } ?? 23
+            dc.minute = dt.time.map { Int($0.minute) } ?? 59
+            dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             return Calendar(identifier: .gregorian).date(from: dc)
         } ?? Date.distantFuture
         p.dates.append(.init(paramName: "date", dateStart: start, dateEnd: end))
@@ -245,7 +259,7 @@ private func extract_Observation_date(_ p: inout SearchParams, _ obs: Observatio
         dc.day      = Int(inst.date.day)
         dc.hour     = Int(inst.time.hour)
         dc.minute   = Int(inst.time.minute)
-        dc.timeZone = inst.timeZone
+        dc.timeZone = inst.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
     case .timing:
@@ -405,8 +419,14 @@ private func extract_Observation_value_date(_ p: inout SearchParams, _ obs: Obse
     let cal = Calendar(identifier: .gregorian)
     var dc = DateComponents()
     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-    dc.timeZone = dt.timeZone
+    dc.day  = dt.date.day.map(Int.init)
+    // A dateTime carrying a time keeps it; a date-only value stays anchored at
+    // midday so it sits well inside the day whatever offset it is compared against.
+    // The zone must be explicit — falling through to the host's zone makes the
+    // stored value depend on where the server happens to run.
+    dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+    dc.minute = dt.time.map { Int($0.minute) } ?? 0
+    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
     let date = cal.date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "value-date", dateStart: date, dateEnd: date))
 }

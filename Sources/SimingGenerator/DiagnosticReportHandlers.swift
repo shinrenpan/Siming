@@ -131,8 +131,14 @@ func diagnosticReportHandler(spec: ParamSpec, expr: String) -> String? {
                 guard let dt = prim.value else { return }
                 var dc = DateComponents()
                 dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-                dc.timeZone = dt.timeZone
+                dc.day  = dt.date.day.map(Int.init)
+                // A dateTime carrying a time keeps it; a date-only value stays anchored at
+                // midday so it sits well inside the day whatever offset it is compared against.
+                // The zone must be explicit — falling through to the host's zone makes the
+                // stored value depend on where the server happens to run.
+                dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+                dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 let d = cal.date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
             case .period(let period):
@@ -141,13 +147,27 @@ func diagnosticReportHandler(spec: ParamSpec, expr: String) -> String? {
                 if let prim = period.start, let dt = prim.value {
                     var dc = DateComponents()
                     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                    dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                    dc.day  = dt.date.day.map(Int.init)
+                    // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                    // dc.timeZone is mandatory: without it the components are read in
+                    // the server's local zone and every indexed period shifts by the
+                    // host's UTC offset — right in a UTC container, wrong anywhere else.
+                    dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+                    dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                     start = cal.date(from: dc) ?? Date.distantPast
                 } else { start = Date.distantPast }
                 if let prim = period.end, let dt = prim.value {
                     var dc = DateComponents()
                     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                    dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                    dc.day  = dt.date.day.map(Int.init)
+                    // A date-only bound widens to the end of the day; one carrying a time keeps it.
+                    // dc.timeZone is mandatory: without it the components are read in
+                    // the server's local zone and every indexed period shifts by the
+                    // host's UTC offset — right in a UTC container, wrong anywhere else.
+                    dc.hour   = dt.time.map { Int($0.hour) } ?? 23
+                    dc.minute = dt.time.map { Int($0.minute) } ?? 59
+                    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                     end = cal.date(from: dc) ?? Date.distantFuture
                 } else { end = Date.distantFuture }
                 p.dates.append(.init(paramName: "date", dateStart: start, dateEnd: end))
@@ -258,8 +278,13 @@ func diagnosticReportHandler(spec: ParamSpec, expr: String) -> String? {
             guard let prim = dr.issued, let inst = prim.value else { return }
             var dc = DateComponents()
             dc.year = inst.date.year; dc.month = Int(inst.date.month)
-            dc.day  = Int(inst.date.day); dc.hour = 12
-            dc.timeZone = inst.timeZone
+            dc.day  = Int(inst.date.day)
+            // An instant always carries a time. Pinning it to a fixed hour would not be a
+            // precision trade-off — it would assert a clinical fact the resource never
+            // stated ("this report was issued at midday").
+            dc.hour   = Int(inst.time.hour)
+            dc.minute = Int(inst.time.minute)
+            dc.timeZone = inst.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "\(code)", dateStart: d, dateEnd: d))
         }

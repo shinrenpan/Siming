@@ -226,7 +226,7 @@ func appointmentHandler(spec: ParamSpec, expr: String) -> String? {
             dc.hour     = Int(inst.time.hour)
             dc.minute   = Int(inst.time.minute)
             dc.second   = Int(truncating: inst.time.second as NSDecimalNumber)
-            dc.timeZone = inst.timeZone
+            dc.timeZone = inst.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "\(code)", dateStart: d, dateEnd: d))
         }

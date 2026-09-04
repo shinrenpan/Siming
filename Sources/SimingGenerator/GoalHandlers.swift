@@ -91,7 +91,8 @@ func goalHandler(spec: ParamSpec, expr: String) -> String? {
             let cal = Calendar(identifier: .gregorian)
             var dc = DateComponents()
             dc.year = dt.year; dc.month = dt.month.map(Int.init)
-            dc.day  = dt.day.map(Int.init); dc.hour = 12
+            dc.day  = dt.day.map(Int.init); dc.hour = 12   // FHIR date: midday UTC anchor
+            dc.timeZone = TimeZone(secondsFromGMT: 0)
             let date = cal.date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "\(code)", dateStart: date, dateEnd: date))
         }
@@ -108,7 +109,8 @@ func goalHandler(spec: ParamSpec, expr: String) -> String? {
                       let dt = prim.value else { continue }
                 var dc = DateComponents()
                 dc.year = dt.year; dc.month = dt.month.map(Int.init)
-                dc.day  = dt.day.map(Int.init); dc.hour = 12
+                dc.day  = dt.day.map(Int.init); dc.hour = 12   // FHIR date: midday UTC anchor
+                dc.timeZone = TimeZone(secondsFromGMT: 0)
                 let date = cal.date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "\(code)", dateStart: date, dateEnd: date))
             }

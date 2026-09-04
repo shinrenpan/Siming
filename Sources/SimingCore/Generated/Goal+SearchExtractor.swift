@@ -89,7 +89,8 @@ private func extract_Goal_start_date(_ p: inout SearchParams, _ g: Goal) {
     let cal = Calendar(identifier: .gregorian)
     var dc = DateComponents()
     dc.year = dt.year; dc.month = dt.month.map(Int.init)
-    dc.day  = dt.day.map(Int.init); dc.hour = 12
+    dc.day  = dt.day.map(Int.init); dc.hour = 12   // FHIR date: midday UTC anchor
+    dc.timeZone = TimeZone(secondsFromGMT: 0)
     let date = cal.date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "start-date", dateStart: date, dateEnd: date))
 }
@@ -112,7 +113,8 @@ private func extract_Goal_target_date(_ p: inout SearchParams, _ g: Goal) {
               let dt = prim.value else { continue }
         var dc = DateComponents()
         dc.year = dt.year; dc.month = dt.month.map(Int.init)
-        dc.day  = dt.day.map(Int.init); dc.hour = 12
+        dc.day  = dt.day.map(Int.init); dc.hour = 12   // FHIR date: midday UTC anchor
+        dc.timeZone = TimeZone(secondsFromGMT: 0)
         let date = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "target-date", dateStart: date, dateEnd: date))
     }

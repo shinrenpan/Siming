@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import ModelsR4
 @testable import SimingCore
 
 // ── DatabaseConfiguration ─────────────────────────────────────────────────────
@@ -1386,5 +1387,85 @@ struct TerminologyValidatorTests {
             ]
         ]
         try validateCodes(resourceType: "Encounter", json: json, terminology: idx)
+    }
+}
+
+// ── Date extraction: the index must not depend on the host's timezone ────────
+//
+// These assert absolute instants. They fail on any machine whose local zone is
+// not UTC if an extractor builds DateComponents without setting timeZone — which
+// is exactly how every indexed period ended up shifted by the host's UTC offset.
+
+@Suite("Search-param date extraction")
+struct DateExtractionTests {
+
+    private func instant(_ iso: String) -> Date {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f.date(from: iso)!
+    }
+
+    private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+        try JSONDecoder().decode(type, from: Data(json.utf8))
+    }
+
+    @Test("Patient.birthDate is anchored at midday UTC, not midday local")
+    func patientBirthDateIsUTC() throws {
+        let patient = try decode(Patient.self, #"{"resourceType":"Patient","birthDate":"1990-06-15"}"#)
+        let row = try #require(extractPatientSearchParams(patient).dates.first { $0.paramName == "birthdate" })
+        #expect(row.dateStart == instant("1990-06-15T12:00:00Z"))
+        #expect(row.dateEnd   == instant("1990-06-15T12:00:00Z"))
+    }
+
+    @Test("Encounter.period keeps the offset it was written with")
+    func encounterPeriodKeepsOffset() throws {
+        let enc = try decode(Encounter.self, #"""
+        {"resourceType":"Encounter","status":"finished","class":{"code":"AMB"},
+         "period":{"start":"2026-09-04T20:13:47+08:00","end":"2026-09-04T21:00:00+08:00"}}
+        """#)
+        let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T12:13:00Z"))
+        #expect(row.dateEnd   == instant("2026-09-04T13:00:00Z"))
+    }
+
+    @Test("Encounter.period date-only bounds widen to the whole UTC day")
+    func encounterPeriodDateOnlyWidensInUTC() throws {
+        let enc = try decode(Encounter.self, #"""
+        {"resourceType":"Encounter","status":"finished","class":{"code":"AMB"},
+         "period":{"start":"2026-09-01","end":"2026-09-02"}}
+        """#)
+        let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-01T00:00:00Z"))
+        #expect(row.dateEnd   == instant("2026-09-02T23:59:00Z"))
+    }
+
+    @Test("Observation.effectiveDateTime keeps its time")
+    func observationEffectiveKeepsTime() throws {
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-09-04T08:30:00Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:00Z"))
+    }
+
+    @Test("DiagnosticReport.issued is an instant — its time must survive, not collapse to midday")
+    func diagnosticReportIssuedKeepsTime() throws {
+        let dr = try decode(DiagnosticReport.self, #"""
+        {"resourceType":"DiagnosticReport","status":"final","code":{"text":"x"},
+         "issued":"2026-09-04T20:13:47+08:00"}
+        """#)
+        let row = try #require(extractDiagnosticReportSearchParams(dr).dates.first { $0.paramName == "issued" })
+        #expect(row.dateStart == instant("2026-09-04T12:13:00Z"))
+    }
+
+    @Test("Condition.onsetDateTime without an offset is read as UTC, not as host-local")
+    func conditionOnsetNoOffsetIsUTC() throws {
+        let cond = try decode(Condition.self, #"""
+        {"resourceType":"Condition","subject":{"reference":"Patient/p"},
+         "onsetDateTime":"2026-09-04T08:30:00Z"}
+        """#)
+        let row = try #require(extractConditionSearchParams(cond).dates.first { $0.paramName == "onset-date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:00Z"))
     }
 }

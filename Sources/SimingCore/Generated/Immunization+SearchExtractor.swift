@@ -38,8 +38,14 @@ private func extract_Immunization_date(_ p: inout SearchParams, _ imm: Immunizat
         guard let dt = prim.value else { return }
         var dc = DateComponents()
         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-        dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-        dc.timeZone = dt.timeZone
+        dc.day  = dt.date.day.map(Int.init)
+        // A dateTime carrying a time keeps it; a date-only value stays anchored at
+        // midday so it sits well inside the day whatever offset it is compared against.
+        // The zone must be explicit — falling through to the host's zone makes the
+        // stored value depend on where the server happens to run.
+        dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
     default:
@@ -124,8 +130,14 @@ private func extract_Immunization_reaction_date(_ p: inout SearchParams, _ imm: 
         guard let prim = rxn.date, let dt = prim.value else { continue }
         var dc = DateComponents()
         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-        dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-        dc.timeZone = dt.timeZone
+        dc.day  = dt.date.day.map(Int.init)
+        // A dateTime carrying a time keeps it; a date-only value stays anchored at
+        // midday so it sits well inside the day whatever offset it is compared against.
+        // The zone must be explicit — falling through to the host's zone makes the
+        // stored value depend on where the server happens to run.
+        dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = cal.date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "reaction-date", dateStart: d, dateEnd: d))
     }
