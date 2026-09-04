@@ -1,0 +1,17 @@
+-- 0007_drop_resources_cursor_idx.sql
+-- Completes the index cleanup that 0006 started.
+--
+-- resources_cursor_idx (0001) is
+--   (resource_type, last_updated, id) WHERE deleted = FALSE
+-- A partial index is only usable when the planner can prove the query's own
+-- predicate implies the index predicate. Since 0006 no query against `resources`
+-- carries `deleted = false` at all — the current-version pick reads tombstones on
+-- purpose, and the deleted test now sits on the derived table or the LATERAL
+-- result, where it cannot be matched to the index.
+--
+-- Verified two ways: the full integration suite records 0 scans on it, and there
+-- is no remaining `deleted = false` predicate on `resources` in the source.
+-- It is 4.2 MB at 100k versions and is maintained on every single write.
+--
+-- Kept out of 0006 because that file has already been applied to a live database.
+DROP INDEX IF EXISTS resources_cursor_idx;

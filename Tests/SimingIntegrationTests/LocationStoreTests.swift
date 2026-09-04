@@ -263,6 +263,38 @@ final class LocationStoreTests: XCTestCase {
         XCTAssertEqual(result.total, 0)
     }
 
+    func testSearch_byLastUpdatedNe_excludesDeleted() async throws {
+        // `ne` is the only date prefix that renders as a disjunction. Joined into
+        // the WHERE without parentheses, OR's lower precedence re-associates the
+        // predicate and drops the deleted guard entirely — the leak this suite
+        // exists to prevent, reachable through a parameter that looks harmless.
+        let created = try await store.create(makeLocation(name: "NeDeletedLoc"))
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        var q = LocationSearchQuery()
+        q.lastUpdated = [try XCTUnwrap(LocationSearchQuery.DateParam.parse("ne2000-01-01"))]
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 0)
+
+        q.count = 0
+        q.totalMode = .accurate
+        let countOnly = try await store.search(query: q)
+        XCTAssertEqual(countOnly.total, 0)
+    }
+
+    func testSearch_disjunctiveConditionDoesNotDefeatOtherFilters() async throws {
+        // Same precedence trap, other victim: an unparenthesized OR also escapes
+        // whatever filter precedes it, so `_id` stops constraining the result.
+        let a = try await store.create(makeLocation(name: "PrecedenceA"))
+        _ = try await store.create(makeLocation(name: "PrecedenceB"))
+
+        var q = LocationSearchQuery(id: [a.id])
+        q.lastUpdated = [try XCTUnwrap(LocationSearchQuery.DateParam.parse("ne2000-01-01"))]
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 1)
+        XCTAssertEqual(result.entries.map(\.id), [a.id])
+    }
+
     func testSearch_indexedFilter_excludesDeleted() async throws {
         let created = try await store.create(makeLocation(name: "IndexedDeletedLoc", status: "active"))
         _ = try await store.delete(id: created.id, ifMatch: nil)

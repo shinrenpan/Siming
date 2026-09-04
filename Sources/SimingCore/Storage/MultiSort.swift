@@ -20,6 +20,18 @@ import Foundation
 //   filterCTEs     — pre-built filter CTEs; each returns resource_id rows.
 //   extraConditions — WHERE conditions beyond the base resource_type+deleted guard.
 
+
+// Conditions arrive as raw SQL fragments from the stores, and some are
+// disjunctions — `_lastUpdated=ne` renders as `lu < $1 OR lu > $2`. Joined with
+// AND unparenthesized, OR's lower precedence re-associates the whole predicate:
+// `deleted = false AND lu < $1 OR lu > $2` parses as
+// `(deleted = false AND lu < $1) OR lu > $2`, which drops the deleted guard and
+// any preceding filter. Parenthesize here, once, rather than trusting every
+// caller to do it.
+private func andJoin(_ conditions: [String]) -> String {
+    conditions.map { "(\($0))" }.joined(separator: " AND ")
+}
+
 public func buildIdsInner(
     resourceType: String,
     filterCTEs: [(name: String, sql: String)],
@@ -35,7 +47,7 @@ public func buildIdsInner(
         // deleted resources leaked into unfiltered search results.
         let extra = extraConditions.isEmpty
             ? ""
-            : " AND " + extraConditions.joined(separator: " AND ")
+            : " AND " + andJoin(extraConditions)
         return """
             SELECT r.id, r.version_id, r.last_updated
             FROM (
@@ -63,7 +75,7 @@ public func buildIdsInner(
     }
     let extraClause = transformedExtra.isEmpty
         ? ""
-        : "\n      WHERE " + transformedExtra.joined(separator: " AND ")
+        : "\n      WHERE " + andJoin(transformedExtra)
 
     return """
         SELECT \(first).resource_id AS id, lat.version_id, lat.last_updated
@@ -96,20 +108,49 @@ public func buildCountIdsInner(
     filterCTEs: [(name: String, sql: String)],
     whereConditions: [String]
 ) -> String {
-    var lines = [
-        "SELECT r.id",
-        "FROM (",
-        "  SELECT DISTINCT ON (id) id, version_id, last_updated, deleted",
-        "  FROM resources",
-        "  WHERE resource_type = '\(resourceType)'",
-        "  ORDER BY id, version_id DESC",
-        ") r",
-    ]
-    for cte in filterCTEs {
-        lines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
+    guard !filterCTEs.isEmpty else {
+        let extra = whereConditions.isEmpty ? "" : " AND " + andJoin(whereConditions)
+        return """
+            SELECT r.id
+            FROM (
+              SELECT DISTINCT ON (id) id, version_id, last_updated, deleted
+              FROM resources
+              WHERE resource_type = '\(resourceType)'
+              ORDER BY id, version_id DESC
+            ) r
+            WHERE r.deleted = false\(extra)
+            """
     }
-    lines.append("WHERE " + (["r.deleted = false"] + whereConditions).joined(separator: " AND "))
-    return lines.joined(separator: "\n      ")
+
+    // Same LATERAL shape as buildIdsInner, and for the same reason. A derived
+    // table wrapping DISTINCT ON is an optimisation fence: join quals cannot be
+    // pushed into it, so the filter CTEs stop narrowing the scan and every
+    // version of the resource type is read. Measured with a filter matching 5 of
+    // 50k resources: the derived table dedupes 44,446 rows, the LATERAL touches 5.
+    let first = filterCTEs[0].name
+    let joinLines = filterCTEs.dropFirst().map {
+        "JOIN \($0.name) ON \($0.name).resource_id = \(first).resource_id"
+    }
+    let joinClause = joinLines.isEmpty ? "" : "\n      " + joinLines.joined(separator: "\n      ")
+
+    let transformed = whereConditions.map { cond in
+        cond
+            .replacingOccurrences(of: "r.last_updated", with: "lat.last_updated")
+            .replacingOccurrences(of: "r.id ", with: "\(first).resource_id ")
+            .replacingOccurrences(of: "r.id)", with: "\(first).resource_id)")
+    }
+    let whereClause = transformed.isEmpty ? "" : "\n      WHERE " + andJoin(transformed)
+
+    return """
+        SELECT \(first).resource_id AS id
+        FROM \(first)\(joinClause)
+        JOIN LATERAL (
+          SELECT version_id, last_updated, deleted
+          FROM resources
+          WHERE resource_type = '\(resourceType)' AND id = \(first).resource_id
+          ORDER BY version_id DESC LIMIT 1
+        ) lat ON lat.deleted = false\(whereClause)
+        """
 }
 
 // ── Sort key source ────────────────────────────────────────────────────────
