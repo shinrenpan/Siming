@@ -27,12 +27,25 @@ public func buildIdsInner(
 ) -> String {
     guard !filterCTEs.isEmpty else {
         // No index-backed filters — full scan via DISTINCT ON.
-        var fromLines = ["FROM resources r"]
-        let conds = ["r.resource_type = '\(resourceType)'", "r.deleted = false"] + extraConditions
-        fromLines.append("WHERE " + conds.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-        return (["SELECT DISTINCT ON (r.id) r.id, r.version_id, r.last_updated"]
-            + fromLines).joined(separator: "\n      ")
+        //
+        // The current version is the highest version_id INCLUDING tombstones, so
+        // the deleted check must come AFTER that pick, never inside it. Filtering
+        // `deleted = false` first makes DISTINCT ON fall back to the last live
+        // version of a deleted resource instead of excluding it — that is how
+        // deleted resources leaked into unfiltered search results.
+        let extra = extraConditions.isEmpty
+            ? ""
+            : " AND " + extraConditions.joined(separator: " AND ")
+        return """
+            SELECT r.id, r.version_id, r.last_updated
+            FROM (
+              SELECT DISTINCT ON (id) id, version_id, last_updated, deleted
+              FROM resources
+              WHERE resource_type = '\(resourceType)'
+              ORDER BY id, version_id DESC
+            ) r
+            WHERE r.deleted = false\(extra)
+            """
     }
 
     let first = filterCTEs[0].name
@@ -56,12 +69,47 @@ public func buildIdsInner(
         SELECT \(first).resource_id AS id, lat.version_id, lat.last_updated
         FROM \(first)\(joinClause)
         JOIN LATERAL (
-          SELECT version_id, last_updated
+          SELECT version_id, last_updated, deleted
           FROM resources
-          WHERE resource_type = '\(resourceType)' AND id = \(first).resource_id AND deleted = false
+          WHERE resource_type = '\(resourceType)' AND id = \(first).resource_id
           ORDER BY version_id DESC LIMIT 1
-        ) lat ON TRUE\(extraClause)
+        ) lat ON lat.deleted = false\(extraClause)
         """
+}
+
+// ── ids CTE builder — count variant ───────────────────────────────────────
+//
+// Builds the inner SQL for the `ids AS MATERIALIZED (…)` block of buildCountSQL,
+// which projects only `id` (no version_id / last_updated / sort keys).
+//
+// Same deleted-row rule as buildIdsInner: the current version is picked first
+// (tombstones included), the deleted check is applied afterwards.
+//
+// Parameters:
+//   resourceType    — SQL string literal; MUST be a compile-time constant.
+//   filterCTEs      — pre-built filter CTEs; each returns resource_id rows.
+//   whereConditions — conditions beyond the base resource_type+deleted guard,
+//                     written against the `r` alias (e.g. "r.id NOT IN (…)").
+
+public func buildCountIdsInner(
+    resourceType: String,
+    filterCTEs: [(name: String, sql: String)],
+    whereConditions: [String]
+) -> String {
+    var lines = [
+        "SELECT r.id",
+        "FROM (",
+        "  SELECT DISTINCT ON (id) id, version_id, last_updated, deleted",
+        "  FROM resources",
+        "  WHERE resource_type = '\(resourceType)'",
+        "  ORDER BY id, version_id DESC",
+        ") r",
+    ]
+    for cte in filterCTEs {
+        lines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id")
+    }
+    lines.append("WHERE " + (["r.deleted = false"] + whereConditions).joined(separator: " AND "))
+    return lines.joined(separator: "\n      ")
 }
 
 // ── Sort key source ────────────────────────────────────────────────────────

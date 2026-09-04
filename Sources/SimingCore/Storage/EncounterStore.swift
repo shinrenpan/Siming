@@ -1187,7 +1187,7 @@ public struct EncounterStore: Sendable {
                 "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Encounter' AND param_name = 'location-period' AND \(cond)"))
         }
 
-        var whereConditions = ["r.resource_type = 'Encounter'", "r.deleted = false"]
+        var whereConditions: [String] = []
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
@@ -1301,12 +1301,8 @@ public struct EncounterStore: Sendable {
         filterCTEs += metaCTEs
         whereConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildCountIdsInner(
+            resourceType: "Encounter", filterCTEs: filterCTEs, whereConditions: whereConditions)
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
         cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")

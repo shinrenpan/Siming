@@ -204,6 +204,89 @@ final class LocationStoreTests: XCTestCase {
         XCTAssertEqual(result.entries[0].id, created.id)
     }
 
+    // ── Search: deleted resources must never surface ──────────────────────────
+    //
+    // Regression guard for the DISTINCT ON / LATERAL current-version pick.
+    // `deleted = false` used to be applied BEFORE the pick, so a tombstoned
+    // resource fell back to its last live version instead of disappearing.
+    // Index rows are cleared on delete, so this only ever leaked through query
+    // shapes with no index-backed filter CTE — exactly the ones covered here.
+
+    func testSearch_noFilters_excludesDeleted() async throws {
+        let doomed = try await store.create(makeLocation(name: "DeletedLoc"))
+        let kept   = try await store.create(makeLocation(name: "LiveLoc"))
+        _ = try await store.delete(id: doomed.id, ifMatch: nil)
+
+        let result = try await store.search(query: LocationSearchQuery())
+        XCTAssertEqual(result.total, 1)
+        XCTAssertEqual(result.entries.map(\.id), [kept.id])
+    }
+
+    func testSearch_afterUpdateThenDelete_excludesDeleted() async throws {
+        // Three versions: v1 live, v2 live, v3 tombstone. The pick must land on
+        // v3 and reject the resource, not fall back to v2.
+        let created = try await store.create(makeLocation(name: "UpdThenDelV1"))
+        _ = try await store.update(id: created.id,
+                                   location: makeLocation(name: "UpdThenDelV2"),
+                                   ifMatch: nil)
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        let result = try await store.search(query: LocationSearchQuery())
+        XCTAssertEqual(result.total, 0)
+        XCTAssertTrue(result.entries.isEmpty)
+    }
+
+    func testSearch_byId_excludesDeleted() async throws {
+        let created = try await store.create(makeLocation(name: "IdDeletedLoc"))
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        let result = try await store.search(query: LocationSearchQuery(id: [created.id]))
+        XCTAssertEqual(result.total, 0)
+    }
+
+    func testSearch_byLastUpdatedOnly_excludesDeleted() async throws {
+        let created = try await store.create(makeLocation(name: "LastUpdDeletedLoc"))
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        var q = LocationSearchQuery()
+        q.lastUpdated = [try XCTUnwrap(LocationSearchQuery.DateParam.parse("gt2000-01-01"))]
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 0)
+    }
+
+    func testSearch_byNotModifierOnly_excludesDeleted() async throws {
+        let created = try await store.create(makeLocation(name: "NotDeletedLoc", status: "active"))
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        let q = LocationSearchQuery(statusNot: [.init(system: nil, code: "suspended")])
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 0)
+    }
+
+    func testSearch_indexedFilter_excludesDeleted() async throws {
+        let created = try await store.create(makeLocation(name: "IndexedDeletedLoc", status: "active"))
+        _ = try await store.delete(id: created.id, ifMatch: nil)
+
+        var q = LocationSearchQuery()
+        q.name = .init(value: "IndexedDeletedLoc", modifier: .startsWith)
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 0)
+    }
+
+    func testSearch_summaryCount_excludesDeleted() async throws {
+        // count == 0 takes the separate buildCountSQL path, which had the same
+        // current-version pick and therefore the same defect.
+        let doomed = try await store.create(makeLocation(name: "CountDeletedLoc"))
+        _ = try await store.create(makeLocation(name: "CountLiveLoc"))
+        _ = try await store.delete(id: doomed.id, ifMatch: nil)
+
+        var q = LocationSearchQuery()
+        q.count = 0
+        q.totalMode = .accurate
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 1)
+    }
+
     // ── Search: totalMode=none ────────────────────────────────────────────────
 
     func testSearch_totalModeNone_returnsNilTotal() async throws {
