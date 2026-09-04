@@ -8,6 +8,10 @@ public enum FHIRServerError: Error {
     case gone(resourceType: String, id: String)
     case versionConflict(id: String, expected: Int64, actual: Int64?)
     case multipleMatches(resourceType: String)
+    /// A search parameter the server supports, given a value it cannot parse.
+    /// Always a 400 — silently dropping the filter would answer a different
+    /// question with a 200, which the client cannot detect.
+    case invalidSearchValue(param: String, value: String)
 }
 
 // Build a minimal OperationOutcome. Never return ad-hoc JSON errors.

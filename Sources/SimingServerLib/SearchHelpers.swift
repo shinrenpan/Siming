@@ -283,7 +283,7 @@ func parseDateParams<T>(
 ) throws -> [T] {
     try raws.map { raw in
         guard let parsed = parse(String(raw)) else {
-            throw FHIRRouteError.invalidSearchValue(param: name, value: String(raw))
+            throw FHIRServerError.invalidSearchValue(param: name, value: String(raw))
         }
         return parsed
     }

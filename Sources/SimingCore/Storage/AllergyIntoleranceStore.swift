@@ -466,7 +466,7 @@ public struct AllergyIntoleranceStore: Sendable {
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }
         for (i, chain) in query.chains.enumerated() {
-            if let (name, sql) = chainFilterCTE(
+            if let (name, sql) = try chainFilterCTE(
                 index: filterCTEs.count + i, sourceType: "AllergyIntolerance",
                 chain: chain, bindStr: cBindStr, bindDate: cBindDate
             ) {
@@ -478,7 +478,7 @@ public struct AllergyIntoleranceStore: Sendable {
         let hBindStr: (String) -> String = { bind($0) }
         let hBindDate: (Date) -> String = { bind($0) }
         for (i, hp) in query.has.enumerated() {
-            if let (name, sql) = hasFilterCTE(
+            if let (name, sql) = try hasFilterCTE(
                 index: i, mainType: "AllergyIntolerance",
                 param: hp, bindStr: hBindStr, bindDate: hBindDate
             ) {
@@ -657,7 +657,7 @@ public struct AllergyIntoleranceStore: Sendable {
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }
         for (i, chain) in query.chains.enumerated() {
-            if let (name, sql) = chainFilterCTE(
+            if let (name, sql) = try chainFilterCTE(
                 index: filterCTEs.count + i, sourceType: "AllergyIntolerance",
                 chain: chain, bindStr: cBindStr, bindDate: cBindDate
             ) {
@@ -669,7 +669,7 @@ public struct AllergyIntoleranceStore: Sendable {
         let hBindStr: (String) -> String = { bind($0) }
         let hBindDate: (Date) -> String = { bind($0) }
         for (i, hp) in query.has.enumerated() {
-            if let (name, sql) = hasFilterCTE(
+            if let (name, sql) = try hasFilterCTE(
                 index: i, mainType: "AllergyIntolerance",
                 param: hp, bindStr: hBindStr, bindDate: hBindDate
             ) {

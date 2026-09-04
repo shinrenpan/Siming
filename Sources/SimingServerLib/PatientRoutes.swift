@@ -557,7 +557,6 @@ enum FHIRRouteError: Error {
     case invalidBody(String)
     case unknownParams([String])
     case unprocessableEntity(String)
-    case invalidSearchValue(param: String, value: String)
 }
 
 extension FHIRRouteError: HTTPResponseError {
@@ -567,7 +566,6 @@ extension FHIRRouteError: HTTPResponseError {
         case .invalidBody:           .badRequest
         case .unknownParams:         .badRequest
         case .unprocessableEntity:   .unprocessableContent
-        case .invalidSearchValue:    .badRequest
         }
     }
 
@@ -581,8 +579,6 @@ extension FHIRRouteError: HTTPResponseError {
             (.error, .notSupported, "Unknown search parameter(s): \(names.joined(separator: ", "))")
         case .unprocessableEntity(let msg):
             (.error, .invalid, msg)
-        case .invalidSearchValue(let param, let value):
-            (.error, .invalid, "Invalid value for search parameter '\(param)': '\(value)'")
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()
@@ -602,6 +598,7 @@ extension FHIRServerError: HTTPResponseError {
         case .gone:                         .gone
         case .versionConflict:              .preconditionFailed
         case .multipleMatches:              .preconditionFailed
+        case .invalidSearchValue:           .badRequest
         }
     }
 
@@ -621,6 +618,8 @@ extension FHIRServerError: HTTPResponseError {
         case .multipleMatches(let rt):
             (.error, .multipleMatches,
              "Multiple \(rt) resources match the search criteria; criteria are not selective enough")
+        case .invalidSearchValue(let param, let value):
+            (.error, .invalid, "Invalid value for search parameter '\(param)': '\(value)'")
         }
         let outcome = buildOutcome(severity: severity, code: code, diagnostics: message)
         let data = (try? JSONEncoder().encode(outcome)) ?? Data()

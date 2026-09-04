@@ -263,6 +263,8 @@ private func fhirServerErrorToRouteError(_ e: FHIRServerError) -> FHIRRouteError
         return .unprocessableEntity("Version conflict on \(id): expected \(expected), actual \(act)")
     case .multipleMatches(let rt):
         return .unprocessableEntity("Multiple matches for \(rt) — conditional operations not supported in transactions")
+    case .invalidSearchValue(let param, let value):
+        return .unprocessableEntity("Invalid value for search parameter '\(param)': '\(value)'")
     case .unsupportedMediaType, .invalidBody:
         return .unprocessableEntity("Transaction entry failed: \(e)")
     }
