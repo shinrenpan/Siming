@@ -39,7 +39,7 @@ public func addLocationRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseLocationQuery(from: pairs)
+            var checkQuery = try parseLocationQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -80,7 +80,7 @@ public func addLocationRoutes(
         let loc = try decodeFHIR(Location.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseLocationQuery(from: qpPairs)
+        var checkQuery = try parseLocationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -245,7 +245,7 @@ public func addLocationRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Location requires search parameters for conditional delete")
         }
-        var checkQuery = parseLocationQuery(from: qpPairs)
+        var checkQuery = try parseLocationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -281,7 +281,7 @@ public func addLocationRoutes(
             let bad = unknownParams(in: pairs, known: knownLocationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseLocationQuery(from: pairs)
+        var query = try parseLocationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -332,7 +332,7 @@ public func addLocationRoutes(
             let bad = unknownParams(in: pairs, known: knownLocationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseLocationQuery(from: pairs)
+        var query = try parseLocationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -372,7 +372,7 @@ public func addLocationRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> LocationSearchQuery {
+func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> LocationSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -404,7 +404,7 @@ func parseLocationQuery(from pairs: some Collection<(key: Substring, value: Subs
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { LocationSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", LocationSearchQuery.DateParam.parse)
     let sortKeys = LocationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

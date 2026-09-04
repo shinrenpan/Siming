@@ -100,13 +100,29 @@ func carePlanHandler(spec: ParamSpec, expr: String) -> String? {
             if let prim = period.start, let dt = prim.value {
                 var dc = DateComponents()
                 dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                dc.day  = dt.date.day.map(Int.init)
+                // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                // dc.timeZone is mandatory: without it the components are read in
+                // the server's local zone and every indexed period shifts by the
+                // host's UTC offset — right in a UTC container, wrong anywhere else.
+                dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+                dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+                dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 start = cal.date(from: dc) ?? Date.distantPast
             } else { start = Date.distantPast }
             if let prim = period.end, let dt = prim.value {
                 var dc = DateComponents()
                 dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                dc.day  = dt.date.day.map(Int.init)
+                // A date-only bound widens to the end of the day; one carrying a time keeps it.
+                // dc.timeZone is mandatory: without it the components are read in
+                // the server's local zone and every indexed period shifts by the
+                // host's UTC offset — right in a UTC container, wrong anywhere else.
+                dc.hour   = dt.time.map { Int($0.hour) } ?? 23
+                dc.minute = dt.time.map { Int($0.minute) } ?? 59
+                dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
+                dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 end = cal.date(from: dc) ?? Date.distantFuture
             } else { end = Date.distantFuture }
             p.dates.append(.init(paramName: "\(code)", dateStart: start, dateEnd: end))
@@ -300,13 +316,29 @@ func carePlanHandler(spec: ParamSpec, expr: String) -> String? {
                     if let prim = period.start, let dt = prim.value {
                         var dc = DateComponents()
                         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                        dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                        dc.day  = dt.date.day.map(Int.init)
+                        // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                        // dc.timeZone is mandatory: without it the components are read in
+                        // the server's local zone and every indexed period shifts by the
+                        // host's UTC offset — right in a UTC container, wrong anywhere else.
+                        dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+                        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+                        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                         start = cal.date(from: dc) ?? Date.distantPast
                     } else { start = Date.distantPast }
                     if let prim = period.end, let dt = prim.value {
                         var dc = DateComponents()
                         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                        dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+                        dc.day  = dt.date.day.map(Int.init)
+                        // A date-only bound widens to the end of the day; one carrying a time keeps it.
+                        // dc.timeZone is mandatory: without it the components are read in
+                        // the server's local zone and every indexed period shifts by the
+                        // host's UTC offset — right in a UTC container, wrong anywhere else.
+                        dc.hour   = dt.time.map { Int($0.hour) } ?? 23
+                        dc.minute = dt.time.map { Int($0.minute) } ?? 59
+                        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
+                        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                         end = cal.date(from: dc) ?? Date.distantFuture
                     } else { end = Date.distantFuture }
                     p.dates.append(.init(paramName: "activity-date", dateStart: start, dateEnd: end))
@@ -315,7 +347,15 @@ func carePlanHandler(spec: ParamSpec, expr: String) -> String? {
                         guard let dt = evt.value else { continue }
                         var dc = DateComponents()
                         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                        dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+                        dc.day  = dt.date.day.map(Int.init)
+                        // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                        // dc.timeZone is mandatory: without it the components are read in
+                        // the server's local zone and every indexed period shifts by the
+                        // host's UTC offset — right in a UTC container, wrong anywhere else.
+                        dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+                        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+                        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                         let d = cal.date(from: dc) ?? Date()
                         p.dates.append(.init(paramName: "activity-date", dateStart: d, dateEnd: d))
                     }

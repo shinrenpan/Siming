@@ -1,5 +1,8 @@
 import Testing
 import Foundation
+import Logging
+import ModelsR4
+import PostgresNIO
 @testable import SimingCore
 
 // ── DatabaseConfiguration ─────────────────────────────────────────────────────
@@ -471,6 +474,81 @@ struct PatientSearchQueryTests {
     func birthdateLTPrefix() throws {
         let p = try #require(PatientSearchQuery.BirthdateParam.parse("lt2000-12-31"))
         #expect(p.prefix == .lt)
+    }
+
+    // ── dateTime precision (FHIR R4 §2.4.0.1) ────────────────────────────────
+    // Before these, anything with a time component failed to parse and the
+    // route dropped the parameter, silently returning an unfiltered result set.
+
+    private static func utc(_ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int, _ s: Int) -> Date {
+        var dc = DateComponents()
+        dc.year = y; dc.month = mo; dc.day = d
+        dc.hour = h; dc.minute = mi; dc.second = s
+        dc.timeZone = TimeZone(secondsFromGMT: 0)!
+        return Calendar(identifier: .gregorian).date(from: dc)!
+    }
+
+    @Test("BirthdateParam dateTime with Z is second-precision, not a whole day")
+    func birthdateDateTimeZulu() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("ge2026-09-04T08:30:00Z"))
+        #expect(p.prefix == .ge)
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+        #expect(p.dateEnd   == Self.utc(2026, 9, 4, 8, 30, 0))
+    }
+
+    @Test("BirthdateParam dateTime honours a positive UTC offset")
+    func birthdateDateTimePositiveOffset() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:00:00+08:00"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 0, 0, 0))
+    }
+
+    @Test("BirthdateParam dateTime honours a negative UTC offset")
+    func birthdateDateTimeNegativeOffset() throws {
+        // The "-" in the offset must not be read as a date separator.
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("lt2026-09-04T00:00:00-05:00"))
+        #expect(p.prefix == .lt)
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 5, 0, 0))
+    }
+
+    @Test("BirthdateParam minute precision expands to the whole minute")
+    func birthdateDateTimeMinutePrecision() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30Z"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+        #expect(p.dateEnd   == Self.utc(2026, 9, 4, 8, 30, 59))
+    }
+
+    @Test("BirthdateParam dateTime without a timezone is read as UTC")
+    func birthdateDateTimeNoZone() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30:00"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 0))
+    }
+
+    @Test("BirthdateParam accepts and truncates fractional seconds")
+    func birthdateDateTimeFractional() throws {
+        let p = try #require(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:30:15.250Z"))
+        #expect(p.dateStart == Self.utc(2026, 9, 4, 8, 30, 15))
+    }
+
+    @Test("BirthdateParam rejects impossible civil dates instead of rolling them over")
+    func birthdateRejectsRolloverDates() {
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-02-30") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-13-01") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T25:00:00Z") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:70:00Z") == nil)
+    }
+
+    @Test("BirthdateParam rejects malformed dateTime rather than parsing a partial value")
+    func birthdateRejectsMalformedDateTime() {
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09T08:00:00Z") == nil)   // time needs a full date
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08") == nil)       // hour alone
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-09-04T08:00:00+5:00") == nil)
+        #expect(PatientSearchQuery.BirthdateParam.parse("26-09-04") == nil)            // 2-digit year
+    }
+
+    @Test("BirthdateParam leap day is valid, non-leap 29 Feb is not")
+    func birthdateLeapDay() throws {
+        _ = try #require(PatientSearchQuery.BirthdateParam.parse("2024-02-29"))
+        #expect(PatientSearchQuery.BirthdateParam.parse("2026-02-29") == nil)
     }
 
     @Test("BirthdateParam invalid returns nil")
@@ -1311,5 +1389,199 @@ struct TerminologyValidatorTests {
             ]
         ]
         try validateCodes(resourceType: "Encounter", json: json, terminology: idx)
+    }
+}
+
+// ── Date extraction: the index must not depend on the host's timezone ────────
+//
+// These assert absolute instants. They fail on any machine whose local zone is
+// not UTC if an extractor builds DateComponents without setting timeZone — which
+// is exactly how every indexed period ended up shifted by the host's UTC offset.
+
+@Suite("Search-param date extraction")
+struct DateExtractionTests {
+
+    private func instant(_ iso: String) -> Date {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f.date(from: iso)!
+    }
+
+    private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+        try JSONDecoder().decode(type, from: Data(json.utf8))
+    }
+
+    @Test("Patient.birthDate is anchored at midday UTC, not midday local")
+    func patientBirthDateIsUTC() throws {
+        let patient = try decode(Patient.self, #"{"resourceType":"Patient","birthDate":"1990-06-15"}"#)
+        let row = try #require(extractPatientSearchParams(patient).dates.first { $0.paramName == "birthdate" })
+        #expect(row.dateStart == instant("1990-06-15T12:00:00Z"))
+        #expect(row.dateEnd   == instant("1990-06-15T12:00:00Z"))
+    }
+
+    @Test("Encounter.period keeps the offset it was written with")
+    func encounterPeriodKeepsOffset() throws {
+        let enc = try decode(Encounter.self, #"""
+        {"resourceType":"Encounter","status":"finished","class":{"code":"AMB"},
+         "period":{"start":"2026-09-04T20:13:47+08:00","end":"2026-09-04T21:00:00+08:00"}}
+        """#)
+        let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T12:13:47Z"))
+        #expect(row.dateEnd   == instant("2026-09-04T13:00:00Z"))
+    }
+
+    @Test("Encounter.period date-only bounds widen to the whole UTC day")
+    func encounterPeriodDateOnlyWidensInUTC() throws {
+        let enc = try decode(Encounter.self, #"""
+        {"resourceType":"Encounter","status":"finished","class":{"code":"AMB"},
+         "period":{"start":"2026-09-01","end":"2026-09-02"}}
+        """#)
+        let row = try #require(extractEncounterSearchParams(enc).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-01T00:00:00Z"))
+        #expect(row.dateEnd   == instant("2026-09-02T23:59:59Z"))
+    }
+
+    @Test("Observation.effectiveDateTime keeps its time")
+    func observationEffectiveKeepsTime() throws {
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-09-04T08:30:00Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:00Z"))
+    }
+
+    @Test("DiagnosticReport.issued is an instant — its time must survive, not collapse to midday")
+    func diagnosticReportIssuedKeepsTime() throws {
+        let dr = try decode(DiagnosticReport.self, #"""
+        {"resourceType":"DiagnosticReport","status":"final","code":{"text":"x"},
+         "issued":"2026-09-04T20:13:47+08:00"}
+        """#)
+        let row = try #require(extractDiagnosticReportSearchParams(dr).dates.first { $0.paramName == "issued" })
+        #expect(row.dateStart == instant("2026-09-04T12:13:47Z"))
+    }
+
+    @Test("An open-ended period indexes dateEnd as distantFuture, not year 0")
+    func openEndedPeriodIsUnbounded() throws {
+        // Calendar.date(from: DateComponents()) returns year 0, not nil, so a
+        // `?? Date.distantFuture` fallback on an empty component set never fires.
+        // A statement that is still running would then index date_end in year 0
+        // and become unreachable by every date search.
+        let ms = try decode(MedicationStatement.self, #"""
+        {"resourceType":"MedicationStatement","status":"active",
+         "medicationCodeableConcept":{"text":"x"},"subject":{"reference":"Patient/p"},
+         "effectivePeriod":{"start":"2026-01-01"}}
+        """#)
+        let row = try #require(extractMedicationStatementSearchParams(ms).dates.first { $0.paramName == "effective" })
+        #expect(row.dateStart == instant("2026-01-01T00:00:00Z"))
+        #expect(row.dateEnd > instant("2100-01-01T00:00:00Z"))
+    }
+
+    @Test("A leap second is clamped, not rolled into the next day")
+    func leapSecondIsClamped() throws {
+        // The query parser clamps second 60 to 59. An extractor that does not
+        // pushes the value onto the following day, so neither a date-only search
+        // nor the clamped instant can match it.
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-06-30T23:59:60Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-06-30T23:59:59Z"))
+    }
+
+    @Test("Seconds survive into the index — a search value at second precision must be able to match")
+    func secondsAreIndexed() throws {
+        // The parser resolves a second-precision search value to that exact instant.
+        // If the extractor truncated to the minute, `date=eq...T08:30:45Z` could never
+        // match the resource that actually carries 08:30:45.
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-09-04T08:30:45Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:45Z"))
+
+        let q = try #require(ObservationSearchQuery.DateParam.parse("eq2026-09-04T08:30:45Z"))
+        #expect(q.dateStart == row.dateStart)
+        #expect(q.dateEnd   == row.dateEnd)
+    }
+
+    @Test("Condition.onsetDateTime without an offset is read as UTC, not as host-local")
+    func conditionOnsetNoOffsetIsUTC() throws {
+        let cond = try decode(Condition.self, #"""
+        {"resourceType":"Condition","subject":{"reference":"Patient/p"},
+         "onsetDateTime":"2026-09-04T08:30:00Z"}
+        """#)
+        let row = try #require(extractConditionSearchParams(cond).dates.first { $0.paramName == "onset-date" })
+        #expect(row.dateStart == instant("2026-09-04T08:30:00Z"))
+    }
+}
+// ── Migration SQL splitting ──────────────────────────────────────────────────
+//
+// A mis-split migration is not a test failure, it is a server that will not
+// start — PostgreSQL reports a syntax error against the fragment, which points
+// nowhere near the punctuation that caused it.
+
+@Suite("MigrationRunner.splitSQL")
+struct MigrationSplitTests {
+    private let runner = MigrationRunner(
+        client: PostgresClient(configuration: .init(
+            host: "127.0.0.1", username: "x", password: nil, database: nil, tls: .disable)),
+        logger: Logger(label: "test"),
+        migrationsPath: "migrations"
+    )
+
+    @Test("a semicolon inside a line comment does not terminate the statement")
+    func semicolonInComment() {
+        let sql = """
+        -- costs more; use the other one
+        CREATE INDEX a ON t (c);
+        CREATE INDEX b ON t (d);
+        """
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("CREATE INDEX a"))
+        #expect(out[1].contains("CREATE INDEX b"))
+    }
+
+    @Test("a double dash inside a string literal is not a comment")
+    func dashesInsideLiteral() {
+        let sql = "INSERT INTO t VALUES ('a--b'); CREATE INDEX c ON t (d);"
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("'a--b'"))
+        #expect(out[1].contains("CREATE INDEX c"))
+    }
+
+    @Test("a semicolon inside a string literal does not terminate the statement")
+    func semicolonInsideLiteral() {
+        let out = runner.splitSQL("INSERT INTO t VALUES ('a;b'); SELECT 1;")
+        #expect(out.count == 2)
+        #expect(out[0].contains("'a;b'"))
+    }
+
+    @Test("an escaped quote does not close the literal")
+    func escapedQuote() {
+        let out = runner.splitSQL("INSERT INTO t VALUES ('it''s; fine'); SELECT 1;")
+        #expect(out.count == 2)
+        #expect(out[0].contains("'it''s; fine'"))
+    }
+
+    @Test("semicolons inside a dollar-quoted function body are preserved")
+    func dollarQuotedBody() {
+        let sql = """
+        CREATE FUNCTION f() RETURNS void AS $$
+        BEGIN
+            DELETE FROM a;
+            DELETE FROM b;
+        END;
+        $$ LANGUAGE plpgsql;
+        CREATE INDEX z ON t (c);
+        """
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("DELETE FROM a;"))
+        #expect(out[1].contains("CREATE INDEX z"))
     }
 }

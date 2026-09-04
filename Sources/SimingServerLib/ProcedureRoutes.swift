@@ -41,7 +41,7 @@ public func addProcedureRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseProcedureQuery(from: pairs)
+            var checkQuery = try parseProcedureQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -82,7 +82,7 @@ public func addProcedureRoutes(
         let proc = try decodeFHIR(Procedure.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseProcedureQuery(from: qpPairs)
+        var checkQuery = try parseProcedureQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -247,7 +247,7 @@ public func addProcedureRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Procedure requires search parameters for conditional delete")
         }
-        var checkQuery = parseProcedureQuery(from: qpPairs)
+        var checkQuery = try parseProcedureQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -283,7 +283,7 @@ public func addProcedureRoutes(
             let bad = unknownParams(in: pairs, known: knownProcedureParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseProcedureQuery(from: pairs)
+        var query = try parseProcedureQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -334,7 +334,7 @@ public func addProcedureRoutes(
             let bad = unknownParams(in: pairs, known: knownProcedureParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseProcedureQuery(from: pairs)
+        var query = try parseProcedureQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -374,7 +374,7 @@ public func addProcedureRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ProcedureSearchQuery {
+func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> ProcedureSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -402,11 +402,11 @@ func parseProcedureQuery(from pairs: some Collection<(key: Substring, value: Sub
     let categoryNot = all("category:not").flatMap { ProcedureSearchQuery.TokenParam.parseList(String($0)) }
     let identifier    = first("identifier").map { ProcedureSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot = first("identifier:not").map { ProcedureSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let date        = all("date").compactMap { ProcedureSearchQuery.DateParam.parse(String($0)) }
+    let date        = try parseDateParams(all("date"), "date", ProcedureSearchQuery.DateParam.parse)
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { ProcedureSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", ProcedureSearchQuery.DateParam.parse)
     let sortKeys = ProcedureSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

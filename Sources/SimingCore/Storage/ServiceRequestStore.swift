@@ -470,7 +470,7 @@ public struct ServiceRequestStore: Sendable {
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }
         for (i, chain) in query.chains.enumerated() {
-            if let (name, sql) = chainFilterCTE(
+            if let (name, sql) = try chainFilterCTE(
                 index: filterCTEs.count + i, sourceType: "ServiceRequest",
                 chain: chain, bindStr: cBindStr, bindDate: cBindDate
             ) {
@@ -482,7 +482,7 @@ public struct ServiceRequestStore: Sendable {
         let hBindStr: (String) -> String = { bind($0) }
         let hBindDate: (Date) -> String = { bind($0) }
         for (i, hp) in query.has.enumerated() {
-            if let (name, sql) = hasFilterCTE(
+            if let (name, sql) = try hasFilterCTE(
                 index: i, mainType: "ServiceRequest",
                 param: hp, bindStr: hBindStr, bindDate: hBindDate
             ) {
@@ -667,7 +667,7 @@ public struct ServiceRequestStore: Sendable {
         if let ref = query.replaces  { filterCTEs.append(countRefCTE(name: "f_replaces",  paramName: "replaces",  ref: ref)) }
         if let ref = query.specimen  { filterCTEs.append(countRefCTE(name: "f_specimen",  paramName: "specimen",  ref: ref)) }
 
-        var whereConditions = ["r.resource_type = 'ServiceRequest'", "r.deleted = false"]
+        var whereConditions: [String] = []
         if !query.id.isEmpty {
             let phs = query.id.map { bind($0) }.joined(separator: ", ")
             whereConditions.append("r.id IN (\(phs))")
@@ -701,7 +701,7 @@ public struct ServiceRequestStore: Sendable {
         let cBindStr: (String) -> String = { bind($0) }
         let cBindDate: (Date) -> String = { bind($0) }
         for (i, chain) in query.chains.enumerated() {
-            if let (name, sql) = chainFilterCTE(
+            if let (name, sql) = try chainFilterCTE(
                 index: filterCTEs.count + i, sourceType: "ServiceRequest",
                 chain: chain, bindStr: cBindStr, bindDate: cBindDate
             ) {
@@ -712,7 +712,7 @@ public struct ServiceRequestStore: Sendable {
         let hBindStr: (String) -> String = { bind($0) }
         let hBindDate: (Date) -> String = { bind($0) }
         for (i, hp) in query.has.enumerated() {
-            if let (name, sql) = hasFilterCTE(
+            if let (name, sql) = try hasFilterCTE(
                 index: i, mainType: "ServiceRequest",
                 param: hp, bindStr: hBindStr, bindDate: hBindDate
             ) {
@@ -733,12 +733,8 @@ public struct ServiceRequestStore: Sendable {
         filterCTEs += metaCTEs
         whereConditions += metaWhere
 
-        var fromLines = ["FROM resources r"]
-        for cte in filterCTEs { fromLines.append("JOIN \(cte.name) ON \(cte.name).resource_id = r.id") }
-        fromLines.append("WHERE " + whereConditions.joined(separator: " AND "))
-        fromLines.append("ORDER BY r.id, r.version_id DESC")
-        let idsInner = (["SELECT DISTINCT ON (r.id) r.id"]
-            + fromLines).joined(separator: "\n      ")
+        let idsInner = buildCountIdsInner(
+            resourceType: "ServiceRequest", filterCTEs: filterCTEs, whereConditions: whereConditions)
 
         var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
         cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")

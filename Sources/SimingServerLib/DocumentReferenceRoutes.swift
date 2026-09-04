@@ -44,7 +44,7 @@ public func addDocumentReferenceRoutes(
 
         if let ifNoneExist = request.headers[docRefIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseDocumentReferenceQuery(from: pairs)
+            var checkQuery = try parseDocumentReferenceQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -85,7 +85,7 @@ public func addDocumentReferenceRoutes(
         let docRef = try docRefDecodeFHIR(DocumentReference.self, from: bodyBuffer)
         let ifMatch = docRefParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseDocumentReferenceQuery(from: qpPairs)
+        var checkQuery = try parseDocumentReferenceQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -249,7 +249,7 @@ public func addDocumentReferenceRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /DocumentReference requires search parameters for conditional delete")
         }
-        var checkQuery = parseDocumentReferenceQuery(from: qpPairs)
+        var checkQuery = try parseDocumentReferenceQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -273,7 +273,7 @@ public func addDocumentReferenceRoutes(
             let bad = unknownParams(in: pairs, known: knownDocumentReferenceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDocumentReferenceQuery(from: pairs)
+        var query = try parseDocumentReferenceQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -324,7 +324,7 @@ public func addDocumentReferenceRoutes(
             let bad = unknownParams(in: pairs, known: knownDocumentReferenceParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDocumentReferenceQuery(from: pairs)
+        var query = try parseDocumentReferenceQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -364,7 +364,7 @@ public func addDocumentReferenceRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> DocumentReferenceSearchQuery {
+func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> DocumentReferenceSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -394,8 +394,8 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let setting          = all("setting").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let settingNot       = all("setting:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
 
-    let date   = all("date").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
-    let period = all("period").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
+    let date   = try parseDateParams(all("date"), "date", DocumentReferenceSearchQuery.DateParam.parse)
+    let period = try parseDateParams(all("period"), "period", DocumentReferenceSearchQuery.DateParam.parse)
 
     var description: [DocumentReferenceSearchQuery.StringParam] = all("description").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .startsWith) }
     description += all("description:contains").map { DocumentReferenceSearchQuery.StringParam(value: String($0), modifier: .contains) }
@@ -418,7 +418,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { DocumentReferenceSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", DocumentReferenceSearchQuery.DateParam.parse)
     let sortKeys = DocumentReferenceSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, docRefMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

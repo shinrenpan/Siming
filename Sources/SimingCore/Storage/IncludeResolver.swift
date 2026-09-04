@@ -149,18 +149,21 @@ public struct IncludeResolver: Sendable {
         if let tt = param.targetType { targetFilter = " AND ref.ref_type = \(bind(tt))" }
 
         let sql = """
-        SELECT DISTINCT ON (r.resource_type, r.id)
-            r.resource_type, r.id, r.version_id, r.last_updated, r.content
-        FROM idx_reference ref
-        JOIN resources r
-            ON r.resource_type = ref.ref_type
-            AND r.id = ref.ref_id
-            AND r.deleted = false
-        WHERE ref.resource_type = \(p1)
-          \(paramFilter)
-          AND ref.resource_id IN (\(idList))
-          \(targetFilter)
-        ORDER BY r.resource_type, r.id, r.version_id DESC
+        SELECT t.resource_type, t.id, t.version_id, t.last_updated, t.content
+        FROM (
+            SELECT DISTINCT ON (r.resource_type, r.id)
+                r.resource_type, r.id, r.version_id, r.last_updated, r.content, r.deleted
+            FROM idx_reference ref
+            JOIN resources r
+                ON r.resource_type = ref.ref_type
+                AND r.id = ref.ref_id
+            WHERE ref.resource_type = \(p1)
+              \(paramFilter)
+              AND ref.resource_id IN (\(idList))
+              \(targetFilter)
+            ORDER BY r.resource_type, r.id, r.version_id DESC
+        ) t
+        WHERE t.deleted = false
         LIMIT 1000
         """
 
@@ -197,17 +200,20 @@ public struct IncludeResolver: Sendable {
         let paramFilter = param.paramName == "*" ? "" : " AND ref.param_name = \(bind(param.paramName))"
 
         let sql = """
-        SELECT DISTINCT ON (r.resource_type, r.id)
-            r.resource_type, r.id, r.version_id, r.last_updated, r.content
-        FROM idx_reference ref
-        JOIN resources r
-            ON r.resource_type = ref.resource_type
-            AND r.id = ref.resource_id
-            AND r.deleted = false
-        WHERE ref.resource_type = \(p1)
-          \(paramFilter)
-          AND ref.ref_id IN (\(idList))
-        ORDER BY r.resource_type, r.id, r.version_id DESC
+        SELECT t.resource_type, t.id, t.version_id, t.last_updated, t.content
+        FROM (
+            SELECT DISTINCT ON (r.resource_type, r.id)
+                r.resource_type, r.id, r.version_id, r.last_updated, r.content, r.deleted
+            FROM idx_reference ref
+            JOIN resources r
+                ON r.resource_type = ref.resource_type
+                AND r.id = ref.resource_id
+            WHERE ref.resource_type = \(p1)
+              \(paramFilter)
+              AND ref.ref_id IN (\(idList))
+            ORDER BY r.resource_type, r.id, r.version_id DESC
+        ) t
+        WHERE t.deleted = false
         LIMIT 1000
         """
 

@@ -80,7 +80,7 @@ public func hasFilterCTE(
     param: HasParam,
     bindStr: (String) -> String,
     bindDate: (Date) -> String
-) -> (name: String, sql: String)? {
+) throws -> (name: String, sql: String)? {
     let cteName = "f_has\(index)"
 
     // Bind in SQL appearance order — child param name first, then value(s)
@@ -125,7 +125,14 @@ public func hasFilterCTE(
         }
 
     case .date:
-        guard let dp = PatientSearchQuery.BirthdateParam.parse(param.value) else { return nil }
+        // A value that will not parse is an error, never a dropped filter — the same
+        // rule the direct date params follow. Returning nil here drops the whole CTE
+        // and answers with an unfiltered result set.
+        guard let dp = PatientSearchQuery.BirthdateParam.parse(param.value) else {
+            throw FHIRServerError.invalidSearchValue(
+                param: "_has:\(param.referencedType):\(param.refParam):\(param.childParam)",
+                value: param.value)
+        }
         let dateClause = hasDateClause(dp: dp, bindDate: bindDate)
         joinSQL = """
         JOIN idx_date d ON d.resource_type = ref.resource_type AND d.resource_id = ref.resource_id \

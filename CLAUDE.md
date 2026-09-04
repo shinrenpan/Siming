@@ -117,7 +117,8 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
   - `idx_quantity` — value-quantity
 - Each index row: `(resource_type, resource_id, param_name, value...)`.
 - **Write extracts to index tables. Read/search queries index tables, never scans jsonb.**
-- Covering indexes on all idx_* tables enable index-only scans. `resources_live_idx` partial index covers non-deleted rows only.
+- Covering indexes on all idx_* tables enable index-only scans. `resources_current_covering_idx` — `(resource_type, id, version_id DESC) INCLUDE (last_updated, deleted)` — covers the current-version pick.
+- **`deleted` is checked AFTER the current-version pick, never inside it.** Filtering `deleted = false` before picking `MAX(version_id)` makes a tombstoned resource fall back to its last live version instead of disappearing. This is why the pick has no `deleted` predicate and no partial index.
 - Read path uses raw JSON passthrough (`injectMeta` / `buildBundleJSON`) — zero FHIRModels decode on reads. Do not decode/re-encode on the read path.
 
 ### Write path
@@ -228,10 +229,10 @@ ids AS MATERIALIZED (
   FROM f_name
   JOIN f_date0 ON f_date0.resource_id = f_name.resource_id
   JOIN LATERAL (
-    SELECT version_id, last_updated FROM resources
-    WHERE resource_type = 'Patient' AND id = f_name.resource_id AND deleted = false
+    SELECT version_id, last_updated, deleted FROM resources
+    WHERE resource_type = 'Patient' AND id = f_name.resource_id
     ORDER BY version_id DESC LIMIT 1
-  ) lat ON TRUE
+  ) lat ON lat.deleted = false
 ),
 total_count AS (SELECT COUNT(*) AS n FROM ids),
 paged AS (SELECT id, version_id, last_updated FROM ids ORDER BY last_updated DESC, id ASC LIMIT $3)
@@ -240,7 +241,7 @@ FROM paged p CROSS JOIN total_count t
 JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
+**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` (or `buildCountIdsInner` for the `_summary=count` path) — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
 
 ## FHIR wire-format rules
 
@@ -316,6 +317,9 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Every POST/PUT write handler **must** call `try validateResourceType("ResourceType", from: Data(bodyBuffer.readableBytesView))` before `decodeFHIR()`.
 - Every read + vread handler **must** include `headers[.contentLocation] = contentLocation(request, versionId: result.versionId)`.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
+- **All date handling is UTC on both sides.** Extractors set `dc.timeZone` explicitly (`dt.timeZone ?? TimeZone(secondsFromGMT: 0)`) — never let `DateComponents` fall through to the host zone, or indexed values shift with wherever the server runs. Query values without a timezone are read as UTC to match. Rationale and the R4 wording: `docs/roadmap.md`.
+- SQL conditions are parenthesized by `andJoin` in `MultiSort.swift`, never by the caller — stores emit fragments containing bare `OR` (`_lastUpdated=ne`), and AND-joining those unparenthesized silently drops every preceding condition including the deleted guard.
+- Date-valued search params go through `parseDateParams(...)` (`SearchHelpers.swift`). Never `.compactMap` a failed parse away — an unparseable value is a **400**, not a dropped filter. Lenient handling covers unknown *parameters*, not malformed *values*.
 - **DELETE** returns 204 No Content; subsequent GET returns **410 Gone** (not 404).
 - **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read → apply patch → decode → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
 - **Compartment constraint** (`GET /Patient/:id/[ResourceType]`) is injected server-side; client cannot override.

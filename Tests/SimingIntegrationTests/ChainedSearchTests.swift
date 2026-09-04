@@ -18,6 +18,38 @@ final class ChainedSearchTests: XCTestCase {
         conditionStore   = try await TestDatabase.shared.makeConditionStore()
     }
 
+    // ── Malformed values ──────────────────────────────────────────────────────
+    //
+    // Chained and _has params must follow the same rule as direct date params: a
+    // value that will not parse is an error, never a dropped filter. Returning
+    // nil from chainFilterCTE / hasFilterCTE drops the whole CTE, and the caller
+    // then answers with every resource of the type — a 200 to a question the
+    // client did not ask.
+
+    func testChain_malformedDateValue_throwsInsteadOfDroppingTheFilter() async throws {
+        let p = try await patientStore.create(makePatient(family: "ChainBadDate"))
+        _ = try await observationStore.create(makeObservation(subjectId: p.id))
+
+        let chain = ChainedParam(refParam: "subject", childParam: "birthdate",
+                                 value: "not-a-date", childType: .date)
+        do {
+            _ = try await observationStore.search(query: .init(chains: [chain], count: 50))
+            XCTFail("Expected invalidSearchValue, got an unfiltered result set")
+        } catch FHIRServerError.invalidSearchValue { }
+    }
+
+    func testHas_malformedDateValue_throwsInsteadOfDroppingTheFilter() async throws {
+        let p = try await patientStore.create(makePatient(family: "HasBadDate"))
+        _ = try await observationStore.create(makeObservation(subjectId: p.id))
+
+        let has = HasParam(referencedType: "Observation", refParam: "patient",
+                           childParam: "date", value: "not-a-date", childType: .date)
+        do {
+            _ = try await patientStore.search(query: .init(has: [has], count: 50))
+            XCTFail("Expected invalidSearchValue, got an unfiltered result set")
+        } catch FHIRServerError.invalidSearchValue { }
+    }
+
     // ── String chain (idx_string) ─────────────────────────────────────────────
 
     func testChain_string_subject_family_match() async throws {

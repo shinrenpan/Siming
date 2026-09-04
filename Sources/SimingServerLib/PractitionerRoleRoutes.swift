@@ -38,7 +38,7 @@ public func addPractitionerRoleRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parsePractitionerRoleQuery(from: pairs)
+            var checkQuery = try parsePractitionerRoleQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -79,7 +79,7 @@ public func addPractitionerRoleRoutes(
         let role = try decodeFHIR(PractitionerRole.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parsePractitionerRoleQuery(from: qpPairs)
+        var checkQuery = try parsePractitionerRoleQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -243,7 +243,7 @@ public func addPractitionerRoleRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /PractitionerRole requires search parameters for conditional delete")
         }
-        var checkQuery = parsePractitionerRoleQuery(from: qpPairs)
+        var checkQuery = try parsePractitionerRoleQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -267,7 +267,7 @@ public func addPractitionerRoleRoutes(
             let bad = unknownParams(in: pairs, known: knownPractitionerRoleParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePractitionerRoleQuery(from: pairs)
+        var query = try parsePractitionerRoleQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -318,7 +318,7 @@ public func addPractitionerRoleRoutes(
             let bad = unknownParams(in: pairs, known: knownPractitionerRoleParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parsePractitionerRoleQuery(from: pairs)
+        var query = try parsePractitionerRoleQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -358,7 +358,7 @@ public func addPractitionerRoleRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parsePractitionerRoleQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> PractitionerRoleSearchQuery {
+func parsePractitionerRoleQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> PractitionerRoleSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -372,7 +372,7 @@ func parsePractitionerRoleQuery(from pairs: some Collection<(key: Substring, val
     let id = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { PractitionerRoleSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", PractitionerRoleSearchQuery.DateParam.parse)
     let sortKeys  = PractitionerRoleSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count     = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor    = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

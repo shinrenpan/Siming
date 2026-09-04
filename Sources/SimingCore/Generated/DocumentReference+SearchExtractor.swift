@@ -94,8 +94,14 @@ private func extract_DocumentReference_date(_ p: inout SearchParams, _ d: Docume
     guard let prim = d.date, let inst = prim.value else { return }
     var dc = DateComponents()
     dc.year = inst.date.year; dc.month = Int(inst.date.month)
-    dc.day  = Int(inst.date.day); dc.hour = 12
-    dc.timeZone = inst.timeZone
+    dc.day  = Int(inst.date.day)
+    // An instant always carries a time. Pinning it to a fixed hour would not be a
+    // precision trade-off — it would assert a clinical fact the resource never
+    // stated ("this report was issued at midday").
+    dc.hour   = Int(inst.time.hour)
+    dc.minute = Int(inst.time.minute)
+    dc.second = min(Int(truncating: inst.time.second as NSDecimalNumber), 59)
+    dc.timeZone = inst.timeZone ?? TimeZone(secondsFromGMT: 0)
     let date = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "date", dateStart: date, dateEnd: date))
 }
@@ -198,13 +204,29 @@ private func extract_DocumentReference_period(_ p: inout SearchParams, _ d: Docu
     if let prim = period.start, let dt = prim.value {
         var dc = DateComponents()
         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-        dc.day  = dt.date.day.map(Int.init); dc.hour = 0
+        dc.day  = dt.date.day.map(Int.init)
+        // A date-only bound widens to the start of the day; one carrying a time keeps it.
+        // dc.timeZone is mandatory: without it the components are read in
+        // the server's local zone and every indexed period shifts by the
+        // host's UTC offset — right in a UTC container, wrong anywhere else.
+        dc.hour   = dt.time.map { Int($0.hour) } ?? 0
+        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         start = cal.date(from: dc) ?? Date.distantPast
     } else { start = Date.distantPast }
     if let prim = period.end, let dt = prim.value {
         var dc = DateComponents()
         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-        dc.day  = dt.date.day.map(Int.init); dc.hour = 23; dc.minute = 59
+        dc.day  = dt.date.day.map(Int.init)
+        // A date-only bound widens to the end of the day; one carrying a time keeps it.
+        // dc.timeZone is mandatory: without it the components are read in
+        // the server's local zone and every indexed period shifts by the
+        // host's UTC offset — right in a UTC container, wrong anywhere else.
+        dc.hour   = dt.time.map { Int($0.hour) } ?? 23
+        dc.minute = dt.time.map { Int($0.minute) } ?? 59
+        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         end = cal.date(from: dc) ?? Date.distantFuture
     } else { end = Date.distantFuture }
     p.dates.append(.init(paramName: "period", dateStart: start, dateEnd: end))

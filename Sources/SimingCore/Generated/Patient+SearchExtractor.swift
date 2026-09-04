@@ -103,7 +103,11 @@ private func extract_Patient_birthdate(_ p: inout SearchParams, _ patient: Patie
     dc.year  = bd.year
     dc.month = bd.month.map(Int.init)
     dc.day   = bd.day.map(Int.init)
+    // A FHIR date has no time and no zone. Anchor it at midday UTC so the
+    // stored instant is the same wherever the server runs, and sits well
+    // inside the day for any offset a query is expressed in.
     dc.hour  = 12
+    dc.timeZone = TimeZone(secondsFromGMT: 0)
     let date = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "birthdate", dateStart: date, dateEnd: date))
 }
@@ -113,8 +117,15 @@ private func extract_Patient_death_date(_ p: inout SearchParams, _ patient: Pati
     guard case .dateTime(let prim) = patient.deceased, let dt = prim.value else { return }
     var dc = DateComponents()
     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-    dc.timeZone = dt.timeZone
+    dc.day  = dt.date.day.map(Int.init)
+    // A dateTime carrying a time keeps it; a date-only value stays anchored at
+    // midday so it sits well inside the day whatever offset it is compared against.
+    // The zone must be explicit — falling through to the host's zone makes the
+    // stored value depend on where the server happens to run.
+    dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+    dc.minute = dt.time.map { Int($0.minute) } ?? 0
+    dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
     let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "death-date", dateStart: d, dateEnd: d))
 }

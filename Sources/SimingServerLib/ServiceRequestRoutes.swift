@@ -45,7 +45,7 @@ public func addServiceRequestRoutes(
 
         if let ifNoneExist = request.headers[srIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseServiceRequestQuery(from: pairs)
+            var checkQuery = try parseServiceRequestQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -86,7 +86,7 @@ public func addServiceRequestRoutes(
         let sr = try srDecodeFHIR(ServiceRequest.self, from: bodyBuffer)
         let ifMatch = srParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseServiceRequestQuery(from: qpPairs)
+        var checkQuery = try parseServiceRequestQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -250,7 +250,7 @@ public func addServiceRequestRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /ServiceRequest requires search parameters for conditional delete")
         }
-        var checkQuery = parseServiceRequestQuery(from: qpPairs)
+        var checkQuery = try parseServiceRequestQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -274,7 +274,7 @@ public func addServiceRequestRoutes(
             let bad = unknownParams(in: pairs, known: knownServiceRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseServiceRequestQuery(from: pairs)
+        var query = try parseServiceRequestQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -325,7 +325,7 @@ public func addServiceRequestRoutes(
             let bad = unknownParams(in: pairs, known: knownServiceRequestParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseServiceRequestQuery(from: pairs)
+        var query = try parseServiceRequestQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -365,7 +365,7 @@ public func addServiceRequestRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ServiceRequestSearchQuery {
+func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> ServiceRequestSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -396,8 +396,8 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let orderDetail    = all("order-detail").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
     let orderDetailNot = all("order-detail:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
 
-    let authored   = all("authored").compactMap   { ServiceRequestSearchQuery.DateParam.parse(String($0)) }
-    let occurrence = all("occurrence").compactMap { ServiceRequestSearchQuery.DateParam.parse(String($0)) }
+    let authored   = try parseDateParams(all("authored"), "authored", ServiceRequestSearchQuery.DateParam.parse)
+    let occurrence = try parseDateParams(all("occurrence"), "occurrence", ServiceRequestSearchQuery.DateParam.parse)
 
     let subject   = first("subject").map(String.init)
     let patient   = first("patient").map(String.init)
@@ -413,7 +413,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { ServiceRequestSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", ServiceRequestSearchQuery.DateParam.parse)
     let sortKeys = ServiceRequestSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, srMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

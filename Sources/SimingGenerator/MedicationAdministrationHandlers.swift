@@ -202,25 +202,49 @@ func medicationAdministrationHandler(spec: ParamSpec, expr: String) -> String? {
                 guard let dt = prim.value else { return }
                 var dc = DateComponents()
                 dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-                dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-                dc.timeZone = dt.timeZone
+                dc.day  = dt.date.day.map(Int.init)
+                // A dateTime carrying a time keeps it; a date-only value stays anchored at
+                // midday so it sits well inside the day whatever offset it is compared against.
+                // The zone must be explicit — falling through to the host's zone makes the
+                // stored value depend on where the server happens to run.
+                dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+                dc.minute = dt.time.map { Int($0.minute) } ?? 0
+                dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+                dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "\(code)", dateStart: d, dateEnd: d))
             case .period(let period):
                 let cal = Calendar(identifier: .gregorian)
+                // Explicit else branches, not `cal.date(from:) ?? .distantFuture`:
+                // Calendar.date(from: DateComponents()) does NOT return nil — it
+                // returns year 0 — so the fallback never fires and an open-ended
+                // period indexes date_end in the year 0, where no date search can
+                // ever reach it.
+                var dateStart = Date.distantPast
+                var dateEnd   = Date.distantFuture
                 var startDC = DateComponents(); var endDC = DateComponents()
                 if let startStr = period.start?.value {
                     startDC.year = startStr.date.year; startDC.month = startStr.date.month.map(Int.init)
-                    startDC.day  = startStr.date.day.map(Int.init); startDC.hour = 0
-                    startDC.timeZone = startStr.timeZone
+                    startDC.day  = startStr.date.day.map(Int.init)
+                    // A date-only bound widens to the start of the day; one carrying a time keeps it.
+                    // The zone must be explicit — `startStr.timeZone` is nil for a date-only value, and
+                    // DateComponents then falls through to the host's zone.
+                    startDC.hour   = startStr.time.map { Int($0.hour) } ?? 0
+                    startDC.minute = startStr.time.map { Int($0.minute) } ?? 0
+                    startDC.second = startStr.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+                    startDC.timeZone = startStr.timeZone ?? TimeZone(secondsFromGMT: 0)
+                    dateStart = cal.date(from: startDC) ?? Date.distantPast
                 }
                 if let endStr = period.end?.value {
                     endDC.year = endStr.date.year; endDC.month = endStr.date.month.map(Int.init)
-                    endDC.day  = endStr.date.day.map(Int.init); endDC.hour = 23
-                    endDC.timeZone = endStr.timeZone
+                    endDC.day  = endStr.date.day.map(Int.init)
+                    // Mirror of the above; an unset minute would silently cut the last hour off the day.
+                    endDC.hour   = endStr.time.map { Int($0.hour) } ?? 23
+                    endDC.minute = endStr.time.map { Int($0.minute) } ?? 59
+                    endDC.second = endStr.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
+                    endDC.timeZone = endStr.timeZone ?? TimeZone(secondsFromGMT: 0)
+                    dateEnd = cal.date(from: endDC) ?? Date.distantFuture
                 }
-                let dateStart = cal.date(from: startDC) ?? Date.distantPast
-                let dateEnd   = cal.date(from: endDC)   ?? Date.distantFuture
                 p.dates.append(.init(paramName: "\(code)", dateStart: dateStart, dateEnd: dateEnd))
             }
         }

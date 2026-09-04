@@ -50,7 +50,7 @@ public func addObservationRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseObservationQuery(from: pairs)
+            var checkQuery = try parseObservationQuery(from: pairs)
             checkQuery.count = 2
             checkQuery.totalMode = .none
             checkQuery.cursor = nil
@@ -94,7 +94,7 @@ public func addObservationRoutes(
         let obs = try decodeFHIR(Observation.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseObservationQuery(from: qpPairs)
+        var checkQuery = try parseObservationQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -261,7 +261,7 @@ public func addObservationRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /Observation requires search parameters for conditional delete")
         }
-        var checkQuery = parseObservationQuery(from: qpPairs)
+        var checkQuery = try parseObservationQuery(from: qpPairs)
         checkQuery.count = 2
         checkQuery.totalMode = .none
         checkQuery.cursor = nil
@@ -299,7 +299,7 @@ public func addObservationRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseObservationQuery(from: pairs)
+        var query = try parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -353,7 +353,7 @@ public func addObservationRoutes(
             let bad = unknownParams(in: pairs, known: knownObservationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseObservationQuery(from: pairs)
+        var query = try parseObservationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -396,7 +396,7 @@ public func addObservationRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseObservationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> ObservationSearchQuery {
+func parseObservationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> ObservationSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -456,16 +456,16 @@ func parseObservationQuery(from pairs: some Collection<(key: Substring, value: S
     let comboCodeValueQuantity = all("combo-code-value-quantity").flatMap { ObservationSearchQuery.CompositeCodeQuantity.parseList(String($0)) }
     let comboCodeValueConcept  = all("combo-code-value-concept").flatMap { ObservationSearchQuery.CompositeCodeConcept.parseList(String($0)) }
     let valueQuantity = first("value-quantity").map { ObservationSearchQuery.QuantityParam.parseList(String($0)) } ?? []
-    let valueDate     = all("value-date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let valueDate     = try parseDateParams(all("value-date"), "value-date", ObservationSearchQuery.DateParam.parse)
     var valueString: [ObservationSearchQuery.StringParam] = all("value-string").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .startsWith) }
     valueString += all("value-string:contains").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .contains) }
     valueString += all("value-string:exact").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .exact) }
     valueString += all("value-string:text").map { ObservationSearchQuery.StringParam(value: String($0), modifier: .text) }
-    let dates         = all("date").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let dates         = try parseDateParams(all("date"), "date", ObservationSearchQuery.DateParam.parse)
     let id            = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated   = all("_lastUpdated").compactMap { ObservationSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated   = try parseDateParams(all("_lastUpdated"), "_lastUpdated", ObservationSearchQuery.DateParam.parse)
     let sortKeys      = ObservationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count         = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor        = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

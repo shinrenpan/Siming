@@ -40,7 +40,7 @@ public func addDiagnosticReportRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseDiagnosticReportQuery(from: pairs)
+            var checkQuery = try parseDiagnosticReportQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -81,7 +81,7 @@ public func addDiagnosticReportRoutes(
         let dr = try decodeFHIR(DiagnosticReport.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseDiagnosticReportQuery(from: qpPairs)
+        var checkQuery = try parseDiagnosticReportQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -246,7 +246,7 @@ public func addDiagnosticReportRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /DiagnosticReport requires search parameters for conditional delete")
         }
-        var checkQuery = parseDiagnosticReportQuery(from: qpPairs)
+        var checkQuery = try parseDiagnosticReportQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -282,7 +282,7 @@ public func addDiagnosticReportRoutes(
             let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDiagnosticReportQuery(from: pairs)
+        var query = try parseDiagnosticReportQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -333,7 +333,7 @@ public func addDiagnosticReportRoutes(
             let bad = unknownParams(in: pairs, known: knownDiagnosticReportParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseDiagnosticReportQuery(from: pairs)
+        var query = try parseDiagnosticReportQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -373,7 +373,7 @@ public func addDiagnosticReportRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> DiagnosticReportSearchQuery {
+func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> DiagnosticReportSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -400,12 +400,12 @@ func parseDiagnosticReportQuery(from pairs: some Collection<(key: Substring, val
     let categoryNot = all("category:not").flatMap { DiagnosticReportSearchQuery.TokenParam.parseList(String($0)) }
     let identifier    = first("identifier").map { DiagnosticReportSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot = first("identifier:not").map { DiagnosticReportSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
-    let date        = all("date").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
-    let issued      = all("issued").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
+    let date        = try parseDateParams(all("date"), "date", DiagnosticReportSearchQuery.DateParam.parse)
+    let issued      = try parseDateParams(all("issued"), "issued", DiagnosticReportSearchQuery.DateParam.parse)
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { DiagnosticReportSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", DiagnosticReportSearchQuery.DateParam.parse)
     let sortKeys = DiagnosticReportSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

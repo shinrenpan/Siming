@@ -267,3 +267,24 @@ func validateResourceType(_ expected: String, from data: Data) throws {
         )
     }
 }
+
+// ── Date-valued search parameters ────────────────────────────────────────────
+//
+// A date value that does not parse is a 400, never a dropped filter. Silently
+// discarding it makes the server answer a different question than the one asked
+// and returns the wrong result set with a 200 — the client has no way to notice.
+// This applies in lenient handling too: FHIR R4 §3.1.1 lets a server ignore a
+// search *parameter* it does not know, not a malformed *value* for one it does.
+
+func parseDateParams<T>(
+    _ raws: [Substring],
+    _ name: String,
+    _ parse: (String) -> T?
+) throws -> [T] {
+    try raws.map { raw in
+        guard let parsed = parse(String(raw)) else {
+            throw FHIRServerError.invalidSearchValue(param: name, value: String(raw))
+        }
+        return parsed
+    }
+}

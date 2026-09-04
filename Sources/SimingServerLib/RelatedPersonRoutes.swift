@@ -42,7 +42,7 @@ public func addRelatedPersonRoutes(
 
         if let ifNoneExist = request.headers[ifNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseRelatedPersonQuery(from: pairs)
+            var checkQuery = try parseRelatedPersonQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -83,7 +83,7 @@ public func addRelatedPersonRoutes(
         let rp = try decodeFHIR(RelatedPerson.self, from: bodyBuffer)
         let ifMatch = parseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseRelatedPersonQuery(from: qpPairs)
+        var checkQuery = try parseRelatedPersonQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -247,7 +247,7 @@ public func addRelatedPersonRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /RelatedPerson requires search parameters for conditional delete")
         }
-        var checkQuery = parseRelatedPersonQuery(from: qpPairs)
+        var checkQuery = try parseRelatedPersonQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -271,7 +271,7 @@ public func addRelatedPersonRoutes(
             let bad = unknownParams(in: pairs, known: knownRelatedPersonParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseRelatedPersonQuery(from: pairs)
+        var query = try parseRelatedPersonQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -322,7 +322,7 @@ public func addRelatedPersonRoutes(
             let bad = unknownParams(in: pairs, known: knownRelatedPersonParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseRelatedPersonQuery(from: pairs)
+        var query = try parseRelatedPersonQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -362,7 +362,7 @@ public func addRelatedPersonRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> RelatedPersonSearchQuery {
+func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> RelatedPersonSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -394,13 +394,13 @@ func parseRelatedPersonQuery(from pairs: some Collection<(key: Substring, value:
     let addressCountry   = RelatedPersonSearchQuery.StringParam.parse(key: "address-country",    from: pairs)
     let addressPostalcode = RelatedPersonSearchQuery.StringParam.parse(key: "address-postalcode", from: pairs)
     let addressState     = RelatedPersonSearchQuery.StringParam.parse(key: "address-state",      from: pairs)
-    let birthdate        = all("birthdate").compactMap { RelatedPersonSearchQuery.DateParam.parse(String($0)) }
+    let birthdate        = try parseDateParams(all("birthdate"), "birthdate", RelatedPersonSearchQuery.DateParam.parse)
     let patient          = first("patient").map(String.init)
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { RelatedPersonSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", RelatedPersonSearchQuery.DateParam.parse)
     let sortKeys = RelatedPersonSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }

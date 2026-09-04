@@ -82,6 +82,72 @@ Fully implemented for all 24 resources via `IncludeResolver` (queries `idx_refer
 - **`:iterate` modifier** — `_include:iterate` and `_revinclude:iterate` resolve recursively (max 5 levels). Each pass uses the newly-discovered resources of the matching `sourceType` as the next frontier; already-processed IDs are skipped to prevent cycles.
 - **Wildcard `*`** — `_include=Patient:*` or `_revinclude=Observation:*` drops the `param_name` filter so all reference params of the source type are followed.
 - `search.mode` is set correctly: `"match"` for main results, `"include"` for included resources.
+- **Deleted targets are excluded.** The referenced resource is resolved to its current version first, then rejected if that version is a tombstone — a reference to a deleted resource contributes nothing rather than resolving to its pre-deletion state.
+
+### Deleted resources and search
+
+A resource is live when its **highest** `version_id` is not a tombstone. That pick
+happens first; the `deleted` test is applied to its result. Applying `deleted = false`
+inside the pick instead makes a deleted resource resolve to its last live version —
+it then appears in search results while `GET /[type]/[id]` correctly returns 410.
+
+This holds for every read path: `buildIdsInner` (both the LATERAL and DISTINCT ON
+branches), `buildCountIdsInner` for `_summary=count`, and `IncludeResolver`.
+
+Conditions are parenthesized where they are joined (`andJoin` in `MultiSort.swift`),
+not where they are built. Stores emit raw SQL fragments and some are disjunctions —
+`_lastUpdated=ne` renders as `lu < $1 OR lu > $2`. AND-joined unparenthesized, OR's
+lower precedence re-associates the whole predicate and discards both the deleted guard
+and any preceding filter.
+
+Deleting also clears every `idx_*` row for the resource, so an index-backed filter
+excludes it a second way. That redundancy is why the defect only ever showed up in
+queries with no filter CTE — no parameters, `_id=`, `_lastUpdated=`, or a lone `:not`
+modifier. Do not rely on the index-row clearing alone: `_id` and `_lastUpdated` are
+`extraConditions`, not filter CTEs.
+
+Conditional create (`If-None-Exist`) resolves through the normal search path, so it
+does not match deleted resources either — an identifier freed by a delete can be
+reused.
+
+### Date search values — precision, timezone, and malformed input
+
+Accepted forms (FHIR R4 §2.4.0.1). Each expands to the interval its own precision
+covers, which is what the `idx_date` range comparison is written against:
+
+| Value | Interval |
+|---|---|
+| `YYYY` | Jan 1 00:00:00 – Dec 31 23:59:59 |
+| `YYYY-MM` | 1st 00:00:00 – last day 23:59:59 |
+| `YYYY-MM-DD` | 00:00:00 – 23:59:59 |
+| `YYYY-MM-DDThh:mm` | hh:mm:00 – hh:mm:59 |
+| `YYYY-MM-DDThh:mm:ss[.fff]` | the instant (fractional seconds truncated — `idx_date` resolves to the second) |
+
+`Z` or `±hh:mm` may follow the time; the offset must be two digits each side. A value
+with no timezone is read as **UTC**, matching what the extractors write. See
+`docs/roadmap.md` for why this is not the server's local timezone, and the R4 wording
+behind it.
+
+**A value that does not parse is a 400 with an `OperationOutcome`, not a dropped
+filter** — including under lenient handling, and including inside a chained or `_has`
+param (`patient.birthdate=…`, `_has:Observation:patient:date=…`). R4 §3.1.1 permits ignoring a search
+*parameter* the server does not recognise; it says nothing about accepting a
+malformed *value* for one it does, and silently discarding the filter answers a
+different question with a 200. Route code must use `parseDateParams(...)`
+(`SearchHelpers.swift`); never `.compactMap` a failed parse away.
+
+Impossible civil dates (`2026-02-30`, `2026-09-04T25:00:00Z`) are rejected rather than
+rolled over by `Calendar`. A leap second (`:60`) is clamped to `:59` on both sides —
+unclamped it rolls into the next day, which would file the value under the wrong
+date entirely.
+
+**Index-side precision is seconds**, matching the finest precision a search value
+can express. It has to: a search value at second precision resolves to that exact
+instant, so an index truncated to the minute could never match it — `date=eq…T08:30:45Z`
+against a resource carrying 08:30:45 would return nothing. A `period` bound that
+carries a time keeps it; a date-only bound widens to the start or end of its day.
+Every extractor sets `timeZone` explicitly, so an indexed instant does not depend on
+the host's zone.
 
 ### Date `ap` (approximate) prefix
 

@@ -83,8 +83,15 @@ private func extract_AllergyIntolerance_date(_ p: inout SearchParams, _ ai: Alle
     guard let prim = ai.recordedDate, let dt = prim.value else { return }
     var dc = DateComponents()
     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-    dc.timeZone = dt.timeZone
+    dc.day  = dt.date.day.map(Int.init)
+    // A dateTime carrying a time keeps it; a date-only value stays anchored at
+    // midday so it sits well inside the day whatever offset it is compared against.
+    // The zone must be explicit — falling through to the host's zone makes the
+    // stored value depend on where the server happens to run.
+    dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+    dc.minute = dt.time.map { Int($0.minute) } ?? 0
+    dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
     let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))
 }
@@ -103,8 +110,15 @@ private func extract_AllergyIntolerance_last_date(_ p: inout SearchParams, _ ai:
     guard let prim = ai.lastOccurrence, let dt = prim.value else { return }
     var dc = DateComponents()
     dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-    dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-    dc.timeZone = dt.timeZone
+    dc.day  = dt.date.day.map(Int.init)
+    // A dateTime carrying a time keeps it; a date-only value stays anchored at
+    // midday so it sits well inside the day whatever offset it is compared against.
+    // The zone must be explicit — falling through to the host's zone makes the
+    // stored value depend on where the server happens to run.
+    dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+    dc.minute = dt.time.map { Int($0.minute) } ?? 0
+    dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+    dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
     let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "last-date", dateStart: d, dateEnd: d))
 }
@@ -128,8 +142,15 @@ private func extract_AllergyIntolerance_onset(_ p: inout SearchParams, _ ai: All
         guard let prim = reaction.onset, let dt = prim.value else { continue }
         var dc = DateComponents()
         dc.year = dt.date.year; dc.month = dt.date.month.map(Int.init)
-        dc.day  = dt.date.day.map(Int.init); dc.hour = 12
-        dc.timeZone = dt.timeZone
+        dc.day  = dt.date.day.map(Int.init)
+        // A dateTime carrying a time keeps it; a date-only value stays anchored at
+        // midday so it sits well inside the day whatever offset it is compared against.
+        // The zone must be explicit — falling through to the host's zone makes the
+        // stored value depend on where the server happens to run.
+        dc.hour   = dt.time.map { Int($0.hour) } ?? 12
+        dc.minute = dt.time.map { Int($0.minute) } ?? 0
+        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
+        dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
         p.dates.append(.init(paramName: "onset", dateStart: d, dateEnd: d))
     }

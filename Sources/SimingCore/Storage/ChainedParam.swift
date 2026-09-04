@@ -107,7 +107,7 @@ public func chainFilterCTE(
     chain: ChainedParam,
     bindStr: (String) -> String,
     bindDate: (Date) -> String
-) -> (name: String, sql: String)? {
+) throws -> (name: String, sql: String)? {
     let cteName = "f_chain\(index)"
 
     // Bind in the order they appear in SQL (JOIN ON ... before WHERE ...)
@@ -152,7 +152,12 @@ public func chainFilterCTE(
         }
 
     case .date:
-        guard let dp = PatientSearchQuery.BirthdateParam.parse(chain.value) else { return nil }
+        // A value that will not parse is an error, never a dropped filter — the same
+        // rule the direct date params follow. Returning nil here drops the whole CTE
+        // and answers with an unfiltered result set.
+        guard let dp = PatientSearchQuery.BirthdateParam.parse(chain.value) else {
+            throw FHIRServerError.invalidSearchValue(param: "\(chain.refParam).\(chain.childParam)", value: chain.value)
+        }
         let dateClause = chainDateClause(dp: dp, bindDate: bindDate)
         joinSQL = """
         JOIN idx_date d ON d.resource_type = ref.ref_type AND d.resource_id = ref.ref_id \

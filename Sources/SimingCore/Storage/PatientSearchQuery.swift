@@ -225,11 +225,21 @@ public struct PatientSearchQuery: Sendable {
         /// For `ap` prefix: expanded end = dateEnd + 10% of precision period.
         public var apExpandedEnd:   Date { dateEnd.addingTimeInterval(dateEnd.timeIntervalSince(dateStart) * 0.1) }
 
-        // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), "sa2024-01-01", etc.
-        // Partial dates expand to a full precision range per FHIR R4 §2.4.0.1:
-        //   YYYY      → [Jan 1 00:00:00, Dec 31 23:59:59]
-        //   YYYY-MM   → [1st 00:00:00, last-day 23:59:59]
-        //   YYYY-MM-DD → [00:00:00, 23:59:59]
+        // Parses "ge1990-01-01", "lt2000", "1985-06" (eq default), "sa2024-01-01",
+        // and full dateTime values such as "ge2026-09-04T08:30:00Z" or
+        // "lt2026-09-04T08:30:00+08:00".
+        //
+        // The value expands to the range covered by its own precision, per
+        // FHIR R4 §2.4.0.1 — a search value is an interval, not an instant:
+        //   YYYY                    → [Jan 1 00:00:00, Dec 31 23:59:59]
+        //   YYYY-MM                 → [1st 00:00:00, last-day 23:59:59]
+        //   YYYY-MM-DD              → [00:00:00, 23:59:59]
+        //   YYYY-MM-DDThh:mm        → [hh:mm:00, hh:mm:59]
+        //   YYYY-MM-DDThh:mm:ss     → [hh:mm:ss, hh:mm:ss]
+        //
+        // Returns nil for anything unparseable. Callers MUST surface that as a
+        // 400 rather than dropping the parameter — a silently ignored filter
+        // returns confidently wrong results.
         public static func parse(_ raw: String) -> BirthdateParam? {
             let knownPrefixes = ["eq", "ne", "lt", "gt", "le", "ge", "sa", "eb", "ap"]
             let (pfxStr, dateStr): (String, String)
@@ -247,46 +257,118 @@ public struct PatientSearchQuery: Sendable {
         }
 
         private static func parseFHIRDateRange(_ s: String) -> (start: Date, end: Date)? {
-            let cal = Calendar(identifier: .gregorian)
-            let tz  = TimeZone(secondsFromGMT: 0)!
-            let parts = s.split(separator: "-")
+            // Split off the time-of-day. Everything before the first "T" is the
+            // date; everything after is hh:mm[:ss[.fff]] plus an optional
+            // timezone. Splitting here first is what keeps a negative UTC offset
+            // ("…T08:00:00-05:00") from being mistaken for a date separator.
+            let datePart: Substring
+            var timePart: Substring? = nil
+            if let t = s.firstIndex(of: "T") {
+                datePart = s[s.startIndex..<t]
+                timePart = s[s.index(after: t)...]
+            } else {
+                datePart = s[...]
+            }
+
+            // ── timezone: trailing "Z" or "±hh:mm" (absent → UTC) ────────────
+            var tz = TimeZone(secondsFromGMT: 0)!
+            if var time = timePart {
+                if time.hasSuffix("Z") {
+                    time = time.dropLast()
+                } else if let sign = time.lastIndex(where: { $0 == "+" || $0 == "-" }) {
+                    let offset = time[time.index(after: sign)...]
+                    let ohm = offset.split(separator: ":")
+                    guard ohm.count == 2, ohm[0].count == 2, ohm[1].count == 2,
+                          let oh = Int(ohm[0]), let om = Int(ohm[1]),
+                          (0...14).contains(oh), (0...59).contains(om),
+                          let zone = TimeZone(secondsFromGMT:
+                              (time[sign] == "-" ? -1 : 1) * (oh * 3600 + om * 60))
+                    else { return nil }
+                    tz = zone
+                    time = time[time.startIndex..<sign]
+                }
+                timePart = time
+            }
+
+            // The calendar must carry the same timezone as the components:
+            // isValidDate(in:) round-trips through the calendar's own zone, and
+            // rejects every date if the two disagree.
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = tz
 
             func dc(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int) -> Date? {
                 var c = DateComponents()
                 c.calendar = cal; c.timeZone = tz
                 c.year = year; c.month = month; c.day = day
                 c.hour = hour; c.minute = minute; c.second = second
+                // Rejects impossible civil dates (2026-02-30) instead of letting
+                // Calendar roll them silently into the next month.
+                guard c.isValidDate(in: cal) else { return nil }
                 return c.date
             }
 
-            switch parts.count {
-            case 1:
-                guard let y = Int(parts[0]) else { return nil }
-                guard let start = dc(year: y, month: 1,  day: 1,  hour: 0,  minute: 0, second: 0),
-                      let end   = dc(year: y, month: 12, day: 31, hour: 23, minute: 59, second: 59)
-                else { return nil }
-                return (start, end)
-            case 2:
-                guard let y = Int(parts[0]), let m = Int(parts[1]),
-                      (1...12).contains(m) else { return nil }
-                guard let start = dc(year: y, month: m, day: 1, hour: 0, minute: 0, second: 0)
-                else { return nil }
-                // First of next month minus one second = last moment of this month
-                let (ny, nm) = m == 12 ? (y + 1, 1) : (y, m + 1)
-                guard let firstOfNext = dc(year: ny, month: nm, day: 1, hour: 0, minute: 0, second: 0)
-                else { return nil }
-                let end = firstOfNext.addingTimeInterval(-1)
-                return (start, end)
-            case 3:
-                guard let y = Int(parts[0]), let m = Int(parts[1]), let d = Int(parts[2]),
-                      (1...12).contains(m), (1...31).contains(d) else { return nil }
-                guard let start = dc(year: y, month: m, day: d, hour: 0, minute: 0, second: 0)
-                else { return nil }
-                let end = start.addingTimeInterval(86399)  // +23:59:59
-                return (start, end)
-            default:
-                return nil
+            let dParts = datePart.split(separator: "-", omittingEmptySubsequences: false)
+
+            // ── date-only precisions ─────────────────────────────────────────
+            guard timePart != nil else {
+                switch dParts.count {
+                case 1:
+                    guard dParts[0].count == 4, let y = Int(dParts[0]) else { return nil }
+                    guard let start = dc(year: y, month: 1,  day: 1,  hour: 0,  minute: 0, second: 0),
+                          let end   = dc(year: y, month: 12, day: 31, hour: 23, minute: 59, second: 59)
+                    else { return nil }
+                    return (start, end)
+                case 2:
+                    guard dParts[0].count == 4, let y = Int(dParts[0]), let m = Int(dParts[1]),
+                          (1...12).contains(m) else { return nil }
+                    guard let start = dc(year: y, month: m, day: 1, hour: 0, minute: 0, second: 0)
+                    else { return nil }
+                    // First of next month minus one second = last moment of this month
+                    let (ny, nm) = m == 12 ? (y + 1, 1) : (y, m + 1)
+                    guard let firstOfNext = dc(year: ny, month: nm, day: 1, hour: 0, minute: 0, second: 0)
+                    else { return nil }
+                    return (start, firstOfNext.addingTimeInterval(-1))
+                case 3:
+                    guard dParts[0].count == 4,
+                          let y = Int(dParts[0]), let m = Int(dParts[1]), let d = Int(dParts[2])
+                    else { return nil }
+                    guard let start = dc(year: y, month: m, day: d, hour: 0,  minute: 0,  second: 0),
+                          let end   = dc(year: y, month: m, day: d, hour: 23, minute: 59, second: 59)
+                    else { return nil }
+                    return (start, end)
+                default:
+                    return nil
+                }
             }
+
+            // ── dateTime: R4 requires a full date once a time is present ─────
+            guard dParts.count == 3, dParts[0].count == 4,
+                  let y = Int(dParts[0]), let m = Int(dParts[1]), let d = Int(dParts[2])
+            else { return nil }
+
+            // hh:mm[:ss[.fff]] — fractional seconds are accepted and truncated;
+            // idx_date has no sub-second resolution to compare them against.
+            let tParts = timePart!.split(separator: ":", omittingEmptySubsequences: false)
+            guard tParts.count == 2 || tParts.count == 3,
+                  tParts[0].count == 2, tParts[1].count == 2,
+                  let hh = Int(tParts[0]), let mm = Int(tParts[1]),
+                  (0...23).contains(hh), (0...59).contains(mm)
+            else { return nil }
+
+            if tParts.count == 2 {
+                // Minute precision → the whole minute.
+                guard let start = dc(year: y, month: m, day: d, hour: hh, minute: mm, second: 0),
+                      let end   = dc(year: y, month: m, day: d, hour: hh, minute: mm, second: 59)
+                else { return nil }
+                return (start, end)
+            }
+
+            let secText = tParts[2].split(separator: ".", omittingEmptySubsequences: false)[0]
+            guard secText.count == 2, let ss = Int(secText), (0...60).contains(ss) else { return nil }
+            // Second 60 is a leap second in R4; clamp so Calendar does not roll over.
+            guard let instant = dc(year: y, month: m, day: d, hour: hh, minute: mm, second: min(ss, 59))
+            else { return nil }
+            return (instant, instant)
         }
     }
 

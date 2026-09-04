@@ -40,7 +40,7 @@ public func addMedicationAdministrationRoutes(
 
         if let ifNoneExist = request.headers[maIfNoneExistHeader] {
             let pairs = parseQueryString(ifNoneExist)
-            var checkQuery = parseMedicationAdministrationQuery(from: pairs)
+            var checkQuery = try parseMedicationAdministrationQuery(from: pairs)
             checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
             let matches = try await store.search(query: checkQuery)
             if matches.entries.count > 1 {
@@ -81,7 +81,7 @@ public func addMedicationAdministrationRoutes(
         let ma = try maDecodeFHIR(MedicationAdministration.self, from: bodyBuffer)
         let ifMatch = maParseETag(request.headers[.ifMatch])
 
-        var checkQuery = parseMedicationAdministrationQuery(from: qpPairs)
+        var checkQuery = try parseMedicationAdministrationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
 
@@ -245,7 +245,7 @@ public func addMedicationAdministrationRoutes(
         guard !qpPairs.isEmpty else {
             throw FHIRRouteError.invalidBody("DELETE /MedicationAdministration requires search parameters for conditional delete")
         }
-        var checkQuery = parseMedicationAdministrationQuery(from: qpPairs)
+        var checkQuery = try parseMedicationAdministrationQuery(from: qpPairs)
         checkQuery.count = 2; checkQuery.totalMode = .none; checkQuery.cursor = nil
         let matches = try await store.search(query: checkQuery)
         switch matches.entries.count {
@@ -269,7 +269,7 @@ public func addMedicationAdministrationRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationAdministrationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationAdministrationQuery(from: pairs)
+        var query = try parseMedicationAdministrationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -320,7 +320,7 @@ public func addMedicationAdministrationRoutes(
             let bad = unknownParams(in: pairs, known: knownMedicationAdministrationParams)
             if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
         }
-        var query = parseMedicationAdministrationQuery(from: pairs)
+        var query = try parseMedicationAdministrationQuery(from: pairs)
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
         let includes = parseIncludes(from: pairs)
@@ -360,7 +360,7 @@ public func addMedicationAdministrationRoutes(
 
 // ── Query parser ──────────────────────────────────────────────────────────────
 
-func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) -> MedicationAdministrationSearchQuery {
+func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substring, value: Substring)>) throws -> MedicationAdministrationSearchQuery {
     let pairs = normalizeReferenceTypeModifiers(pairs)
     func first(_ key: String) -> Substring? {
         pairs.first(where: { $0.key == key[...] })?.value
@@ -380,7 +380,7 @@ func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substr
     let identifier        = first("identifier").map { MedicationAdministrationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot     = first("identifier:not").map { MedicationAdministrationSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
-    let effectiveTime = all("effective-time").compactMap { MedicationAdministrationSearchQuery.DateParam.parse(String($0)) }
+    let effectiveTime = try parseDateParams(all("effective-time"), "effective-time", MedicationAdministrationSearchQuery.DateParam.parse)
 
     let subject    = first("subject").map(String.init)
     let patient    = first("patient").map(String.init)
@@ -393,7 +393,7 @@ func parseMedicationAdministrationQuery(from pairs: some Collection<(key: Substr
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
     } ?? []
-    let lastUpdated = all("_lastUpdated").compactMap { MedicationAdministrationSearchQuery.DateParam.parse(String($0)) }
+    let lastUpdated = try parseDateParams(all("_lastUpdated"), "_lastUpdated", MedicationAdministrationSearchQuery.DateParam.parse)
     let sortKeys = MedicationAdministrationSearchQuery.parseSortKeys(first("_sort").map(String.init) ?? "-_lastUpdated")
     let count       = min(first("_count").flatMap { Int($0) } ?? 20, maMaxCount)
     let cursor      = first("_cursor").flatMap { SearchCursor.decode(String($0)) }
