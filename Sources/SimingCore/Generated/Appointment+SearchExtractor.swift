@@ -71,7 +71,7 @@ private func extract_Appointment_date(_ p: inout SearchParams, _ appt: Appointme
     dc.day      = Int(inst.date.day)
     dc.hour     = Int(inst.time.hour)
     dc.minute   = Int(inst.time.minute)
-    dc.second   = Int(truncating: inst.time.second as NSDecimalNumber)
+    dc.second   = min(Int(truncating: inst.time.second as NSDecimalNumber), 59)
     dc.timeZone = inst.timeZone ?? TimeZone(secondsFromGMT: 0)
     let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))

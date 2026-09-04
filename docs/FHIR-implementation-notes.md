@@ -137,7 +137,9 @@ different question with a 200. Route code must use `parseDateParams(...)`
 (`SearchHelpers.swift`); never `.compactMap` a failed parse away.
 
 Impossible civil dates (`2026-02-30`, `2026-09-04T25:00:00Z`) are rejected rather than
-rolled over by `Calendar`.
+rolled over by `Calendar`. A leap second (`:60`) is clamped to `:59` on both sides —
+unclamped it rolls into the next day, which would file the value under the wrong
+date entirely.
 
 **Index-side precision is seconds**, matching the finest precision a search value
 can express. It has to: a search value at second precision resolves to that exact

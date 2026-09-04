@@ -42,7 +42,7 @@ private func extract_MedicationRequest_authoredon(_ p: inout SearchParams, _ mr:
     // stored value depend on where the server happens to run.
     dc.hour   = dt.time.map { Int($0.hour) } ?? 12
     dc.minute = dt.time.map { Int($0.minute) } ?? 0
-    dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+    dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
     dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
     let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
     p.dates.append(.init(paramName: "authoredon", dateStart: d, dateEnd: d))
@@ -84,7 +84,7 @@ private func extract_MedicationRequest_date(_ p: inout SearchParams, _ mr: Medic
             // stored value depend on where the server happens to run.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 12
             dc.minute = dt.time.map { Int($0.minute) } ?? 0
-            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+            dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = cal.date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "date", dateStart: d, dateEnd: d))

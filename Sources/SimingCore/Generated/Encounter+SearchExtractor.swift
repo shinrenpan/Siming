@@ -96,7 +96,7 @@ private func extract_Encounter_date(_ p: inout SearchParams, _ enc: Encounter) {
         // host's UTC offset — right in a UTC container, wrong anywhere else.
         dc.hour   = dt.time.map { Int($0.hour) } ?? 0
         dc.minute = dt.time.map { Int($0.minute) } ?? 0
-        dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
         dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         start = cal.date(from: dc) ?? Date.distantPast
     } else {
@@ -112,7 +112,7 @@ private func extract_Encounter_date(_ p: inout SearchParams, _ enc: Encounter) {
         // host's UTC offset — right in a UTC container, wrong anywhere else.
         dc.hour   = dt.time.map { Int($0.hour) } ?? 23
         dc.minute = dt.time.map { Int($0.minute) } ?? 59
-        dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 59
+        dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
         dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
         end = cal.date(from: dc) ?? Date.distantFuture
     } else {
@@ -193,7 +193,7 @@ private func extract_Encounter_location_period(_ p: inout SearchParams, _ enc: E
             // host's UTC offset — right in a UTC container, wrong anywhere else.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 0
             dc.minute = dt.time.map { Int($0.minute) } ?? 0
-            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+            dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             start = cal.date(from: dc) ?? Date.distantPast
         } else {
@@ -209,7 +209,7 @@ private func extract_Encounter_location_period(_ p: inout SearchParams, _ enc: E
             // host's UTC offset — right in a UTC container, wrong anywhere else.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 23
             dc.minute = dt.time.map { Int($0.minute) } ?? 59
-            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 59
+            dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 59
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             end = cal.date(from: dc) ?? Date.distantFuture
         } else {

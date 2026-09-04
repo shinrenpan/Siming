@@ -144,7 +144,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
             // stored value depend on where the server happens to run.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 12
             dc.minute = dt.time.map { Int($0.minute) } ?? 0
-            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+            dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "\(code)", dateStart: d, dateEnd: d))
@@ -166,7 +166,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
             // stored value depend on where the server happens to run.
             dc.hour   = dt.time.map { Int($0.hour) } ?? 12
             dc.minute = dt.time.map { Int($0.minute) } ?? 0
-            dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+            dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
             dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
             let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
             p.dates.append(.init(paramName: "last-date", dateStart: d, dateEnd: d))
@@ -206,7 +206,7 @@ func allergyIntoleranceHandler(spec: ParamSpec, expr: String) -> String? {
                 // stored value depend on where the server happens to run.
                 dc.hour   = dt.time.map { Int($0.hour) } ?? 12
                 dc.minute = dt.time.map { Int($0.minute) } ?? 0
-                dc.second = dt.time.map { Int(truncating: $0.second as NSDecimalNumber) } ?? 0
+                dc.second = dt.time.map { min(Int(truncating: $0.second as NSDecimalNumber), 59) } ?? 0
                 dc.timeZone = dt.timeZone ?? TimeZone(secondsFromGMT: 0)
                 let d = Calendar(identifier: .gregorian).date(from: dc) ?? Date()
                 p.dates.append(.init(paramName: "onset", dateStart: d, dateEnd: d))

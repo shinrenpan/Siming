@@ -1461,6 +1461,35 @@ struct DateExtractionTests {
         #expect(row.dateStart == instant("2026-09-04T12:13:47Z"))
     }
 
+    @Test("An open-ended period indexes dateEnd as distantFuture, not year 0")
+    func openEndedPeriodIsUnbounded() throws {
+        // Calendar.date(from: DateComponents()) returns year 0, not nil, so a
+        // `?? Date.distantFuture` fallback on an empty component set never fires.
+        // A statement that is still running would then index date_end in year 0
+        // and become unreachable by every date search.
+        let ms = try decode(MedicationStatement.self, #"""
+        {"resourceType":"MedicationStatement","status":"active",
+         "medicationCodeableConcept":{"text":"x"},"subject":{"reference":"Patient/p"},
+         "effectivePeriod":{"start":"2026-01-01"}}
+        """#)
+        let row = try #require(extractMedicationStatementSearchParams(ms).dates.first { $0.paramName == "effective" })
+        #expect(row.dateStart == instant("2026-01-01T00:00:00Z"))
+        #expect(row.dateEnd > instant("2100-01-01T00:00:00Z"))
+    }
+
+    @Test("A leap second is clamped, not rolled into the next day")
+    func leapSecondIsClamped() throws {
+        // The query parser clamps second 60 to 59. An extractor that does not
+        // pushes the value onto the following day, so neither a date-only search
+        // nor the clamped instant can match it.
+        let obs = try decode(Observation.self, #"""
+        {"resourceType":"Observation","status":"final","code":{"text":"x"},
+         "effectiveDateTime":"2026-06-30T23:59:60Z"}
+        """#)
+        let row = try #require(extractObservationSearchParams(obs).dates.first { $0.paramName == "date" })
+        #expect(row.dateStart == instant("2026-06-30T23:59:59Z"))
+    }
+
     @Test("Seconds survive into the index — a search value at second precision must be able to match")
     func secondsAreIndexed() throws {
         // The parser resolves a second-precision search value to that exact instant.
