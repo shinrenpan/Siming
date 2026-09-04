@@ -1,6 +1,8 @@
 import Testing
 import Foundation
+import Logging
 import ModelsR4
+import PostgresNIO
 @testable import SimingCore
 
 // ── DatabaseConfiguration ─────────────────────────────────────────────────────
@@ -1484,5 +1486,73 @@ struct DateExtractionTests {
         """#)
         let row = try #require(extractConditionSearchParams(cond).dates.first { $0.paramName == "onset-date" })
         #expect(row.dateStart == instant("2026-09-04T08:30:00Z"))
+    }
+}
+// ── Migration SQL splitting ──────────────────────────────────────────────────
+//
+// A mis-split migration is not a test failure, it is a server that will not
+// start — PostgreSQL reports a syntax error against the fragment, which points
+// nowhere near the punctuation that caused it.
+
+@Suite("MigrationRunner.splitSQL")
+struct MigrationSplitTests {
+    private let runner = MigrationRunner(
+        client: PostgresClient(configuration: .init(
+            host: "127.0.0.1", username: "x", password: nil, database: nil, tls: .disable)),
+        logger: Logger(label: "test"),
+        migrationsPath: "migrations"
+    )
+
+    @Test("a semicolon inside a line comment does not terminate the statement")
+    func semicolonInComment() {
+        let sql = """
+        -- costs more; use the other one
+        CREATE INDEX a ON t (c);
+        CREATE INDEX b ON t (d);
+        """
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("CREATE INDEX a"))
+        #expect(out[1].contains("CREATE INDEX b"))
+    }
+
+    @Test("a double dash inside a string literal is not a comment")
+    func dashesInsideLiteral() {
+        let sql = "INSERT INTO t VALUES ('a--b'); CREATE INDEX c ON t (d);"
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("'a--b'"))
+        #expect(out[1].contains("CREATE INDEX c"))
+    }
+
+    @Test("a semicolon inside a string literal does not terminate the statement")
+    func semicolonInsideLiteral() {
+        let out = runner.splitSQL("INSERT INTO t VALUES ('a;b'); SELECT 1;")
+        #expect(out.count == 2)
+        #expect(out[0].contains("'a;b'"))
+    }
+
+    @Test("an escaped quote does not close the literal")
+    func escapedQuote() {
+        let out = runner.splitSQL("INSERT INTO t VALUES ('it''s; fine'); SELECT 1;")
+        #expect(out.count == 2)
+        #expect(out[0].contains("'it''s; fine'"))
+    }
+
+    @Test("semicolons inside a dollar-quoted function body are preserved")
+    func dollarQuotedBody() {
+        let sql = """
+        CREATE FUNCTION f() RETURNS void AS $$
+        BEGIN
+            DELETE FROM a;
+            DELETE FROM b;
+        END;
+        $$ LANGUAGE plpgsql;
+        CREATE INDEX z ON t (c);
+        """
+        let out = runner.splitSQL(sql)
+        #expect(out.count == 2)
+        #expect(out[0].contains("DELETE FROM a;"))
+        #expect(out[1].contains("CREATE INDEX z"))
     }
 }

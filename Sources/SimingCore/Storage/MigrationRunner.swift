@@ -83,18 +83,42 @@ public struct MigrationRunner: Sendable {
         logger.info("Applied migration: \(version)")
     }
 
-    /// Splits a SQL file into executable statements on `;`, respecting dollar-quoted
-    /// strings (`$$...$$` and `$tag$...$tag$`) so that semicolons inside PL/pgSQL
-    /// function bodies are not treated as statement terminators.
-    private func splitSQL(_ sql: String) -> [String] {
+    /// Splits a SQL file into executable statements on `;`.
+    ///
+    /// A `;` only terminates a statement outside of: dollar-quoted strings
+    /// (`$$...$$`, `$tag$...$tag$`) for PL/pgSQL bodies, single-quoted literals,
+    /// and `--` line comments. Getting any of those wrong hands PostgreSQL a
+    /// fragment, and the server dies at startup with a syntax error pointing at
+    /// the fragment rather than at the real cause.
+    ///
+    /// `internal`, not `private`, so the three cases can be tested directly —
+    /// a migration that fails to parse means the server does not boot.
+    func splitSQL(_ sql: String) -> [String] {
         var statements: [String] = []
         var current = ""
         var dollarTag: String? = nil  // non-nil while inside a dollar-quoted string
+        var inSingleQuote = false     // true while inside a '...' literal
         let chars = Array(sql)
         var i = 0
 
         while i < chars.count {
-            if let tag = dollarTag {
+            if inSingleQuote {
+                // Inside a literal nothing is punctuation: not ";", and not "--".
+                // Without this, 'a--b' would start a comment that swallows the
+                // rest of the line including the statement terminator.
+                // '' is an escaped quote, so it does not close the literal.
+                if chars[i] == "'" {
+                    if i + 1 < chars.count && chars[i + 1] == "'" {
+                        current.append("''"); i += 2
+                    } else {
+                        current.append("'"); i += 1; inSingleQuote = false
+                    }
+                } else {
+                    current.append(chars[i]); i += 1
+                }
+            } else if chars[i] == "'", dollarTag == nil {
+                current.append("'"); i += 1; inSingleQuote = true
+            } else if let tag = dollarTag {
                 // Inside a dollar-quoted string: scan for the closing tag.
                 if sql[sql.index(sql.startIndex, offsetBy: i)...].hasPrefix(tag) {
                     current.append(contentsOf: tag)
