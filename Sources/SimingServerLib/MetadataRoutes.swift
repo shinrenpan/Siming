@@ -8,7 +8,7 @@ private let supportedResourceTypes: [String] = [
     "Patient", "Observation", "Encounter", "Condition",
     "Medication", "MedicationRequest", "AllergyIntolerance",
     "Procedure", "DiagnosticReport", "Immunization",
-    "Practitioner", "Organization", "Location",
+    "Practitioner", "PractitionerRole", "Organization", "Location",
     "RelatedPerson", "ServiceRequest", "Specimen",
     "DocumentReference", "CarePlan", "Goal",
     "MedicationStatement", "FamilyMemberHistory",

@@ -13,7 +13,7 @@ import ModelsR4
 // is implemented, add it to this function as well.
 //
 // Parameters:
-//   resourceType — "Patient", "Observation", etc. Must be one of the 23 supported types.
+//   resourceType — "Patient", "Observation", etc. Must be one of the 24 supported types.
 //   id           — server-assigned (POST) or client-provided (PUT) resource id.
 //   data         — raw JSON of the resource (post urn:uuid replacement).
 
@@ -45,6 +45,8 @@ public func prepareEntryForWrite(
         return try prepareResource(Immunization.self, data: data, id: id, extractor: extractImmunizationSearchParams)
     case "Practitioner":
         return try prepareResource(Practitioner.self, data: data, id: id, extractor: extractPractitionerSearchParams)
+    case "PractitionerRole":
+        return try prepareResource(PractitionerRole.self, data: data, id: id, extractor: extractPractitionerRoleSearchParams)
     case "Organization":
         return try prepareResource(Organization.self, data: data, id: id, extractor: extractOrganizationSearchParams)
     case "Location":

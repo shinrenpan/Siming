@@ -21,7 +21,8 @@ let allResourceTypes = [
     "FamilyMemberHistory", "Goal", "Immunization", "Location",
     "Medication", "MedicationAdministration", "MedicationRequest",
     "MedicationStatement", "Observation", "Organization", "Patient",
-    "Practitioner", "Procedure", "RelatedPerson", "ServiceRequest", "Specimen"
+    "Practitioner", "PractitionerRole", "Procedure", "RelatedPerson",
+    "ServiceRequest", "Specimen"
 ]
 
 let allBindings = loadAllBindings(resourceTypes: allResourceTypes, packagesDir: packagesDir)
@@ -136,6 +137,14 @@ let practitionerCode = generatePractitionerExtractor(params: practitionerParams)
 let practitionerOut  = "\(outputDir)/Practitioner+SearchExtractor.swift"
 try practitionerCode.write(toFile: practitionerOut, atomically: true, encoding: .utf8)
 print("Generated \(practitionerOut) — \(practitionerParams.count) Practitioner params")
+
+let practitionerRoleParams = try loadParams(resourceType: "PractitionerRole", packagesDir: packagesDir)
+    .sorted { $0.code < $1.code }
+
+let practitionerRoleCode = generatePractitionerRoleExtractor(params: practitionerRoleParams)
+let practitionerRoleOut  = "\(outputDir)/PractitionerRole+SearchExtractor.swift"
+try practitionerRoleCode.write(toFile: practitionerRoleOut, atomically: true, encoding: .utf8)
+print("Generated \(practitionerRoleOut) — \(practitionerRoleParams.count) PractitionerRole params")
 
 let organizationParams = try loadParams(resourceType: "Organization", packagesDir: packagesDir)
     .sorted { $0.code < $1.code }

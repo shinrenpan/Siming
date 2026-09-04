@@ -44,6 +44,7 @@ public func buildRouter(
     addDiagnosticReportRoutes(to: router, store: stores.diagnosticReport, logger: logger)
     addImmunizationRoutes(to: router, store: stores.immunization, logger: logger)
     addPractitionerRoutes(to: router, store: stores.practitioner, logger: logger)
+    addPractitionerRoleRoutes(to: router, store: stores.practitionerRole, logger: logger)
     addOrganizationRoutes(to: router, store: stores.organization, logger: logger)
     addLocationRoutes(to: router, store: stores.location, logger: logger)
     addRelatedPersonRoutes(to: router, store: stores.relatedPerson, logger: logger)

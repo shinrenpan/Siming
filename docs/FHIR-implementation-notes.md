@@ -9,7 +9,7 @@ Per-resource search parameter implementation details and known gaps.
 
 ### `_sort` support
 
-Multi-key `_sort` is supported on all 23 resources (FHIR R4 §3.3). Comma-separated keys are accepted, e.g. `_sort=date,-status`. Pagination uses an expanded tuple cursor (N+1 OR-terms) that correctly handles mixed ASC/DESC across all key types.
+Multi-key `_sort` is supported on all 24 resources (FHIR R4 §3.3). Comma-separated keys are accepted, e.g. `_sort=date,-status`. Pagination uses an expanded tuple cursor (N+1 OR-terms) that correctly handles mixed ASC/DESC across all key types.
 
 - **Cursor format**: base64url-encoded U+001F-delimited string: `sv_0 \x1f sv_1 \x1f … \x1f id`. Epoch-seconds text for TIMESTAMP values; raw text for string/token values.
 - **Unrecognised sort keys** are silently ignored; fallback is `_lastUpdated DESC`.
@@ -27,6 +27,7 @@ Multi-key `_sort` is supported on all 23 resources (FHIR R4 §3.3). Comma-separa
 | MedicationRequest | `authoredon`, `status`, `code`, `_id` |
 | AllergyIntolerance | `date` (recordedDate), `clinical-status`, `code`, `_id` |
 | Practitioner | `_lastUpdated`, `name`, `_id` |
+| PractitionerRole | `_lastUpdated`, `_id` (no resource params indexed yet) |
 | Organization | `_lastUpdated`, `name`, `_id` |
 | Location | `_lastUpdated`, `name`, `status`, `_id` |
 | RelatedPerson | `_lastUpdated`, `birthdate`, `_id` |
@@ -44,7 +45,7 @@ Multi-key `_sort` is supported on all 23 resources (FHIR R4 §3.3). Comma-separa
 
 ### Meta search parameters (`_tag`, `_security`, `_profile`, `_source`)
 
-Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infrastructure in `MetaSearchParams.swift`.
+Supported on **all 24 resources** (FHIR R4 §3.2.2). Implemented via shared infrastructure in `MetaSearchParams.swift`.
 
 | Param | FHIR field | Index | `:not` |
 |---|---|---|---|
@@ -62,21 +63,21 @@ Supported on **all 23 resources** (FHIR R4 §3.2.2). Implemented via shared infr
 
 ### `identifier:not` across all resources
 
-Supported on **all 23 resources** (FHIR R4 §3.2.1). Each `XxxSearchQuery` has `identifierNot: [IdentifierParam]`. Implemented as a `NOT IN` subquery against `idx_token` with `param_name='identifier'`. Three formats: `system|code`, `|code` (null system), `code` (any system).
+Supported on **23 of the 24 resources** (FHIR R4 §3.2.1) — every one except `PractitionerRole`, whose `identifier` param is not indexed yet. Each `XxxSearchQuery` has `identifierNot: [IdentifierParam]`. Implemented as a `NOT IN` subquery against `idx_token` with `param_name='identifier'`. Three formats: `system|code`, `|code` (null system), `code` (any system).
 
 ### Reference parameter `:type` modifier
 
-Supported on **all 23 resources** (FHIR R4 §3.1.3.4). `param:ResourceType=id` is equivalent to `param=ResourceType/id`. For example, `subject:Patient=123` and `subject=Patient/123` produce identical results.
+Supported on **all 24 resources** (FHIR R4 §3.1.3.4). `param:ResourceType=id` is equivalent to `param=ResourceType/id`. For example, `subject:Patient=123` and `subject=Patient/123` produce identical results.
 
 Implemented via `normalizeReferenceTypeModifiers()` in `SearchHelpers.swift`, called at the start of each `parseXxxQuery` function. Normalisation rules: key must not start with `_` (to skip `_has`, `_include`), must not contain `.` (to skip chained params), and the modifier must start with an uppercase letter with no further `:` (distinguishes resource types from search modifiers like `:not`, `:missing`, `:contains`).
 
 ### Chained search and `_has`
 
-Fully implemented for all 23 resources. Child param types mapped in `chainChildParamType` in `ChainedParam.swift`. Includes: `effective-time`, `reason-given`, `reason-not-given`, `reason-code`.
+Fully implemented for all 24 resources. Child param types mapped in `chainChildParamType` in `ChainedParam.swift`. Includes: `effective-time`, `reason-given`, `reason-not-given`, `reason-code`.
 
 ### `_include` / `_revinclude`
 
-Fully implemented for all 23 resources via `IncludeResolver` (queries `idx_reference` directly).
+Fully implemented for all 24 resources via `IncludeResolver` (queries `idx_reference` directly).
 
 - **`:iterate` modifier** — `_include:iterate` and `_revinclude:iterate` resolve recursively (max 5 levels). Each pass uses the newly-discovered resources of the matching `sourceType` as the next frontier; already-processed IDs are skipped to prevent cycles.
 - **Wildcard `*`** — `_include=Patient:*` or `_revinclude=Observation:*` drops the `param_name` filter so all reference params of the source type are followed.
@@ -84,7 +85,7 @@ Fully implemented for all 23 resources via `IncludeResolver` (queries `idx_refer
 
 ### Date `ap` (approximate) prefix
 
-Supported on **all** date parameters across all 23 resources, including `_lastUpdated`.
+Supported on **all** date parameters across all 24 resources, including `_lastUpdated`.
 
 - **Semantics:** ±10% of the precision period. `delta = (dateEnd − dateStart) × 0.1`. idx_date: `date_start <= apExpandedEnd AND date_end >= apExpandedStart`. `last_updated`: `BETWEEN apExpandedStart AND apExpandedEnd`.
 - Computed properties `apExpandedStart` / `apExpandedEnd` on `BirthdateParam`.
@@ -111,7 +112,7 @@ Resources and params with modifier support:
 
 ### Token `:text` modifier (FHIR R4 §3.1.2.1)
 
-Supported on **all 23 resources** for any token search parameter. `code:text=glucose` searches the human-readable display text of codings rather than the system/code.
+Supported on **23 of the 24 resources** for any token search parameter — `PractitionerRole` indexes no token params yet, so it has no `:text` rows. `code:text=glucose` searches the human-readable display text of codings rather than the system/code.
 
 **Write path**: During resource indexing, `SearchParams.appendToken(paramName:system:code:display:)` writes the main token row to `idx_token` AND — when `Coding.display` is non-empty — an additional row to `idx_string` with `param_name = '{param}:text'`. `CodeableConcept.text` is also written via `appendConceptText(paramName:_:)`. No schema migration required; reuses the existing `idx_string` trigram GIN index.
 
@@ -131,7 +132,7 @@ The `ne`, `lt`, `le`, `gt`, `ge`, `sa`, `eb` prefixes remain point comparisons (
 
 ### Token `:not` modifier — `identifier:not`
 
-`identifier:not` is supported on **all 23 resources** (FHIR R4 §3.2.1). Implemented as a `NOT IN` subquery against `idx_token`:
+`identifier:not` is supported on **23 of the 24 resources** (FHIR R4 §3.2.1) — not on `PractitionerRole`, which does not index `identifier`. Implemented as a `NOT IN` subquery against `idx_token`:
 
 ```sql
 r.id NOT IN (
@@ -145,7 +146,7 @@ Three wire formats accepted: `system|code`, `|code` (null system), `code` (any s
 
 ### Patient compartment membership
 
-**Not in compartment:** Location, Medication, Practitioner, Organization (per FHIR R4 spec — not resource-connected to a Patient).
+**Not in compartment:** Location, Medication, Practitioner, PractitionerRole, Organization (per FHIR R4 spec — not resource-connected to a Patient).
 
 **In compartment (19 resources):** Observation, Encounter, Condition, MedicationRequest, AllergyIntolerance, Procedure, DiagnosticReport, Immunization, RelatedPerson, ServiceRequest, Specimen, DocumentReference, CarePlan, Goal, MedicationStatement, FamilyMemberHistory, Appointment, MedicationAdministration, plus Patient itself.
 
@@ -245,6 +246,15 @@ All of the following are fully implemented:
 
 - `phone` / `email` — indexes all telecom entries regardless of system (generator strips `.where()` — known limitation, false positives unlikely in practice).
 - `phonetic` — prefix/contains match on name fields; same data as `name` param but stored with `param_name="phonetic"` in idx_string.
+
+### PractitionerRole
+
+**Deliberately partial** — added to serve one downstream query (`GET /PractitionerRole?practitioner=<id>` reading `code[].coding[].display`). The uncovered params are left visible rather than stubbed silently.
+
+- `practitioner` — the only indexed param. `role.practitioner.reference` → idx_reference; accepts both `Practitioner/<id>` and a bare `<id>`. Supports `:missing`, `:Practitioner` type modifier, chaining (`practitioner.name=...`) and `_include=PractitionerRole:practitioner`.
+- **Not indexed (12 params):** `active`, `date`, `email`, `endpoint`, `identifier`, `location`, `organization`, `phone`, `role`, `service`, `specialty`, `telecom`. Each is a `// TODO: unhandled` function in `Generated/PractitionerRole+SearchExtractor.swift`. Querying one returns unfiltered results (or 400 under `Prefer: handling=strict`, since they are absent from `knownPractitionerRoleParams`).
+- **`/metadata` still advertises all 13 params.** CapabilityStatement is built at startup from `packages/*.tgz` and is independent of extractor coverage — same as every other resource carrying TODO params.
+- `_sort` accepts `_lastUpdated` / `_id` only.
 
 ### Organization
 

@@ -35,7 +35,7 @@ Siming is a **clinical data server** — it stores and searches clinical resourc
 
 ## Capabilities
 
-- **23 FHIR R4 resource types** — CRUD, search, history, compartment, transaction bundle
+- **24 FHIR R4 resource types** — CRUD, search, history, compartment, transaction bundle (`PractitionerRole` indexes `practitioner` only — see [notes](docs/FHIR-implementation-notes.md#practitionerrole))
 - **TW Core IG v1.0.0** — 9/9 profiles validated; `$validate` with optional HL7 Validator sidecar
 - **Search** — chained, `_has`, `_include`/`_revinclude`, `_summary`, `_elements`, cursor pagination
 - **Security** — SMART on FHIR JWT bearer (opt-in), per-IP rate limiting (opt-in), CORS

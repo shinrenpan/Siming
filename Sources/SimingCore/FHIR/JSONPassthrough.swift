@@ -290,6 +290,12 @@ public let practitionerSummaryFields: Set<String> = [
     "gender", "birthDate", "photo", "qualification", "communication",
 ]
 
+/// PractitionerRole Σ-marked elements per FHIR R4 §12.2 (excluding mandatory id/meta/resourceType).
+public let practitionerRoleSummaryFields: Set<String> = [
+    "identifier", "active", "period", "practitioner", "organization",
+    "code", "specialty", "location", "telecom",
+]
+
 /// Medication Σ-marked elements per FHIR R4 §11.3 (excluding mandatory id/meta/resourceType).
 public let medicationSummaryFields: Set<String> = [
     "identifier", "code", "status", "manufacturer", "form",

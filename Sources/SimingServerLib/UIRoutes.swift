@@ -116,7 +116,7 @@ textarea.json-editor{width:100%;min-height:480px;padding:20px;font-family:"SF Mo
 </div>
 <script>
 const TYPES=['Patient','Observation','Encounter','Condition','Medication','MedicationRequest',
-'AllergyIntolerance','Procedure','DiagnosticReport','Immunization','Practitioner',
+'AllergyIntolerance','Procedure','DiagnosticReport','Immunization','Practitioner','PractitionerRole',
 'Organization','Location','RelatedPerson','ServiceRequest','Specimen',
 'DocumentReference','CarePlan','Goal','MedicationStatement',
 'FamilyMemberHistory','Appointment','MedicationAdministration'];

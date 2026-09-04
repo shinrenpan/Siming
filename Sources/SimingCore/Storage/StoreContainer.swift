@@ -2,7 +2,7 @@ import Foundation
 import Logging
 import PostgresNIO
 
-/// Holds every resource store. Pass one value instead of 23+ individual parameters.
+/// Holds every resource store. Pass one value instead of 24+ individual parameters.
 /// Adding a future resource only requires adding one property here; wiring files stay stable.
 public struct StoreContainer: Sendable {
     public let client: PostgresClient
@@ -17,6 +17,7 @@ public struct StoreContainer: Sendable {
     public let diagnosticReport: DiagnosticReportStore
     public let immunization: ImmunizationStore
     public let practitioner: PractitionerStore
+    public let practitionerRole: PractitionerRoleStore
     public let organization: OrganizationStore
     public let location: LocationStore
     public let relatedPerson: RelatedPersonStore
@@ -43,6 +44,7 @@ public struct StoreContainer: Sendable {
         diagnosticReport       = DiagnosticReportStore(client: client, logger: logger, terminology: terminology)
         immunization           = ImmunizationStore(client: client, logger: logger, terminology: terminology)
         practitioner           = PractitionerStore(client: client, logger: logger, terminology: terminology)
+        practitionerRole       = PractitionerRoleStore(client: client, logger: logger, terminology: terminology)
         organization           = OrganizationStore(client: client, logger: logger, terminology: terminology)
         location               = LocationStore(client: client, logger: logger, terminology: terminology)
         relatedPerson          = RelatedPersonStore(client: client, logger: logger, terminology: terminology)

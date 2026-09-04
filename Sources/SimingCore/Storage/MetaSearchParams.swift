@@ -2,7 +2,7 @@ import Foundation
 import ModelsR4
 
 // ── Shared meta search params (FHIR R4 §3.2.2 global params) ─────────────────
-// Applies to all 23 resources. Embedded in each XxxSearchQuery as a default-
+// Applies to all 24 resources. Embedded in each XxxSearchQuery as a default-
 // initialised property (no init signature change required).
 
 public struct MetaSearchParams: Sendable {

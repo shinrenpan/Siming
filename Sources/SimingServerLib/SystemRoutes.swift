@@ -35,6 +35,7 @@ public func addSystemRoutes(
         async let drEntries        = include("DiagnosticReport")         ? stores.diagnosticReport.typeHistory(since: since, count: count)         : []
         async let immEntries       = include("Immunization")             ? stores.immunization.typeHistory(since: since, count: count)             : []
         async let pracEntries      = include("Practitioner")             ? stores.practitioner.typeHistory(since: since, count: count)             : []
+        async let pracRoleEntries  = include("PractitionerRole")         ? stores.practitionerRole.typeHistory(since: since, count: count)         : []
         async let orgEntries       = include("Organization")             ? stores.organization.typeHistory(since: since, count: count)             : []
         async let locEntries       = include("Location")                 ? stores.location.typeHistory(since: since, count: count)                 : []
         async let rpEntries        = include("RelatedPerson")            ? stores.relatedPerson.typeHistory(since: since, count: count)            : []
@@ -50,7 +51,7 @@ public func addSystemRoutes(
 
         let all = try await (
             patientEntries + obsEntries + encEntries + conEntries + medBaseEntries + medEntries + allergyEntries
-            + procEntries + drEntries + immEntries + pracEntries + orgEntries + locEntries + rpEntries
+            + procEntries + drEntries + immEntries + pracEntries + pracRoleEntries + orgEntries + locEntries + rpEntries
             + srEntries + specEntries + docRefEntries + carePlanEntries + goalEntries + msEntries
             + fmhEntries + apptEntries + maEntries
         )

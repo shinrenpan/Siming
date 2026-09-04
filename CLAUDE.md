@@ -14,7 +14,8 @@ Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default 
 
 **Current state: v1.0.0 — feature complete.** Phases A–F done. No active feature development planned in this repo.
 - **G (planned):** NHI terminology as external FHIR packages — Siming needs no code changes; existing package loader handles them. G Phase work belongs in a separate package project.
-- **Backlog (implement if GitHub issues are filed):** `MedicationDispense` (completes medication workflow), `PractitionerRole` (completes provider model). Both follow existing store/route patterns — low implementation cost, high clinical value.
+- **Backlog (implement if GitHub issues are filed):** `MedicationDispense` (completes medication workflow). Follows existing store/route patterns — low implementation cost, high clinical value.
+- **`PractitionerRole` is deliberately partial:** only the `practitioner` reference param is indexed. The other 12 R4 params are live `// TODO: unhandled` markers in `Generated/PractitionerRole+SearchExtractor.swift`. Add one by writing its case in `SimingGenerator/PractitionerRoleHandlers.swift` and regenerating — never by hand-editing the generated file.
 - **Not planned:** `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`, `Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`, R5, multi-tenancy, terminology server (CodeSystem/ValueSet CRUD + operations), Subscriptions/Notifications.
 - **Ecosystem:** Downstream clients connect via standard FHIR API. No first-party frontend planned.
 
