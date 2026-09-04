@@ -117,6 +117,16 @@ public struct MigrationRunner: Sendable {
                     current.append(chars[i])
                     i += 1
                 }
+            } else if chars[i] == "-", i + 1 < chars.count, chars[i + 1] == "-" {
+                // A "--" line comment runs to end of line. Copy it through
+                // without inspecting it: a ";" inside a comment is not a
+                // statement terminator, and splitting there produces a fragment
+                // that fails at startup with a bare syntax error.
+                // (cleanStatement still drops whole comment lines afterwards.)
+                while i < chars.count && chars[i] != "\n" {
+                    current.append(chars[i])
+                    i += 1
+                }
             } else if chars[i] == ";" {
                 let stmt = cleanStatement(current)
                 if !stmt.isEmpty { statements.append(stmt) }
