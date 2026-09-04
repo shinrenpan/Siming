@@ -318,6 +318,7 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - Every read + vread handler **must** include `headers[.contentLocation] = contentLocation(request, versionId: result.versionId)`.
 - Every write runs in a single PostgresNIO transaction (insert resource + replace index rows). Never split.
 - **All date handling is UTC on both sides.** Extractors set `dc.timeZone` explicitly (`dt.timeZone ?? TimeZone(secondsFromGMT: 0)`) — never let `DateComponents` fall through to the host zone, or indexed values shift with wherever the server runs. Query values without a timezone are read as UTC to match. Rationale and the R4 wording: `docs/roadmap.md`.
+- SQL conditions are parenthesized by `andJoin` in `MultiSort.swift`, never by the caller — stores emit fragments containing bare `OR` (`_lastUpdated=ne`), and AND-joining those unparenthesized silently drops every preceding condition including the deleted guard.
 - Date-valued search params go through `parseDateParams(...)` (`SearchHelpers.swift`). Never `.compactMap` a failed parse away — an unparseable value is a **400**, not a dropped filter. Lenient handling covers unknown *parameters*, not malformed *values*.
 - **DELETE** returns 204 No Content; subsequent GET returns **410 Gone** (not 404).
 - **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read → apply patch → decode → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.

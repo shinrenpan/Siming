@@ -94,6 +94,12 @@ it then appears in search results while `GET /[type]/[id]` correctly returns 410
 This holds for every read path: `buildIdsInner` (both the LATERAL and DISTINCT ON
 branches), `buildCountIdsInner` for `_summary=count`, and `IncludeResolver`.
 
+Conditions are parenthesized where they are joined (`andJoin` in `MultiSort.swift`),
+not where they are built. Stores emit raw SQL fragments and some are disjunctions —
+`_lastUpdated=ne` renders as `lu < $1 OR lu > $2`. AND-joined unparenthesized, OR's
+lower precedence re-associates the whole predicate and discards both the deleted guard
+and any preceding filter.
+
 Deleting also clears every `idx_*` row for the resource, so an index-backed filter
 excludes it a second way. That redundancy is why the defect only ever showed up in
 queries with no filter CTE — no parameters, `_id=`, `_lastUpdated=`, or a lone `:not`
@@ -115,7 +121,7 @@ covers, which is what the `idx_date` range comparison is written against:
 | `YYYY-MM` | 1st 00:00:00 – last day 23:59:59 |
 | `YYYY-MM-DD` | 00:00:00 – 23:59:59 |
 | `YYYY-MM-DDThh:mm` | hh:mm:00 – hh:mm:59 |
-| `YYYY-MM-DDThh:mm:ss[.fff]` | the instant (fractional seconds truncated — `idx_date` has no sub-second resolution) |
+| `YYYY-MM-DDThh:mm:ss[.fff]` | the instant (fractional seconds truncated — `idx_date` resolves to the second) |
 
 `Z` or `±hh:mm` may follow the time; the offset must be two digits each side. A value
 with no timezone is read as **UTC**, matching what the extractors write. See
@@ -123,7 +129,8 @@ with no timezone is read as **UTC**, matching what the extractors write. See
 behind it.
 
 **A value that does not parse is a 400 with an `OperationOutcome`, not a dropped
-filter** — including under lenient handling. R4 §3.1.1 permits ignoring a search
+filter** — including under lenient handling, and including inside a chained or `_has`
+param (`patient.birthdate=…`, `_has:Observation:patient:date=…`). R4 §3.1.1 permits ignoring a search
 *parameter* the server does not recognise; it says nothing about accepting a
 malformed *value* for one it does, and silently discarding the filter answers a
 different question with a 200. Route code must use `parseDateParams(...)`
@@ -132,10 +139,13 @@ different question with a 200. Route code must use `parseDateParams(...)`
 Impossible civil dates (`2026-02-30`, `2026-09-04T25:00:00Z`) are rejected rather than
 rolled over by `Calendar`.
 
-**Index-side precision** is minute-level: extractors keep hour and minute, drop
-seconds. A `period` bound that carries a time keeps it; a date-only bound widens to
-the start or end of its day. Every extractor sets `timeZone` explicitly, so an indexed
-instant does not depend on the host's zone.
+**Index-side precision is seconds**, matching the finest precision a search value
+can express. It has to: a search value at second precision resolves to that exact
+instant, so an index truncated to the minute could never match it — `date=eq…T08:30:45Z`
+against a resource carrying 08:30:45 would return nothing. A `period` bound that
+carries a time keeps it; a date-only bound widens to the start or end of its day.
+Every extractor sets `timeZone` explicitly, so an indexed instant does not depend on
+the host's zone.
 
 ### Date `ap` (approximate) prefix
 
