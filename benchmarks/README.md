@@ -67,6 +67,7 @@ HAPI POST at ≥20 connections has ~50% failure rate — treat POST comparison a
 
 **v2 optimisations** (migration `0002` + deferred-content SQL):
 - `resources_live_idx` partial covering index → index-only scan for the `ids` CTE.
+  *(Superseded: migration `0006` replaced this index with `resources_current_covering_idx`. The partial index carried `WHERE deleted = FALSE`, and the `ids` CTE stopped filtering on `deleted` inside the current-version pick — that placement was returning deleted resources. Rounds below were measured on the older index.)*
 - Covering indexes on all `idx_*` tables (resource_id included) → index-only DISTINCT scans.
 - Deferred-content SQL: `ids` CTE (no content) → `paged` CTE (cursor + LIMIT) → final JOIN for content only.
 
@@ -86,7 +87,7 @@ HAPI POST at ≥20 connections has ~50% failure rate — treat POST comparison a
 | GET /Patient?birthdate=ge1990-01-01 | 836 | 24.1 | 37.1 | 100% | 1927 | 9.0 | 29.3 | 100% | 0.43x |
 
 **v4 optimisations** (LATERAL JOIN in `ids` CTE + multi-key `_sort`):
-- `buildIdsInner()`: when filter CTEs are present, replaces full `resources` Seq Scan with a LATERAL join against `resources_live_idx` — one Index Only Scan per matched resource_id instead of scanning all rows.
+- `buildIdsInner()`: when filter CTEs are present, replaces full `resources` Seq Scan with a LATERAL join against `resources_live_idx` — one Index Only Scan per matched resource_id instead of scanning all rows. *(Now `resources_current_covering_idx`; the LATERAL shape is unchanged. Re-measured at 100k versions after migration `0006`: LATERAL path 81.7 ms → 85.6 ms, unfiltered DISTINCT ON path 12.2 ms → 14.1 ms. The numbers in the tables above predate that change and were not re-run — per this file's own rule, compare only under the same feature set.)*
 - EXPLAIN ANALYZE: name=Wang query 2.6 ms (was 5.6 ms); birthdate range query 6.5 ms (was 8.5 ms).
 - Multi-key `_sort` (Round 76): `_sort=family,birthdate` etc. — all sort sources (lastUpdated, string, date, token, id) with keyset cursor pagination.
 
