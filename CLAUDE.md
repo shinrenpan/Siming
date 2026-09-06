@@ -12,7 +12,7 @@ Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default 
 
 **Siming is a clinical data server, not a terminology server.** It stores and searches clinical resources. It does not host CodeSystem/ValueSet nor implement `$expand`/`$lookup` — those belong to a separate terminology service layer. Do not add terminology server features.
 
-**Current state: v1.1.0 — feature complete.** No active feature development planned in this repo.
+**Current state: v1.2.0 — feature complete.** No feature development is planned from this repo's own roadmap; changes arrive from integration work with downstream clients.
 
 **What is not done, and why, lives in one place: [`docs/roadmap.md`](docs/roadmap.md).**
 Read it before proposing a feature, filing a gap, or re-investigating a known defect —
