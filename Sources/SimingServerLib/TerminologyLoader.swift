@@ -15,12 +15,19 @@ import SimingCore
 /// Never throws. Returns `TerminologyIndex.empty` when the directory is absent or empty.
 public func loadTerminology(packagesDir: String, logger: Logger) -> TerminologyIndex {
     let fm = FileManager.default
+    // No packages is a silent degradation, not a crash: terminology validation and
+    // the CapabilityStatement both quietly thin out. Say so — packages/*.tgz is
+    // gitignored, so a clean clone or a CI image reaches here with an empty dir.
     guard let contents = try? fm.contentsOfDirectory(atPath: packagesDir) else {
+        logger.warning("[Terminology] packages directory not readable at \(packagesDir) — no terminology loaded")
         return .empty
     }
     let tgzFiles = contents.filter { $0.hasSuffix(".tgz") }.sorted()
         .map { "\(packagesDir)/\($0)" }
-    guard !tgzFiles.isEmpty else { return .empty }
+    guard !tgzFiles.isEmpty else {
+        logger.warning("[Terminology] no .tgz packages found in \(packagesDir) — no terminology loaded")
+        return .empty
+    }
 
     // Collect all JSON objects from every package (one pass over the filesystem)
     var allObjects: [[String: Any]] = []
