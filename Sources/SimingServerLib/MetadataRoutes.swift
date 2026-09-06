@@ -105,8 +105,8 @@ private func buildRest(smartConfig: SmartConfiguration?, igData: IGData) -> [Str
         "searchParam": globalSearchParams(),
     ]
 
-    if smartConfig != nil {
-        rest["security"] = [
+    if let smartConfig {
+        var security: [String: Any] = [
             "cors": true,
             "description": "SMART App Launch Framework",
             "service": [[
@@ -117,6 +117,19 @@ private func buildRest(smartConfig: SmartConfiguration?, igData: IGData) -> [Str
                 ]],
             ]],
         ]
+        // The oauth-uris extension is the other half of SMART discovery — older
+        // clients read it instead of /.well-known/smart-configuration. Emit the
+        // same endpoints so the two documents cannot drift apart.
+        if let authorizeURL = smartConfig.authorizeURL, let tokenURL = smartConfig.tokenURL {
+            security["extension"] = [[
+                "url": "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris",
+                "extension": [
+                    ["url": "authorize", "valueUri": authorizeURL],
+                    ["url": "token", "valueUri": tokenURL],
+                ],
+            ]]
+        }
+        rest["security"] = security
     }
 
     return rest

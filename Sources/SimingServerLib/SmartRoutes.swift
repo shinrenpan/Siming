@@ -17,14 +17,20 @@ public func addSmartRoutes(to router: Router<BasicRequestContext>, config: Smart
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
-private func buildSmartConfigJSON(config: SmartConfiguration) -> Data {
+/// Builds the SMART App Launch discovery document.
+///
+/// Fields describing the *authorization server* are emitted only when both
+/// `authorizeURL` and `tokenURL` are configured — see
+/// `SmartConfiguration.advertisesAuthorizationServer`. Without them this server
+/// is a plain resource server and must not claim to support standalone launch.
+func buildSmartConfigJSON(config: SmartConfiguration) -> Data {
+    var capabilities = [
+        "permission-v1",
+        "permission-patient",
+        "context-standalone-patient",
+    ]
     var obj: [String: Any] = [
         "issuer": config.issuer,
-        "capabilities": [
-            "permission-v1",
-            "permission-patient",
-            "context-standalone-patient",
-        ],
         "scopes_supported": [
             "openid", "fhirUser", "launch", "launch/patient",
             "patient/*.read", "patient/*.write",
@@ -33,10 +39,18 @@ private func buildSmartConfigJSON(config: SmartConfiguration) -> Data {
             "offline_access",
         ],
         "response_types_supported": ["code"],
-        "token_endpoint_auth_methods_supported": ["private_key_jwt", "client_secret_basic"],
+        // "none" — public clients (native apps) authenticate with PKCE, not a secret.
+        "token_endpoint_auth_methods_supported": ["none", "private_key_jwt", "client_secret_basic"],
     ]
     if let jwksURL = config.jwksURL {
         obj["jwks_uri"] = jwksURL
     }
+    if let authorizeURL = config.authorizeURL, let tokenURL = config.tokenURL {
+        obj["authorization_endpoint"] = authorizeURL
+        obj["token_endpoint"] = tokenURL
+        obj["code_challenge_methods_supported"] = ["S256"]
+        capabilities.append(contentsOf: ["launch-standalone", "client-public"])
+    }
+    obj["capabilities"] = capabilities
     return (try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys])) ?? Data()
 }
