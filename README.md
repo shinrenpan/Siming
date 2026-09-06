@@ -38,7 +38,7 @@ Siming is a **clinical data server** — it stores and searches clinical resourc
 - **24 FHIR R4 resource types** — CRUD, search, history, compartment, transaction bundle (`PractitionerRole` indexes `practitioner` only — see [notes](docs/FHIR-implementation-notes.md#practitionerrole))
 - **TW Core IG v1.0.0** — 9/9 profiles validated; `$validate` with optional HL7 Validator sidecar
 - **Search** — chained, `_has`, `_include`/`_revinclude`, `_summary`, `_elements`, cursor pagination
-- **Security** — SMART on FHIR JWT bearer (opt-in), per-IP rate limiting (opt-in), CORS
+- **Security** — SMART on FHIR JWT bearer (opt-in, [setup](docs/smart-on-fhir.md)), per-IP rate limiting (opt-in), CORS
 - **Built-in browser** — `GET /ui` — CRUD for all resource types, JSON editor, response-time indicator
 - **Observability** — Prometheus metrics (`GET /metrics`), `X-Request-ID` trace header
 - **Generated search** — search extractors are generated from the loaded FHIR packages, not hand-written; changing the IG is a package swap + regenerate, no handler rewrites ([details](docs/generator.md))
