@@ -1,7 +1,8 @@
 # Siming FHIR R4 Server — configuration file
 #
-# Non-secret operational settings only. Secrets (database credentials, SMART
-# keys) must be provided via environment variables — see README.md §Configuration.
+# Non-secret operational settings only. Secrets must be provided via environment
+# variables: database credentials as PGHOST / PGUSER / PGPASSWORD / PGDATABASE,
+# SMART on FHIR keys and endpoints as documented in docs/smart-on-fhir.md.
 #
 # Environment variables always take precedence over values in this file.
 # Relative paths are resolved from the working directory at startup.
