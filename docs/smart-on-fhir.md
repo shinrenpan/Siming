@@ -20,6 +20,12 @@ SMART support is off by default and turns on when `SMART_ISSUER` is set.
 Neither JWKS nor PEM set → the server starts and logs a warning, but every token
 fails verification.
 
+**An empty value counts as unset.** `SMART_AUDIENCE=""` in a compose file or Helm
+chart is indistinguishable from omitting it, so empty (and whitespace-only) values
+are normalised to absent before any rule is applied. The one exception is
+`SMART_ISSUER`: an empty value fails at startup rather than disabling SMART, because
+silently disabling it would serve FHIR with no authentication at all.
+
 ## `aud` matching is exact
 
 `BearerAuthMiddleware` compares via JWTKit's `AudienceClaim.verifyIntendedAudience(includes:)`,
@@ -42,14 +48,30 @@ fails at startup rather than serving a half-built discovery document — a clien
 requires both endpoints would otherwise fail while decoding, far from the actual
 misconfiguration.
 
-When both are set, `GET /.well-known/smart-configuration` gains `authorization_endpoint`,
-`token_endpoint`, `code_challenge_methods_supported: ["S256"]`, and the
-`launch-standalone` / `client-public` capabilities; `GET /metadata` gains the matching
-`oauth-uris` extension on `rest.security`. When neither is set, none of those appear —
-this deployment cannot support a standalone launch, so it does not claim to.
+Because an empty value is normalised to absent first, `SMART_AUTHORIZE_URL=""` with a
+real `SMART_TOKEN_URL` fails at startup too, rather than publishing an empty
+`authorization_endpoint`.
 
-`token_endpoint_auth_methods_supported` includes `"none"`: public clients (native apps
-with no client secret) authenticate with PKCE.
+## What the endpoints gate
+
+Siming does not run the authorization server, so it must not describe one that is not
+configured. Everything below appears only when both endpoints are set, and disappears
+together when they are not:
+
+| Field | Value |
+|---|---|
+| `authorization_endpoint` / `token_endpoint` | as configured |
+| `code_challenge_methods_supported` | `["S256"]` |
+| `grant_types_supported` | `["authorization_code", "refresh_token"]` — required by SMART 2.0 once endpoints are advertised; `refresh_token` because `offline_access` is in `scopes_supported` and no other grant redeems it |
+| `token_endpoint_auth_methods_supported` | `["none", "private_key_jwt", "client_secret_basic"]` — `"none"` is for public clients (native apps with no secret) authenticating via PKCE. Describes the token endpoint, so it is not emitted without one |
+| `capabilities` | adds `launch-standalone`, `client-public`, `context-standalone-patient` — the last is patient context *in a standalone launch* and cannot stand without the launch |
+
+`GET /metadata` carries the same two endpoints in the `oauth-uris` extension on
+`rest.security`. Both documents derive from `SmartConfiguration.authorizationServer`,
+a single property, so they cannot disagree.
+
+A deployment with no authorization server keeps only `issuer`, `scopes_supported`,
+`response_types_supported`, `jwks_uri` and the `permission-*` capabilities.
 
 ## Unauthenticated paths
 

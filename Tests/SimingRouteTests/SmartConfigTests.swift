@@ -37,9 +37,14 @@ struct SmartConfigTests {
         #expect(obj["token_endpoint"] == nil)
         #expect(obj["code_challenge_methods_supported"] == nil)
 
+        #expect(obj["grant_types_supported"] == nil)
+        #expect(obj["token_endpoint_auth_methods_supported"] == nil)
+
         let caps = try #require(obj["capabilities"] as? [String])
         #expect(!caps.contains("launch-standalone"))
         #expect(!caps.contains("client-public"))
+        // Patient context in a standalone launch cannot stand without the launch.
+        #expect(!caps.contains("context-standalone-patient"))
     }
 
     // ── Paired with an authorization server ───────────────────────────────────
@@ -72,14 +77,142 @@ struct SmartConfigTests {
         let caps = try #require(obj["capabilities"] as? [String])
         #expect(caps.contains("launch-standalone"))
         #expect(caps.contains("client-public"))
+        #expect(caps.contains("context-standalone-patient"))
         #expect(caps.contains("permission-v1"))
     }
 
     @Test("advertises 'none' auth for PKCE public clients")
     func publicClientAuthMethod() async throws {
-        let obj = try await fetch(SmartConfiguration(issuer: "https://idp.example.com"))
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                authorizeURL: "https://idp.example.com/auth",
+                tokenURL: "https://idp.example.com/token"
+            )
+        )
         let methods = try #require(obj["token_endpoint_auth_methods_supported"] as? [String])
         #expect(methods.contains("none"))
+    }
+
+    @Test("emits grant_types_supported required by SMART 2.0")
+    func grantTypes() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                authorizeURL: "https://idp.example.com/auth",
+                tokenURL: "https://idp.example.com/token"
+            )
+        )
+        let grants = try #require(obj["grant_types_supported"] as? [String])
+        #expect(grants.contains("authorization_code"))
+        // offline_access is advertised in scopes_supported; refresh_token redeems it.
+        #expect(grants.contains("refresh_token"))
+    }
+
+    // ── Empty environment variables ───────────────────────────────────────────
+    // Unset values render as "" in compose / Helm / k8s manifests, so "" must not
+    // read as "set" anywhere the both-or-neither rule or an emit site looks.
+
+    @Test("an empty endpoint does not slip past the both-or-neither rule")
+    func emptyAuthorizeURLRejected() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_AUTHORIZE_URL": "",
+                    "SMART_TOKEN_URL": "https://idp.example.com/token",
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
+    @Test("two empty endpoints are a resource-server-only deployment, not a broken one")
+    func bothEndpointsEmpty() async throws {
+        let config = try await SmartConfiguration.from(
+            environment: [
+                "SMART_ISSUER": "https://idp.example.com",
+                "SMART_AUTHORIZE_URL": "",
+                "SMART_TOKEN_URL": "   ",
+            ],
+            logger: quietLogger
+        )
+        let unwrapped = try #require(config)
+        #expect(unwrapped.authorizationServer == nil)
+
+        let obj = try await fetch(unwrapped)
+        #expect(obj["authorization_endpoint"] == nil)
+    }
+
+    @Test("an empty endpoint never reaches the document as an empty string")
+    func emptyEndpointNotPublished() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                authorizeURL: "",
+                tokenURL: "https://idp.example.com/token"
+            )
+        )
+        #expect(obj["authorization_endpoint"] == nil)
+        #expect(obj["token_endpoint"] == nil)
+        let caps = try #require(obj["capabilities"] as? [String])
+        #expect(!caps.contains("launch-standalone"))
+    }
+
+    // ── The second emit site ──────────────────────────────────────────────────
+
+    /// CapabilityStatement carries the same endpoints via the oauth-uris extension.
+    /// It is a separate emit site, so it needs its own assertion — a fix applied to
+    /// the discovery document alone would leave this one publishing the old value.
+    private func fetchMetadataSecurity(_ config: SmartConfiguration?) async throws -> [String: Any]? {
+        let router = Router<BasicRequestContext>()
+        addMetadataRoutes(to: router, smartConfig: config)
+        return try await Application(responder: router.buildResponder()).test(.router) { client in
+            try await client.execute(uri: "/metadata", method: .get) { res in
+                let cs = try JSONSerialization.jsonObject(with: Data(buffer: res.body)) as? [String: Any]
+                let rest = try #require(cs?["rest"] as? [[String: Any]])
+                return rest[0]["security"] as? [String: Any]
+            }
+        }
+    }
+
+    @Test("oauth-uris carries the endpoints when they are configured")
+    func metadataOAuthURIs() async throws {
+        let security = try await fetchMetadataSecurity(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                authorizeURL: "https://idp.example.com/auth",
+                tokenURL: "https://idp.example.com/token"
+            )
+        )
+        let ext = try #require(security?["extension"] as? [[String: Any]])
+        let inner = try #require(ext[0]["extension"] as? [[String: Any]])
+        #expect(inner.contains { $0["url"] as? String == "authorize"
+            && $0["valueUri"] as? String == "https://idp.example.com/auth" })
+        #expect(inner.contains { $0["url"] as? String == "token"
+            && $0["valueUri"] as? String == "https://idp.example.com/token" })
+    }
+
+    @Test("oauth-uris is absent rather than empty when an endpoint is empty")
+    func metadataOAuthURIsNotEmpty() async throws {
+        let security = try await fetchMetadataSecurity(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                authorizeURL: "",
+                tokenURL: "https://idp.example.com/token"
+            )
+        )
+        #expect(security?["extension"] == nil)
+    }
+
+    @Test("an empty SMART_ISSUER fails rather than silently disabling auth")
+    func emptyIssuerFailsClosed() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: ["SMART_ISSUER": "  "],
+                logger: quietLogger
+            )
+        }
     }
 
     @Test("scopes a standalone client requests are all supported")
