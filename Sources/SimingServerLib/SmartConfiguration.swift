@@ -71,6 +71,21 @@ public struct SmartConfiguration: Sendable {
     /// authorize endpoint would be a false claim.
     public var advertisesAuthorizationServer: Bool { authorizationServer != nil }
 
+    /// Every URL here is either fetched by this server or published for a client to
+    /// fetch. A typo in one that is only published fails nowhere near the deployment
+    /// that caused it — the document is well-formed, the server logs nothing, and only
+    /// the client breaks — so reject it at startup like the other misconfigurations.
+    private static func validatedURL(_ value: String, _ variable: String) throws -> URL {
+        guard let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              url.host?.isEmpty == false
+        else {
+            throw SmartConfigError.invalidURL("\(variable) is not a valid http(s) URL: \(value)")
+        }
+        return url
+    }
+
     public static func fromEnvironment(logger: Logger) async throws -> SmartConfiguration? {
         try await from(environment: ProcessInfo.processInfo.environment, logger: logger)
     }
@@ -97,6 +112,11 @@ public struct SmartConfiguration: Sendable {
         let authorizeURL = environment["SMART_AUTHORIZE_URL"]?.nonEmptyOrNil
         let tokenURL = environment["SMART_TOKEN_URL"]?.nonEmptyOrNil
 
+        let jwksFetchURL = try jwksURL.map { try validatedURL($0, "SMART_JWKS_URL") }
+        _ = try advertisedJWKSURL.map { try validatedURL($0, "SMART_ADVERTISED_JWKS_URL") }
+        _ = try authorizeURL.map { try validatedURL($0, "SMART_AUTHORIZE_URL") }
+        _ = try tokenURL.map { try validatedURL($0, "SMART_TOKEN_URL") }
+
         // Both-or-neither. A half-configured pair yields a discovery document that
         // fails client-side decoding far away from the actual misconfiguration,
         // so reject it at startup instead.
@@ -108,8 +128,8 @@ public struct SmartConfiguration: Sendable {
 
         let keys = JWTKeyCollection()
 
-        if let urlString = jwksURL, let url = URL(string: urlString) {
-            logger.info("SMART: fetching JWKS from \(urlString)")
+        if let url = jwksFetchURL {
+            logger.info("SMART: fetching JWKS from \(url.absoluteString)")
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let json = String(data: data, encoding: .utf8) else {
                 throw SmartConfigError.invalidJWKS("JWKS response is not valid UTF-8")
@@ -149,4 +169,5 @@ public enum SmartConfigError: Error {
     case invalidJWKS(String)
     case incompleteAuthorizationServer(String)
     case emptyIssuer(String)
+    case invalidURL(String)
 }

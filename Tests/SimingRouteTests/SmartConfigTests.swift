@@ -213,6 +213,57 @@ struct SmartConfigTests {
         #expect(config.advertisedJWKSURL == "https://idp.example.com/certs")
     }
 
+    // ── URL validation ────────────────────────────────────────────────────────
+    // A published URL is fetched by someone else, so a typo in one fails far from the
+    // deployment that caused it. Reject at startup instead.
+
+    @Test("a malformed advertised JWKS URL fails at startup", arguments: [
+        "htp://localhost:8081/certs",   // typo'd scheme
+        "localhost:8081/certs",         // no scheme
+        "https://",                     // no host
+    ])
+    func malformedAdvertisedJWKSRejected(_ value: String) async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_ADVERTISED_JWKS_URL": value,
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
+    @Test("a malformed authorize URL fails at startup")
+    func malformedAuthorizeURLRejected() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_AUTHORIZE_URL": "htp://idp.example.com/auth",
+                    "SMART_TOKEN_URL": "https://idp.example.com/token",
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
+    /// Previously this fell through to the PEM branch and then to the
+    /// "all tokens will fail verification" warning, so the server booted and 401'd
+    /// every request instead of refusing to start.
+    @Test("a malformed SMART_JWKS_URL fails rather than degrading to no keys")
+    func malformedJWKSURLRejected() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_JWKS_URL": "not a url",
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
     // ── The second emit site ──────────────────────────────────────────────────
 
     /// CapabilityStatement carries the same endpoints via the oauth-uris extension.

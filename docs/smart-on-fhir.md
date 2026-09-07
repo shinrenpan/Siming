@@ -21,6 +21,11 @@ SMART support is off by default and turns on when `SMART_ISSUER` is set.
 Neither JWKS nor PEM set → the server starts and logs a warning, but every token
 fails verification.
 
+Every URL variable is validated at startup and must be a well-formed `http`/`https`
+URL with a host. A malformed one is rejected rather than published or quietly ignored:
+the three endpoint variables are read by clients, so a typo in them would otherwise
+surface only as a client that can never connect.
+
 **An empty value counts as unset.** `SMART_AUDIENCE=""` in a compose file or Helm
 chart is indistinguishable from omitting it, so empty (and whitespace-only) values
 are normalised to absent before any rule is applied. The one exception is
