@@ -159,6 +159,60 @@ struct SmartConfigTests {
         #expect(!caps.contains("launch-standalone"))
     }
 
+    // ── Split-horizon JWKS ────────────────────────────────────────────────────
+    // The address this server fetches keys from and the address it tells clients to
+    // fetch from are the same string only when one address reaches the authorization
+    // server from both sides. In a container it does not.
+
+    @Test("jwks_uri falls back to the fetch address when no advertised one is set")
+    func advertisedJWKSDefaultsToFetchURL() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                jwksURL: "https://idp.example.com/certs"
+            )
+        )
+        #expect(obj["jwks_uri"] as? String == "https://idp.example.com/certs")
+    }
+
+    @Test("jwks_uri publishes the advertised address, not the container-internal one")
+    func advertisedJWKSOverridesFetchURL() async throws {
+        let config = SmartConfiguration(
+            issuer: "https://idp.example.com",
+            jwksURL: "http://keycloak:8080/realms/siming/protocol/openid-connect/certs",
+            advertisedJWKSURL: "http://localhost:8081/realms/siming/protocol/openid-connect/certs"
+        )
+        // The server still fetches from the internal address.
+        #expect(config.jwksURL == "http://keycloak:8080/realms/siming/protocol/openid-connect/certs")
+
+        let obj = try await fetch(config)
+        #expect(obj["jwks_uri"] as? String
+            == "http://localhost:8081/realms/siming/protocol/openid-connect/certs")
+    }
+
+    @Test("an advertised address alone is published without a fetch address")
+    func advertisedJWKSWithoutFetchURL() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                advertisedJWKSURL: "https://idp.example.com/certs"
+            )
+        )
+        #expect(obj["jwks_uri"] as? String == "https://idp.example.com/certs")
+    }
+
+    /// Asserted on the initialiser rather than through `from(environment:)`, which
+    /// fetches the key set over the network when SMART_JWKS_URL is present.
+    @Test("an empty advertised address falls back rather than publishing nothing")
+    func emptyAdvertisedJWKSFallsBack() {
+        let config = SmartConfiguration(
+            issuer: "https://idp.example.com",
+            jwksURL: "https://idp.example.com/certs",
+            advertisedJWKSURL: "  "
+        )
+        #expect(config.advertisedJWKSURL == "https://idp.example.com/certs")
+    }
+
     // ── The second emit site ──────────────────────────────────────────────────
 
     /// CapabilityStatement carries the same endpoints via the oauth-uris extension.
