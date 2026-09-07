@@ -21,7 +21,14 @@ private extension String {
 public struct SmartConfiguration: Sendable {
     public let issuer: String
     public let audience: String?
+    /// Where *this server* fetches the key set from — a container-internal address in
+    /// a split-horizon deployment.
     public let jwksURL: String?
+    /// What the discovery document publishes as `jwks_uri`, for clients that fetch the
+    /// key set themselves. Defaults to `jwksURL`, which is correct whenever one address
+    /// reaches the authorization server from both sides. It is not correct in a
+    /// container: `http://keycloak:8080/...` resolves for this server and for nobody else.
+    public let advertisedJWKSURL: String?
     /// SMART `authorization_endpoint` — the paired authorization server, not this server.
     /// Always set together with `tokenURL`; both nil means no authorization server is
     /// advertised and this deployment acts purely as a resource server.
@@ -34,6 +41,7 @@ public struct SmartConfiguration: Sendable {
         issuer: String,
         audience: String? = nil,
         jwksURL: String? = nil,
+        advertisedJWKSURL: String? = nil,
         authorizeURL: String? = nil,
         tokenURL: String? = nil,
         keys: JWTKeyCollection = JWTKeyCollection()
@@ -41,6 +49,9 @@ public struct SmartConfiguration: Sendable {
         self.issuer = issuer
         self.audience = audience?.nonEmptyOrNil
         self.jwksURL = jwksURL?.nonEmptyOrNil
+        // Resolve the fallback here, so the published value is right at every read site
+        // rather than at whichever ones remember to apply it.
+        self.advertisedJWKSURL = advertisedJWKSURL?.nonEmptyOrNil ?? jwksURL?.nonEmptyOrNil
         self.authorizeURL = authorizeURL?.nonEmptyOrNil
         self.tokenURL = tokenURL?.nonEmptyOrNil
         self.keys = keys
@@ -59,6 +70,21 @@ public struct SmartConfiguration: Sendable {
     /// claim in the discovery document — advertising `launch-standalone` without an
     /// authorize endpoint would be a false claim.
     public var advertisesAuthorizationServer: Bool { authorizationServer != nil }
+
+    /// Every URL here is either fetched by this server or published for a client to
+    /// fetch. A typo in one that is only published fails nowhere near the deployment
+    /// that caused it — the document is well-formed, the server logs nothing, and only
+    /// the client breaks — so reject it at startup like the other misconfigurations.
+    private static func validatedURL(_ value: String, _ variable: String) throws -> URL {
+        guard let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              url.host?.isEmpty == false
+        else {
+            throw SmartConfigError.invalidURL("\(variable) is not a valid http(s) URL: \(value)")
+        }
+        return url
+    }
 
     public static func fromEnvironment(logger: Logger) async throws -> SmartConfiguration? {
         try await from(environment: ProcessInfo.processInfo.environment, logger: logger)
@@ -82,8 +108,14 @@ public struct SmartConfiguration: Sendable {
         // as "set" and publishes an empty authorization_endpoint.
         let audience = environment["SMART_AUDIENCE"]?.nonEmptyOrNil
         let jwksURL = environment["SMART_JWKS_URL"]?.nonEmptyOrNil
+        let advertisedJWKSURL = environment["SMART_ADVERTISED_JWKS_URL"]?.nonEmptyOrNil
         let authorizeURL = environment["SMART_AUTHORIZE_URL"]?.nonEmptyOrNil
         let tokenURL = environment["SMART_TOKEN_URL"]?.nonEmptyOrNil
+
+        let jwksFetchURL = try jwksURL.map { try validatedURL($0, "SMART_JWKS_URL") }
+        _ = try advertisedJWKSURL.map { try validatedURL($0, "SMART_ADVERTISED_JWKS_URL") }
+        _ = try authorizeURL.map { try validatedURL($0, "SMART_AUTHORIZE_URL") }
+        _ = try tokenURL.map { try validatedURL($0, "SMART_TOKEN_URL") }
 
         // Both-or-neither. A half-configured pair yields a discovery document that
         // fails client-side decoding far away from the actual misconfiguration,
@@ -96,8 +128,8 @@ public struct SmartConfiguration: Sendable {
 
         let keys = JWTKeyCollection()
 
-        if let urlString = jwksURL, let url = URL(string: urlString) {
-            logger.info("SMART: fetching JWKS from \(urlString)")
+        if let url = jwksFetchURL {
+            logger.info("SMART: fetching JWKS from \(url.absoluteString)")
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let json = String(data: data, encoding: .utf8) else {
                 throw SmartConfigError.invalidJWKS("JWKS response is not valid UTF-8")
@@ -113,6 +145,9 @@ public struct SmartConfiguration: Sendable {
 
         let audInfo = audience.map { ", audience=\($0)" } ?? ""
         logger.info("SMART: auth enabled, issuer=\(issuer)\(audInfo)")
+        if let advertisedJWKSURL, advertisedJWKSURL != jwksURL {
+            logger.info("SMART: advertising jwks_uri=\(advertisedJWKSURL) (fetching from \(jwksURL ?? "-"))")
+        }
         if let authorizeURL, let tokenURL {
             logger.info("SMART: advertising authorization server, authorize=\(authorizeURL), token=\(tokenURL)")
         } else {
@@ -122,6 +157,7 @@ public struct SmartConfiguration: Sendable {
             issuer: issuer,
             audience: audience,
             jwksURL: jwksURL,
+            advertisedJWKSURL: advertisedJWKSURL,
             authorizeURL: authorizeURL,
             tokenURL: tokenURL,
             keys: keys
@@ -133,4 +169,5 @@ public enum SmartConfigError: Error {
     case invalidJWKS(String)
     case incompleteAuthorizationServer(String)
     case emptyIssuer(String)
+    case invalidURL(String)
 }

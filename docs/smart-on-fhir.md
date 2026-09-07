@@ -11,8 +11,9 @@ SMART support is off by default and turns on when `SMART_ISSUER` is set.
 | Variable | Required | Purpose |
 |---|---|---|
 | `SMART_ISSUER` | yes — enables SMART | Expected `iss` claim. Tokens with a different issuer are rejected. |
-| `SMART_JWKS_URL` | one of these two | JWKS endpoint, fetched once at startup. |
+| `SMART_JWKS_URL` | one of these two | JWKS endpoint **this server fetches from**, once at startup. |
 | `SMART_PUBLIC_KEY_PEM` | one of these two | RSA public key (RS256), as an alternative to JWKS. |
+| `SMART_ADVERTISED_JWKS_URL` | no | JWKS address **published to clients** as `jwks_uri`. Defaults to `SMART_JWKS_URL`. |
 | `SMART_AUDIENCE` | no | Expected `aud` claim. Unset means `aud` is **not checked**. |
 | `SMART_AUTHORIZE_URL` | with `SMART_TOKEN_URL` | Authorization server's `authorization_endpoint`. |
 | `SMART_TOKEN_URL` | with `SMART_AUTHORIZE_URL` | Authorization server's `token_endpoint`. |
@@ -20,11 +21,41 @@ SMART support is off by default and turns on when `SMART_ISSUER` is set.
 Neither JWKS nor PEM set → the server starts and logs a warning, but every token
 fails verification.
 
+Every URL variable is validated at startup and must be a well-formed `http`/`https`
+URL with a host. A malformed one is rejected rather than published or quietly ignored:
+the three endpoint variables are read by clients, so a typo in them would otherwise
+surface only as a client that can never connect.
+
 **An empty value counts as unset.** `SMART_AUDIENCE=""` in a compose file or Helm
 chart is indistinguishable from omitting it, so empty (and whitespace-only) values
 are normalised to absent before any rule is applied. The one exception is
 `SMART_ISSUER`: an empty value fails at startup rather than disabling SMART, because
 silently disabling it would serve FHIR with no authentication at all.
+
+## Split-horizon deployments
+
+`SMART_JWKS_URL` and the published `jwks_uri` serve consumers on opposite sides of the
+network, and they are the same string only when one address reaches the authorization
+server from both. In a container they are not:
+
+- **This server** fetches the key set from inside the container network —
+  `http://keycloak:8080/realms/…/certs`.
+- **A client** reading `jwks_uri` out of the discovery document fetches it from outside —
+  `http://localhost:8081/realms/…/certs`.
+
+Set `SMART_ADVERTISED_JWKS_URL` to the externally reachable address; `SMART_JWKS_URL`
+stays internal. When it is unset, `jwks_uri` falls back to `SMART_JWKS_URL`, which is
+correct for a single-host deployment.
+
+Getting this wrong is quiet on the server side: discovery returns 200 with a
+well-formed document, every endpoint answers, and only the client fails — it cannot
+resolve the address, cannot fetch the keys, and silently fails to verify an id_token.
+Nothing in Siming's logs indicates a problem.
+
+A client should treat published `jwks_uri` as a hint and fall back to the issuer's own
+`{issuer}/.well-known/openid-configuration`. That issuer must come from the client's
+configuration, never from the token's own `iss` claim — a token that names its own
+issuer can supply its own keys, which defeats signature verification entirely.
 
 ## `aud` matching is exact
 

@@ -39,7 +39,9 @@ func buildSmartConfigJSON(config: SmartConfiguration) -> Data {
         ],
         "response_types_supported": ["code"],
     ]
-    if let jwksURL = config.jwksURL {
+    // The advertised address, not the one this server fetches from — a client that
+    // reads jwks_uri has to reach it from outside the container network.
+    if let jwksURL = config.advertisedJWKSURL {
         obj["jwks_uri"] = jwksURL
     }
     if let server = config.authorizationServer {

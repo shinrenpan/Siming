@@ -159,6 +159,111 @@ struct SmartConfigTests {
         #expect(!caps.contains("launch-standalone"))
     }
 
+    // ── Split-horizon JWKS ────────────────────────────────────────────────────
+    // The address this server fetches keys from and the address it tells clients to
+    // fetch from are the same string only when one address reaches the authorization
+    // server from both sides. In a container it does not.
+
+    @Test("jwks_uri falls back to the fetch address when no advertised one is set")
+    func advertisedJWKSDefaultsToFetchURL() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                jwksURL: "https://idp.example.com/certs"
+            )
+        )
+        #expect(obj["jwks_uri"] as? String == "https://idp.example.com/certs")
+    }
+
+    @Test("jwks_uri publishes the advertised address, not the container-internal one")
+    func advertisedJWKSOverridesFetchURL() async throws {
+        let config = SmartConfiguration(
+            issuer: "https://idp.example.com",
+            jwksURL: "http://keycloak:8080/realms/siming/protocol/openid-connect/certs",
+            advertisedJWKSURL: "http://localhost:8081/realms/siming/protocol/openid-connect/certs"
+        )
+        // The server still fetches from the internal address.
+        #expect(config.jwksURL == "http://keycloak:8080/realms/siming/protocol/openid-connect/certs")
+
+        let obj = try await fetch(config)
+        #expect(obj["jwks_uri"] as? String
+            == "http://localhost:8081/realms/siming/protocol/openid-connect/certs")
+    }
+
+    @Test("an advertised address alone is published without a fetch address")
+    func advertisedJWKSWithoutFetchURL() async throws {
+        let obj = try await fetch(
+            SmartConfiguration(
+                issuer: "https://idp.example.com",
+                advertisedJWKSURL: "https://idp.example.com/certs"
+            )
+        )
+        #expect(obj["jwks_uri"] as? String == "https://idp.example.com/certs")
+    }
+
+    /// Asserted on the initialiser rather than through `from(environment:)`, which
+    /// fetches the key set over the network when SMART_JWKS_URL is present.
+    @Test("an empty advertised address falls back rather than publishing nothing")
+    func emptyAdvertisedJWKSFallsBack() {
+        let config = SmartConfiguration(
+            issuer: "https://idp.example.com",
+            jwksURL: "https://idp.example.com/certs",
+            advertisedJWKSURL: "  "
+        )
+        #expect(config.advertisedJWKSURL == "https://idp.example.com/certs")
+    }
+
+    // ── URL validation ────────────────────────────────────────────────────────
+    // A published URL is fetched by someone else, so a typo in one fails far from the
+    // deployment that caused it. Reject at startup instead.
+
+    @Test("a malformed advertised JWKS URL fails at startup", arguments: [
+        "htp://localhost:8081/certs",   // typo'd scheme
+        "localhost:8081/certs",         // no scheme
+        "https://",                     // no host
+    ])
+    func malformedAdvertisedJWKSRejected(_ value: String) async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_ADVERTISED_JWKS_URL": value,
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
+    @Test("a malformed authorize URL fails at startup")
+    func malformedAuthorizeURLRejected() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_AUTHORIZE_URL": "htp://idp.example.com/auth",
+                    "SMART_TOKEN_URL": "https://idp.example.com/token",
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
+    /// Previously this fell through to the PEM branch and then to the
+    /// "all tokens will fail verification" warning, so the server booted and 401'd
+    /// every request instead of refusing to start.
+    @Test("a malformed SMART_JWKS_URL fails rather than degrading to no keys")
+    func malformedJWKSURLRejected() async {
+        await #expect(throws: SmartConfigError.self) {
+            try await SmartConfiguration.from(
+                environment: [
+                    "SMART_ISSUER": "https://idp.example.com",
+                    "SMART_JWKS_URL": "not a url",
+                ],
+                logger: quietLogger
+            )
+        }
+    }
+
     // ── The second emit site ──────────────────────────────────────────────────
 
     /// CapabilityStatement carries the same endpoints via the oauth-uris extension.
