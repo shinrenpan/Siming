@@ -4,10 +4,10 @@
 
 ```bash
 # 1. Start Siming's DB
-docker-compose up -d db
+docker compose up -d db
 
 # 2. Start HAPI + its DB (first run pulls ~500 MB image; HAPI takes ~60 s to start)
-docker-compose -f docker-compose.yml -f docker-compose.benchmark.yml up -d hapi
+docker compose -f docker-compose.yml -f docker-compose.benchmark.yml up -d hapi
 
 # 3. Build and start Siming — always use release build for benchmarking
 swift build -c release
@@ -40,10 +40,10 @@ The POST body uses `birthDate: 1950-06-15` intentionally — does not match the 
 ```bash
 # Reset Siming
 docker exec siming-db-1 psql -U siming -d siming \
-  -c "TRUNCATE resources, idx_token, idx_string, idx_date, idx_reference, idx_quantity;"
+  -c "TRUNCATE resources, idx_token, idx_string, idx_date, idx_reference, idx_quantity, idx_composite;"
 
 # Reset HAPI (hapi-db has no volume; restart clears it)
-docker-compose -f docker-compose.yml -f docker-compose.benchmark.yml restart hapi-db hapi
+docker compose -f docker-compose.yml -f docker-compose.benchmark.yml restart hapi-db hapi
 ```
 
 ## Honesty rule

@@ -242,7 +242,7 @@ Appointment uses `participant.actor`; MedicationAdministration uses `subject.whe
 
 **Root-level composite params** (INTERSECT-per-pair, UNION across OR values; no new index table required — reuses existing idx_token/idx_quantity/idx_string/idx_date): `code-value-quantity` (code token `$` value-quantity quantity), `code-value-string` (code token `$` value-string prefix), `code-value-concept` (code token `$` value-concept token), `code-value-date` (code token `$` value-date date). Wire format: `code-value-quantity=29463-7$ge60`. Multiple values OR'd.
 
-**Component/combo composite params** (idx_composite tuple match): `component-code-value-quantity`, `component-code-value-concept`, `combo-code-value-quantity`, `combo-code-value-concept` — use `idx_composite` table (migration `0005_composite_idx.sql`). Each row stores one `(code1, value2/code2)` tuple from a single component or root element. Query: simple OR across tuple conditions — no INTERSECT needed. Wire format: `component-code-value-quantity=8480-6$ge100`. `combo-code-value-quantity` indexes both root (`obs.value as Quantity`) and each component.
+**Component/combo composite params — NOT indexed; searches return nothing.** See [roadmap](roadmap.md#search-params-the-router-accepts-but-nothing-indexes). The generator drops composite SearchParameters, so no rows reach `idx_composite`; the design below is what the query side expects. (idx_composite tuple match): `component-code-value-quantity`, `component-code-value-concept`, `combo-code-value-quantity`, `combo-code-value-concept` — use `idx_composite` table (migration `0005_composite_idx.sql`). Each row stores one `(code1, value2/code2)` tuple from a single component or root element. Query: simple OR across tuple conditions — no INTERSECT needed. Wire format: `component-code-value-quantity=8480-6$ge100`. `combo-code-value-quantity` indexes both root (`obs.value as Quantity`) and each component.
 
 **Date params** (idx_date): `value-date` (`obs.value as DateTime`).
 
@@ -331,7 +331,7 @@ All of the following are fully implemented:
 
 - `endpoint` — fully implemented via idx_reference.
 - `operational-status` / `operational-status:not` — `loc.operationalStatus` token via idx_token.
-- `near` (geospatial) — **TODO stub** (no-op extractor); requires PostGIS extension.
+- `near` (geospatial) — not implemented: the generator skips `special` params, so no extractor exists. Requires PostGIS.
 
 ### RelatedPerson
 
@@ -340,7 +340,7 @@ All of the following are fully implemented:
 
 ### ServiceRequest
 
-- `order-detail` — `sr.orderDetail[].coding[]` via idx_token with `:not` modifier.
+- `order-detail` — **not an R4 search param** (no SearchParameter in r4.core or TW Core), so nothing is indexed; the route still accepts it and returns nothing. See [roadmap](roadmap.md#search-params-the-router-accepts-but-nothing-indexes).
 - `body-site:not`, `performer-type:not`, `requisition:not` — token negation via idx_token NOT IN subquery.
 - `instantiates-canonical` — `sr.instantiatesCanonical[]` via idx_string (case-insensitive URL match via `lower(value) = lower($n)`).
 - `instantiates-uri` — indexes `sr.instantiatesUri[]` via idx_string (exact URL match).
@@ -351,7 +351,7 @@ All of the following are fully implemented:
 - Fully implemented: `contenttype`, `format`, `language`, `setting`, `custodian`, `authenticator`, `relatesto` (reference — `relatesTo[].target` via idx_reference), `relation` (token — `relatesTo[].code` with system `http://hl7.org/fhir/document-relationship-type` via idx_token), `related` (`doc.context.related[]` via idx_reference).
 - `location` — `content[].attachment.url` via idx_string (URI type — exact match `value = $n`).
 - `facility:not`, `event:not` — token negation via idx_token NOT IN subquery.
-- `relationship` — composite of `relatesto` (reference) + `relation` (token); stores per-entry `(relation_code, target_ref)` tuple in idx_composite with `string2 = target_ref`. Wire format: `relationship=DocumentReference/targetId$appends`. Per-entry tuple matching eliminates false positives when a document has multiple relatesTo entries with different codes/targets.
+- `relationship` — **NOT indexed; searches return nothing** (composite, dropped by the generator — see [roadmap](roadmap.md#search-params-the-router-accepts-but-nothing-indexes)). Intended design: composite of `relatesto` (reference) + `relation` (token); stores per-entry `(relation_code, target_ref)` tuple in idx_composite with `string2 = target_ref`. Wire format: `relationship=DocumentReference/targetId$appends`. Per-entry tuple matching eliminates false positives when a document has multiple relatesTo entries with different codes/targets.
 
 ### CarePlan
 

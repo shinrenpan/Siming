@@ -11,37 +11,48 @@ Entries move out of this file when they ship, or when the decision changes.
 
 ## Known defects
 
-### Composite-backed search returns wrong results
+### Search params the router accepts but nothing indexes
 
-7 integration tests fail on `main`. All of them exercise `idx_composite`:
+7 integration tests fail on `main`. They have two causes, neither of them in the
+search SQL.
 
-| Test | Expected | Actual |
-|---|---|---|
-| `ObservationStoreTests` — component/combo × quantity/concept (4 tests) | 1 | **0** |
-| `DocumentReferenceStoreTests.testSearch_byRelationship_matchesExactTuple` | 1 | **0** |
-| `ServiceRequestStoreTests.testSearch_byOrderDetail_returnsMatchOnly` | 1 | **0** |
-| `ServiceRequestStoreTests.testSearch_byOrderDetailNot_excludesCorrectly` | 1 | **2** |
+| Test | Expected | Actual | Cause |
+|---|---|---|---|
+| `ObservationStoreTests` — component/combo × quantity/concept (4 tests) | 1 | **0** | composite never indexed |
+| `DocumentReferenceStoreTests.testSearch_byRelationship_matchesExactTuple` | 1 | **0** | composite never indexed |
+| `ServiceRequestStoreTests.testSearch_byOrderDetail_returnsMatchOnly` | 1 | **0** | not an R4 search param |
+| `ServiceRequestStoreTests.testSearch_byOrderDetailNot_excludesCorrectly` | 1 | **2** | not an R4 search param |
 
-Six return too few, one returns too many — possibly two faces of one bug.
+**Composite params are never written.** `SimingGenerator` drops every
+SearchParameter with `type == "composite"` (`Sources/SimingGenerator/BundleTypes.swift`,
+the `guard spec.type != …` filter), so the handler code that fills
+`SearchParams.composites` (`ObservationHandlers.swift`, `DocumentReferenceHandlers.swift`)
+is never emitted, and nothing in `Sources/SimingCore/Generated/` writes to
+`idx_composite`. Emission was removed in a0486da ("eliminate phantom search params");
+the `idx_composite` table, the store-side filter CTEs and the tests survived it.
+An earlier investigation found rows in `idx_composite` and concluded the write path
+worked — those were leftovers from before a0486da, kept alive because
+`TestDatabase.truncate()` omits `idx_composite`.
 
-**Already ruled out** (do not re-investigate):
+**`order-detail` does not exist in R4.** Neither r4.core 4.0.1 nor TW Core 1.0.0
+defines a ServiceRequest `order-detail` SearchParameter (only the ValueSet), so the
+generator emits no extractor; the route still accepts the param and the store filters
+`idx_token` rows that are never written. Search returns nothing; `:not` excludes nothing.
 
-- `idx_composite` table and its indexes exist; migration `0005_composite_idx` is applied
-- The write path works — the table holds rows, and the specific values the failing
-  tests search for (e.g. `value2 = 120` under `component-code-value-quantity`) are present
-- `clear_index_rows` **does** delete from `idx_composite` (`0005` re-creates the function),
-  so stale rows are not left behind on update or delete
-- `ObservationSearchQuery.QuantityParam.parse` handles `ge100` correctly
-- The `param_name` string literals match between the extractor and the query builder
+Effect in production: `/metadata` does not advertise these params (correctly), but
+a client that sends them anyway gets **an empty result**, not an ignored parameter
+(lenient) or a 400 (strict) as for any other unknown param.
 
-**Remaining suspect:** the search SQL assembly — the composite filter CTEs in
-`ObservationStore.buildSearchSQL` (and the equivalents in `DocumentReferenceStore` /
-`ServiceRequestStore`) and how they combine in `buildIdsInner`.
+Two ways out, not yet chosen:
 
-**Separate, smaller bug found while investigating:** `TestDatabase.truncate()`
-(`Tests/SimingIntegrationTests/TestDatabase.swift`) omits `idx_composite`, so orphan
-composite rows accumulate across tests. Worth fixing on its own, but fixing it alone
-does **not** make the 7 tests pass — verified.
+1. **Implement composite indexing** — stop filtering `composite` in the generator,
+   emit the composite handlers, advertise the params. `order-detail` still goes.
+   Feature work: the query side exists, the extraction side needs review.
+2. **Stop accepting what is not indexed** — drop the composite and `order-detail`
+   params from the routes' accepted lists and the stores, and delete those tests.
+   They then behave like every other unsupported param.
+
+Either way, fix `TestDatabase.truncate()` to include `idx_composite`.
 
 ### `_summary=count` ignores filters the same query applies without it
 
@@ -81,22 +92,20 @@ The deleted-row half of this path is already fixed — both builders now go thro
 `{"effectivePeriod": {}}` — a Period carrying neither `start` nor `end` — is
 indexed as `distantPast .. distantFuture`, so the resource is returned by every
 `date=` query, including ones it has no business matching
-(`?effective=eq1900-01-01` finds it). All twelve period extractors behave this
-way; it is consistent, not a two-resource anomaly.
+(`?effective=eq1900-01-01` finds it). Every period extractor behaves this way
+(11 generated files); it is consistent, not a two-resource anomaly.
 
 The fix is a guard before the append: emit no row when both bounds are absent —
 a resource with no date should be absent from date searches, which is also what
 `:missing=true` already means.
 
-Not done yet, deliberately. It needs the same edit at twelve sites in
+Not done yet, deliberately. It needs the same edit at every period site in
 `Sources/SimingGenerator/`, each with different surrounding control flow
 (`return` / `continue` / `switch` case), and that shape of per-site hand-editing
 is where two regressions were introduced during the search-correctness round —
 including one in a block that had just been edited. Weighed against an input that
 does not occur in real data, the change is not worth making unforced. Do it when
 a period extractor is being touched for another reason.
-
----
 
 ---
 
@@ -156,6 +165,23 @@ is true of every resource carrying TODO params, not just this one.
   existing package loader already handles them. That work belongs in a separate
   package project.
 
+---
+
+## Not planned
+
+Resources: `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`,
+`Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`.
+
+Capabilities: R5, multi-tenancy, Subscriptions/Notifications, and a terminology
+server (CodeSystem/ValueSet CRUD plus `$expand` / `$lookup`) — Siming is a clinical
+data server; terminology belongs to a separate service layer.
+
+Ecosystem: no first-party frontend. Downstream clients connect over the standard
+FHIR API.
+
+Reopening any of these needs a reason that did not exist when it was ruled out —
+not just a new opportunity to build it.
+
 ### Interpreting a timezone-less date search value as the server's local timezone
 
 Raised from downstream: on a `TZ=Asia/Taipei` host, `Encounter?date=ge2026-09-05`
@@ -192,22 +218,3 @@ downstream client settled on.
 Reopen if a deployment needs `TZ`-relative semantics for date-only values against
 timed elements. The shape would be a configured (never inherited) server timezone
 applied symmetrically to extraction and parsing, plus a reindex.
-
----
-
----
-
-## Not planned
-
-Resources: `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`,
-`Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`.
-
-Capabilities: R5, multi-tenancy, Subscriptions/Notifications, and a terminology
-server (CodeSystem/ValueSet CRUD plus `$expand` / `$lookup`) — Siming is a clinical
-data server; terminology belongs to a separate service layer.
-
-Ecosystem: no first-party frontend. Downstream clients connect over the standard
-FHIR API.
-
-Reopening any of these needs a reason that did not exist when it was ruled out —
-not just a new opportunity to build it.

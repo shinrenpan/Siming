@@ -24,7 +24,7 @@ Rule: **don't build future features early, but don't weld future doors shut.**
 
 - **Framework:** Hummingbird 2 (SwiftNIO based). No Fluent, no Leaf.
 - **DB:** PostgreSQL via PostgresNIO directly. Hand-tuned SQL — no ORM. Connection pooling via `PostgresClient` (call `.run()` as a background task). Pool: min=4 / max=40 (set in `DatabaseConfiguration.postgresClientConfiguration`).
-- **FHIR models:** apple/FHIRModels, `ModelsR4` target. Pinned at `0.9.3`. Linux builds supported.
+- **FHIR models:** apple/FHIRModels, `ModelsR4` target. `from: "0.9.2"` in Package.swift, resolved to `0.9.3`. Linux builds supported.
 - **FHIR version:** R4 only. R5 is explicitly out of scope.
 
 ### FHIRModels API cheatsheet
@@ -92,6 +92,7 @@ struct MyPayload: JWTPayload {
 - Build: `swift build`
 - Run server: `swift run -c release SimingServer` — listens on `0.0.0.0:8080`
 - Unit tests: `swift test --filter SimingCoreTests` — no DB required
+- Route tests: `swift test --filter SimingRouteTests` — HummingbirdTesting, no DB required
 - Integration tests: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift test --filter SimingIntegrationTests`
 - Regenerate search extractors: `swift run SimingGenerator` — reads `packages/*.tgz`, writes `Sources/SimingCore/Generated/`
 - Full local run: `PGHOST=localhost PGUSER=siming PGPASSWORD=siming PGDATABASE=siming swift run -c release SimingServer`
@@ -109,15 +110,16 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
 
 - `resources` table: `(resource_type, id, version_id, last_updated, content jsonb, deleted bool)`
 - **History-preserving:** update writes a NEW row (incremented `version_id`), never overwrites. Current version = highest `version_id` for `(resource_type, id)`.
-- Five typed index tables (one per search-param TYPE, not per param):
+- Six typed index tables (one per search-param TYPE, not per param):
   - `idx_token` (system, code) — identifier, code, status
   - `idx_string` — name, address (functional btree on `lower(value)` for prefix; trigram GIN for `:contains`)
   - `idx_reference` — subject, patient
   - `idx_date` — date, period (b-tree range)
   - `idx_quantity` — value-quantity
+  - `idx_composite` (`0005_composite_idx.sql`) — composite tuples. **Currently never written**: the generator drops composite params (see `docs/roadmap.md`)
 - Each index row: `(resource_type, resource_id, param_name, value...)`.
 - **Write extracts to index tables. Read/search queries index tables, never scans jsonb.**
-- Covering indexes on all idx_* tables enable index-only scans. `resources_current_covering_idx` — `(resource_type, id, version_id DESC) INCLUDE (last_updated, deleted)` — covers the current-version pick.
+- Covering indexes on the idx_* tables (except `idx_quantity_value_idx` and `idx_composite_lookup`) enable index-only scans. `resources_current_covering_idx` — `(resource_type, id, version_id DESC) INCLUDE (last_updated, deleted)` — covers the current-version pick.
 - **`deleted` is checked AFTER the current-version pick, never inside it.** Filtering `deleted = false` before picking `MAX(version_id)` makes a tombstoned resource fall back to its last live version instead of disappearing. This is why the pick has no `deleted` predicate and no partial index.
 - Read path uses raw JSON passthrough (`injectMeta` / `buildBundleJSON`) — zero FHIRModels decode on reads. Do not decode/re-encode on the read path.
 
@@ -126,14 +128,15 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
 Every create / update runs in a single PostgresNIO transaction via **`writeResource`** (`ResourceWriter.swift`):
 1. Assign `id` — UUID on create; client-provided on PUT (validate `[A-Za-z0-9\-\.]{1,64}`).
 2. Single CTE: validate If-Match + compute `version_id` (`COALESCE(MAX, 0) + 1`) + insert resource row.
-3. Call `clear_index_rows($resourceType, $id)` — PostgreSQL function in `0003_functions.sql` that deletes all five index tables in one server-side call.
+3. Call `clear_index_rows($resourceType, $id)` — PostgreSQL function (last redefined in `0005_composite_idx.sql`) that deletes from all six index tables in one server-side call.
 4. Bulk-insert new index rows via **`replaceIndexRows`** (`IndexWriter.swift`) — one batch INSERT per non-empty index table.
 5. Call `validate(resource)` in the store before entering the transaction — no-op hook for future profile validation. **Never remove this call.**
 
 Delete follows the same pattern via **`deleteResource`** (`ResourceWriter.swift`): version check → tombstone INSERT → `clear_index_rows`.
 
 **Do NOT write your own BEGIN/COMMIT transaction for resource writes.** Use `writeResource` / `deleteResource`.
-**Do NOT issue 5 individual DELETEs against index tables.** Use `clear_index_rows` or `replaceIndexRows`.
+The one exception is the transaction Bundle (`TransactionRoutes.swift`): it opens one BEGIN for all entries and calls `writeResourceInner` / `deleteResourceInner`. Its entries never pass through a store, so every pre-write check a store's `write()` runs (terminology `validateCodes`, and profile validation when it lands) must also run in `prepareResource` (`BundleTransaction.swift`) — otherwise a Bundle bypasses it.
+**Do NOT issue individual DELETEs against index tables.** Use `clear_index_rows` or `replaceIndexRows`.
 
 ### Adding a new resource
 
@@ -243,7 +246,7 @@ FROM paged p CROSS JOIN total_count t
 JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` (or `buildCountIdsInner` for the `_summary=count` path) — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
+**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` (or `buildCountIdsInner(resourceType:filterCTEs:whereConditions:)` for the `_summary=count` path) — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
 
 ## FHIR wire-format rules
 
@@ -265,7 +268,7 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **Content-Type** on all FHIR responses includes `fhirVersion=4.0`. Injected by `CORSMiddleware` post-response hook.
 
-**History bundles** (`buildHistoryBundleJSON`) require `selfURL` parameter — always pass `selfURL: "\(baseURL)\(request.uri)"`.
+**History bundles** (`buildHistoryBundleJSON`) require `selfURL` parameter — pass `baseURL: serverBaseURL(request)` and `selfURL: selfURL(request)`.
 
 **`_total` semantics:** `accurate` (default) — exact `COUNT(*)`; `estimate` — skips count, returns exact only when page is last; `none` — omits `Bundle.total`. `_summary=count` forces `count=0 + totalMode=.accurate`.
 
@@ -325,6 +328,6 @@ Timer(label: "db_query_duration_seconds", dimensions: [("query", "search")]).rec
 - SQL conditions are parenthesized by `andJoin` in `MultiSort.swift`, never by the caller — stores emit fragments containing bare `OR` (`_lastUpdated=ne`), and AND-joining those unparenthesized silently drops every preceding condition including the deleted guard.
 - Date-valued search params go through `parseDateParams(...)` (`SearchHelpers.swift`). Never `.compactMap` a failed parse away — an unparseable value is a **400**, not a dropped filter. Lenient handling covers unknown *parameters*, not malformed *values*.
 - **DELETE** returns 204 No Content; subsequent GET returns **410 Gone** (not 404).
-- **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read → apply patch → decode → store.update. Patch errors → 400; `test` op failure → 422; `If-Match` mismatch → 412.
+- **PATCH** uses `Content-Type: application/json-patch+json` (RFC 6902). Flow: read → apply patch → decode → store.update. Malformed patch or wrong Content-Type → 400; `test` op failure or a patched result that is not valid FHIR → 422; `If-Match` mismatch → 412.
 - **Compartment constraint** (`GET /Patient/:id/[ResourceType]`) is injected server-side; client cannot override.
 - Benchmarking: compare under the same feature set only. See `benchmarks/README.md`.

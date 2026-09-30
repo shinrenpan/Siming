@@ -32,9 +32,13 @@ From those it writes **two kinds of artifact**:
 
    which fans out to one small private function per search parameter and appends
    into the typed buckets of `SearchParams` (tokens / strings / references /
-   dates / quantities). These buckets map 1:1 onto the five `idx_*` index tables.
-   Params recognised by the R4 spec but not yet implemented are emitted as `TODO`
-   markers, so the coverage gap is visible in the generated code itself.
+   dates / quantities / composites), which map 1:1 onto the six `idx_*` index
+   tables. Params recognised by the R4 spec but not yet implemented are emitted as
+   `TODO` markers, so the coverage gap is visible in the generated code itself —
+   **except** `composite` and `special` params (and extension-based ones), which
+   `BundleTypes.swift` drops before emission with no marker. That silent drop is why
+   the composite bucket is currently always empty; see
+   [roadmap](roadmap.md#search-params-the-router-accepts-but-nothing-indexes).
 
 2. **Terminology binding rules** — `TerminologyBindings.swift`, a
    `[String: [BindingRule]]` table of the *required* value-set bindings per

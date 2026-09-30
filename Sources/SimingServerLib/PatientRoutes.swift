@@ -233,7 +233,7 @@ public func addPatientRoutes(to router: Router<SimingRequestContext>, store: Pat
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maxCount)
         let entries = try await store.typeHistory(since: since, count: count)
         let baseURL = serverBaseURL(request)
-        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: selfURL(request))
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
@@ -248,7 +248,7 @@ public func addPatientRoutes(to router: Router<SimingRequestContext>, store: Pat
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maxCount)
         let entries = try await store.history(id: id, since: since, count: count)
         let baseURL = serverBaseURL(request)
-        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
+        let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: selfURL(request))
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
         return Response(status: .ok, headers: headers,
