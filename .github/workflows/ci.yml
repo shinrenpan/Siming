@@ -10,6 +10,20 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siming
+          POSTGRES_PASSWORD: siming
+          POSTGRES_DB: siming
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U siming"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -27,3 +41,19 @@ jobs:
       # HTTP routes and middleware via HummingbirdTesting — no database needed.
       - name: Route Tests
         run: swift test --filter SimingRouteTests
+
+      # Without a database these tests XCTSkip and the step would pass having run
+      # nothing — so a skip fails the build.
+      - name: Integration Tests
+        env:
+          PGHOST: localhost
+          PGUSER: siming
+          PGPASSWORD: siming
+          PGDATABASE: siming
+        run: |
+          set -o pipefail
+          swift test --filter SimingIntegrationTests 2>&1 | tee integration.log
+          if grep -q 'skipped' integration.log; then
+            echo "::error::Integration tests were skipped — database not reachable?"
+            exit 1
+          fi
