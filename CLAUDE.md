@@ -188,6 +188,8 @@ let outcome = OperationOutcome(issue: [
 
 Passing `PostgresClient` to handlers: capture in closure at router-build time.
 
+Routers are `Router<SimingRequestContext>` — build with `Router(context: SimingRequestContext.self)`, never `Router()` (defaults to `BasicRequestContext`, which drops the peer address the rate limiter keys on).
+
 ## PostgresNIO dynamic query pattern
 
 ```swift

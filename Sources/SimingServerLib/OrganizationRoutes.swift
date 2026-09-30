@@ -22,7 +22,7 @@ let knownOrganizationParams: Set<String> = [
 ]
 
 public func addOrganizationRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: OrganizationStore,
     logger: Logger
 ) {

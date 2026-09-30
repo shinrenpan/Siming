@@ -22,7 +22,7 @@ let knownLocationParams: Set<String> = [
 ]
 
 public func addLocationRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: LocationStore,
     logger: Logger
 ) {

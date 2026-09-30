@@ -11,7 +11,7 @@ private let fhirJSON = "application/fhir+json"
 /// Procedure, DiagnosticReport, Immunization, RelatedPerson, ServiceRequest, Specimen, DocumentReference, CarePlan, Goal, MedicationStatement, FamilyMemberHistory, Appointment, MedicationAdministration.
 /// Forces subject/patient=Patient/:patientId server-side; client cannot override.
 public func addCompartmentRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     stores: StoreContainer,
     logger: Logger
 ) {

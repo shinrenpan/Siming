@@ -10,7 +10,7 @@ import Testing
 struct SmartConfigTests {
 
     private func makeApp(_ config: SmartConfiguration) -> some ApplicationProtocol {
-        let router = Router<BasicRequestContext>()
+        let router = Router(context: SimingRequestContext.self)
         addSmartRoutes(to: router, config: config)
         return Application(responder: router.buildResponder())
     }
@@ -270,7 +270,7 @@ struct SmartConfigTests {
     /// It is a separate emit site, so it needs its own assertion — a fix applied to
     /// the discovery document alone would leave this one publishing the old value.
     private func fetchMetadataSecurity(_ config: SmartConfiguration?) async throws -> [String: Any]? {
-        let router = Router<BasicRequestContext>()
+        let router = Router(context: SimingRequestContext.self)
         addMetadataRoutes(to: router, smartConfig: config)
         return try await Application(responder: router.buildResponder()).test(.router) { client in
             try await client.execute(uri: "/metadata", method: .get) { res in

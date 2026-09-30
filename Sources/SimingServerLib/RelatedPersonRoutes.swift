@@ -25,7 +25,7 @@ let knownRelatedPersonParams: Set<String> = [
 ]
 
 public func addRelatedPersonRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: RelatedPersonStore,
     logger: Logger
 ) {

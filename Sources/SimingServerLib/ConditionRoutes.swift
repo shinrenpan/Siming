@@ -29,7 +29,7 @@ let knownConditionParams: Set<String> = [
 ]
 
 public func addConditionRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: ConditionStore,
     logger: Logger
 ) {

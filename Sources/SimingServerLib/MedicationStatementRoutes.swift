@@ -22,7 +22,7 @@ let knownMedicationStatementParams: Set<String> = [
 ]
 
 public func addMedicationStatementRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: MedicationStatementStore,
     logger: Logger
 ) {

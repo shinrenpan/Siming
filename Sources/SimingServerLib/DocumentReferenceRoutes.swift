@@ -27,7 +27,7 @@ let knownDocumentReferenceParams: Set<String> = [
 ]
 
 public func addDocumentReferenceRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: DocumentReferenceStore,
     logger: Logger
 ) {

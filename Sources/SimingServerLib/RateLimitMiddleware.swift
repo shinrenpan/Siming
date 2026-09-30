@@ -4,13 +4,16 @@ import Hummingbird
 import NIOCore
 
 /// Per-IP token-bucket rate limiting middleware.
-/// Client key: first IP in X-Forwarded-For header, or "global" if absent.
+/// Client key: see `rateLimitClientKey` — the TCP peer, or the X-Forwarded-For entry a
+/// trusted proxy vouches for.
 /// Exempt paths: /health, /metrics (load balancer probes / Prometheus scrape).
-public struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
+public struct RateLimitMiddleware<Context: RemoteAddressRequestContext>: RouterMiddleware {
     let limiter: RateLimiter
+    let trustedProxies: TrustedProxies
 
     public init(config: RateLimitConfiguration) {
         self.limiter = RateLimiter(config: config)
+        self.trustedProxies = config.trustedProxies
     }
 
     public func handle(
@@ -24,7 +27,21 @@ public struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
         default: break
         }
 
-        let key = clientKey(from: request)
+        let forwardedFor = request.headers[values: .xForwardedFor]
+        if trustedProxies.isEmpty, !forwardedFor.isEmpty, await limiter.claimForwardingWarning() {
+            // Before 1.4 this header was the key. A proxied deployment upgraded without
+            // RATE_LIMIT_TRUSTED_PROXIES now puts every client in the proxy's bucket.
+            context.logger.warning("""
+                Rate limiting ignores X-Forwarded-For: no trusted proxies are configured, so \
+                clients are keyed by TCP peer. Behind a reverse proxy, set \
+                RATE_LIMIT_TRUSTED_PROXIES to its address or every client shares one bucket.
+                """)
+        }
+        let key = rateLimitClientKey(
+            peer: context.remoteAddress?.ipAddress,
+            forwardedFor: forwardedFor,
+            trusted: trustedProxies
+        )
         let (allowed, retryAfter) = await limiter.check(key: key)
 
         guard allowed else {
@@ -32,12 +49,6 @@ public struct RateLimitMiddleware<Context: RequestContext>: RouterMiddleware {
         }
 
         return try await next(request, context)
-    }
-
-    private func clientKey(from request: Request) -> String {
-        guard let forwarded = request.headers[.xForwardedFor] else { return "global" }
-        return forwarded.components(separatedBy: ",").first?
-            .trimmingCharacters(in: .whitespaces) ?? "global"
     }
 
     private func tooManyRequestsResponse(retryAfter: Int) -> Response {
@@ -61,11 +72,18 @@ actor RateLimiter {
     }
 
     private var buckets: [String: Bucket] = [:]
+    private var forwardingWarned = false
     private var lastCleanup: Date = Date()
     private let config: RateLimitConfiguration
 
     init(config: RateLimitConfiguration) {
         self.config = config
+    }
+
+    /// True exactly once per process.
+    func claimForwardingWarning() -> Bool {
+        defer { forwardingWarned = true }
+        return !forwardingWarned
     }
 
     func check(key: String) -> (allowed: Bool, retryAfter: Int) {

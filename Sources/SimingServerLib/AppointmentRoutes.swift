@@ -25,7 +25,7 @@ let knownAppointmentParams: Set<String> = [
 ]
 
 public func addAppointmentRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: AppointmentStore,
     logger: Logger
 ) {

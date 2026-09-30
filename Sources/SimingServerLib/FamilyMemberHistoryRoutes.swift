@@ -22,7 +22,7 @@ let knownFamilyMemberHistoryParams: Set<String> = [
 ]
 
 public func addFamilyMemberHistoryRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: FamilyMemberHistoryStore,
     logger: Logger
 ) {

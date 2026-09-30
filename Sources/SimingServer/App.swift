@@ -38,7 +38,7 @@ struct SimingApp {
         let terminology = loadTerminology(packagesDir: config.fhirPackagesDir, logger: logger)
         let stores = StoreContainer(client: postgresClient, logger: logger, terminology: terminology)
         let smartConfig = try await SmartConfiguration.fromEnvironment(logger: logger)
-        let rateLimitConfig = RateLimitConfiguration.from(config: config, logger: logger)
+        let rateLimitConfig = try RateLimitConfiguration.from(config: config, logger: logger)
         let externalValidator = config.validatorURL.map { ExternalValidator(baseURL: $0) }
         if let v = externalValidator {
             logger.info("External validator enabled", metadata: ["url": "\(v.baseURL)"])

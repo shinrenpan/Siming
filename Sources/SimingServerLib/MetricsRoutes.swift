@@ -2,7 +2,7 @@ import Hummingbird
 import NIOCore
 import Prometheus
 
-public func addMetricsRoute(to router: Router<BasicRequestContext>, registry: PrometheusCollectorRegistry) {
+public func addMetricsRoute(to router: Router<SimingRequestContext>, registry: PrometheusCollectorRegistry) {
     router.get("metrics") { _, _ in
         var buffer = [UInt8]()
         registry.emit(into: &buffer)

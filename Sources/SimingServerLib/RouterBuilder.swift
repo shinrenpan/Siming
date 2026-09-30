@@ -12,8 +12,8 @@ public func buildRouter(
     rateLimitConfig: RateLimitConfiguration? = nil,
     terminology: TerminologyIndex = .empty,
     externalValidator: ExternalValidator? = nil
-) -> Router<BasicRequestContext> {
-    let router = Router()
+) -> Router<SimingRequestContext> {
+    let router = Router(context: SimingRequestContext.self)
     router.middlewares.add(CORSMiddleware())
     router.middlewares.add(MetricsMiddleware())
     if let rateLimitConfig {

@@ -18,7 +18,7 @@ private let supportedResourceTypes: [String] = [
 // ── Route registration ────────────────────────────────────────────────────────
 
 public func addMetadataRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     smartConfig: SmartConfiguration? = nil,
     packagesDir: String = ProcessInfo.processInfo.environment["PACKAGES_DIR"] ?? "packages",
     capabilityPublisher: String = "Siming",

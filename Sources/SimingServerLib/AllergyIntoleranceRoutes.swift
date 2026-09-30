@@ -25,7 +25,7 @@ let knownAllergyIntoleranceParams: Set<String> = [
 ]
 
 public func addAllergyIntoleranceRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: AllergyIntoleranceStore,
     logger: Logger
 ) {

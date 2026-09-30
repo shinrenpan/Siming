@@ -23,7 +23,7 @@ let knownGoalParams: Set<String> = [
 ]
 
 public func addGoalRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: GoalStore,
     logger: Logger
 ) {

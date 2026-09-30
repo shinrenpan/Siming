@@ -24,7 +24,7 @@ let knownMedicationRequestParams: Set<String> = [
 ]
 
 public func addMedicationRequestRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: MedicationRequestStore,
     logger: Logger
 ) {
