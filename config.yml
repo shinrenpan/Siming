@@ -90,6 +90,13 @@ security:
   #   # Maximum burst size. Clients can exceed rps briefly up to this limit.
   #   # Defaults to 2 × rps when omitted.
   #   burst: 200
+  #
+  #   # Reverse proxies whose X-Forwarded-For entries are believed (IPs or CIDRs).
+  #   # Clients are otherwise keyed by TCP peer address, so behind a proxy without
+  #   # this every request shares one bucket. List only hosts that append the header —
+  #   # never a range holding the Docker bridge gateway (see .env.example).
+  #   # RATE_LIMIT_TRUSTED_PROXIES overrides.
+  #   trustedProxies: ["10.0.5.20"]
 
 # ── External validator ────────────────────────────────────────────────────────
 

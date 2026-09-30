@@ -22,7 +22,7 @@ let knownPractitionerParams: Set<String> = [
 ]
 
 public func addPractitionerRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: PractitionerStore,
     logger: Logger
 ) {

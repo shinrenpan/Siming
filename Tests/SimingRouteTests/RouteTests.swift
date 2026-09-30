@@ -16,7 +16,7 @@ struct RouteTests {
 
     /// Minimal router: FormatMiddleware + /metadata. No DB needed.
     private func makeMetadataApp() -> some ApplicationProtocol {
-        let router = Router<BasicRequestContext>()
+        let router = Router(context: SimingRequestContext.self)
         router.middlewares.add(FormatMiddleware())
         addMetadataRoutes(to: router)
         return Application(responder: router.buildResponder())
@@ -37,7 +37,7 @@ struct RouteTests {
             backgroundLogger: logger
         )
         let stores = StoreContainer(client: client, logger: logger)
-        let router = Router<BasicRequestContext>()
+        let router = Router(context: SimingRequestContext.self)
         router.middlewares.add(FormatMiddleware())
         router.get("health") { _, _ in HTTPResponse.Status.ok }
         addMetadataRoutes(to: router)

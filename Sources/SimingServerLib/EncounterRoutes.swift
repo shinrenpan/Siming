@@ -26,7 +26,7 @@ let knownEncounterParams: Set<String> = [
 ]
 
 public func addEncounterRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: EncounterStore,
     logger: Logger
 ) {

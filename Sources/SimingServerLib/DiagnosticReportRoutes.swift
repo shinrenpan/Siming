@@ -23,7 +23,7 @@ let knownDiagnosticReportParams: Set<String> = [
 ]
 
 public func addDiagnosticReportRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: DiagnosticReportStore,
     logger: Logger
 ) {

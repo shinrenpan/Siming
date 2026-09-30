@@ -5,7 +5,7 @@ import NIOCore
 import SimingCore
 
 public func addSystemRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     stores: StoreContainer,
     logger: Logger
 ) {

@@ -24,7 +24,7 @@ let knownProcedureParams: Set<String> = [
 ]
 
 public func addProcedureRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: ProcedureStore,
     logger: Logger
 ) {

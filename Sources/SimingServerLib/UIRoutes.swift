@@ -2,7 +2,7 @@ import HTTPTypes
 import Hummingbird
 import NIOCore
 
-public func addUIRoutes(to router: Router<BasicRequestContext>) {
+public func addUIRoutes(to router: Router<SimingRequestContext>) {
     router.get("ui") { _, _ in
         var headers = HTTPFields()
         headers[.contentType] = "text/html; charset=utf-8"

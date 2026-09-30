@@ -25,7 +25,7 @@ let knownImmunizationParams: Set<String> = [
 ]
 
 public func addImmunizationRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: ImmunizationStore,
     logger: Logger
 ) {

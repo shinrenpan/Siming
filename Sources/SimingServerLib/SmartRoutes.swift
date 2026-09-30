@@ -4,7 +4,7 @@ import NIOCore
 
 /// GET /.well-known/smart-configuration — SMART App Launch metadata
 /// Only registered when SmartConfiguration is non-nil (SMART_ISSUER is set).
-public func addSmartRoutes(to router: Router<BasicRequestContext>, config: SmartConfiguration) {
+public func addSmartRoutes(to router: Router<SimingRequestContext>, config: SmartConfiguration) {
     router.get(".well-known/smart-configuration") { _, _ in
         var headers = HTTPFields()
         headers[.contentType] = "application/json"

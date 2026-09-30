@@ -28,7 +28,7 @@ let knownServiceRequestParams: Set<String> = [
 ]
 
 public func addServiceRequestRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: ServiceRequestStore,
     logger: Logger
 ) {

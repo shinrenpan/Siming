@@ -24,7 +24,7 @@ let knownSpecimenParams: Set<String> = [
 ]
 
 public func addSpecimenRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: SpecimenStore,
     logger: Logger
 ) {

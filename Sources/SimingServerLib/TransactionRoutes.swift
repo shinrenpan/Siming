@@ -45,7 +45,7 @@ private struct TxnResult {
 // ── Route registration ────────────────────────────────────────────────────────
 
 public func addTransactionRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     stores: StoreContainer,
     logger: Logger
 ) {

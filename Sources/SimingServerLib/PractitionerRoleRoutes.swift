@@ -21,7 +21,7 @@ let knownPractitionerRoleParams: Set<String> = [
 ]
 
 public func addPractitionerRoleRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: PractitionerRoleStore,
     logger: Logger
 ) {

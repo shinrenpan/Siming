@@ -25,7 +25,7 @@ let knownCarePlanParams: Set<String> = [
 ]
 
 public func addCarePlanRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: CarePlanStore,
     logger: Logger
 ) {

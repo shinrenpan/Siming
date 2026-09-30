@@ -15,6 +15,7 @@ public struct SimingConfig: Sendable {
     public var dbPoolMax: Int
     public var rateLimitRPS: Double?          // nil = disabled
     public var rateLimitBurst: Int?           // nil = 2 × rps
+    public var rateLimitTrustedProxies: [String]  // IPs / CIDRs whose X-Forwarded-For is believed
     public var logLevel: String
     public var validatorURL: String?          // nil = disabled; set to hl7_validator_service base URL
 
@@ -48,6 +49,7 @@ public struct SimingConfig: Sendable {
         dbPoolMax              = 40
         rateLimitRPS           = nil
         rateLimitBurst         = nil
+        rateLimitTrustedProxies = []
         logLevel               = "info"
         validatorURL           = nil
     }
@@ -78,6 +80,10 @@ public struct SimingConfig: Sendable {
             if let v = rl["rps"] as? Double   { rateLimitRPS = v }
             else if let v = rl["rps"] as? Int { rateLimitRPS = Double(v) }
             if let v = rl["burst"] as? Int    { rateLimitBurst = v }
+            if let v = rl["trustedProxies"] as? [String] { rateLimitTrustedProxies = v }
+            else if let v = rl["trustedProxies"] as? String {
+                rateLimitTrustedProxies = v.components(separatedBy: ",")
+            }
         }
         if let log = root["logging"] as? [String: Any] {
             if let v = log["level"] as? String { logLevel = v }
@@ -102,6 +108,9 @@ public struct SimingConfig: Sendable {
            let rps = Double(rpsStr), rps > 0 {
             rateLimitRPS = rps
             if let burst = env["RATE_LIMIT_BURST"].flatMap(Int.init) { rateLimitBurst = burst }
+        }
+        if let v = env["RATE_LIMIT_TRUSTED_PROXIES"], !v.isEmpty {
+            rateLimitTrustedProxies = v.components(separatedBy: ",")
         }
         if let v = env["VALIDATOR_URL"], !v.isEmpty { validatorURL = v }
     }

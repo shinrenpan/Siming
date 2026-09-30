@@ -12,7 +12,7 @@ private let maxBodyBytes = 4 * 1024 * 1024  // 4 MB
 private let ifNoneExistHeader = HTTPField.Name("If-None-Exist")!
 private let preferHeader = HTTPField.Name("Prefer")!
 
-public func addPatientRoutes(to router: Router<BasicRequestContext>, store: PatientStore, logger: Logger) {
+public func addPatientRoutes(to router: Router<SimingRequestContext>, store: PatientStore, logger: Logger) {
     let group = router.group("Patient")
 
     // POST /Patient — create (with optional If-None-Exist conditional create)

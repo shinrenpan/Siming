@@ -22,7 +22,7 @@ private let validateSupportedTypes: Set<String> = [
 /// (when externalValidator is configured). Returns OperationOutcome.
 /// HTTP 200 OK always (per FHIR R4 §3.6.2); 400/415 only for malformed requests.
 public func addValidateRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     terminology: TerminologyIndex,
     externalValidator: ExternalValidator? = nil
 ) {

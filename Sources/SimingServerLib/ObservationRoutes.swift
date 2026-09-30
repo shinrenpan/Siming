@@ -33,7 +33,7 @@ let knownObservationParams: Set<String> = [
 ]
 
 public func addObservationRoutes(
-    to router: Router<BasicRequestContext>,
+    to router: Router<SimingRequestContext>,
     store: ObservationStore,
     logger: Logger
 ) {
