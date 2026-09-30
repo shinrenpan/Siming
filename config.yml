@@ -13,10 +13,14 @@ server:
   # TCP port the server listens on.
   port: 8080
 
-  # Public base URL of this server. Used to build absolute Location /
-  # Content-Location headers. Must be set correctly when running behind a
-  # reverse proxy (e.g. https://fhir.example.com).
-  baseUrl: http://localhost:8080
+  # Public base URL of this server. Every absolute URL in a response (Bundle
+  # links, fullUrl, Location, Content-Location) starts with it. Leave unset to
+  # derive it from each request's Host header (always http) — the client controls
+  # that header, so set this in production. Required behind a
+  # reverse proxy or TLS terminator; a path prefix is allowed, e.g.
+  # https://gw.example.com/fhir (the proxy strips the prefix before forwarding).
+  # The SERVER_BASE_URL environment variable overrides this.
+  # baseUrl: https://fhir.example.com
 
 # ── FHIR packages ─────────────────────────────────────────────────────────────
 
@@ -67,14 +71,8 @@ database:
     # Tune based on your Postgres server's max_connections setting.
     max: 40
 
-# ── Search ────────────────────────────────────────────────────────────────────
-
-search:
-  # Number of results returned per page when the client omits _count.
-  defaultCount: 20
-
-  # Hard upper limit on _count. Requests above this value are clamped.
-  maxCount: 1000
+# Search paging is not configurable: _count defaults to 20 (history: 50) and is
+# clamped to 100.
 
 # ── Security ──────────────────────────────────────────────────────────────────
 
@@ -105,12 +103,12 @@ validator:
   # When set, POST /[ResourceType]/$validate also runs deep StructureDefinition
   # profile validation against the TW Core IG. Leave empty to disable.
   # Override with the VALIDATOR_URL environment variable.
-  # Example: http://localhost:3500
+  # Example: http://localhost:3500 (inside compose: http://validator:4567)
   url: ""
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 logging:
-  # Minimum log level. One of: trace | debug | info | warn | error
+  # Minimum log level. One of: trace | debug | info | notice | warn | error | critical
   # Use debug or trace during development; info or warn in production.
   level: info

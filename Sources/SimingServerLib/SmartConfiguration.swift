@@ -137,7 +137,9 @@ public struct SmartConfiguration: Sendable {
             try await keys.add(jwksJSON: json)
         } else if let pem = environment["SMART_PUBLIC_KEY_PEM"]?.nonEmptyOrNil {
             logger.info("SMART: loading RSA public key from SMART_PUBLIC_KEY_PEM")
-            let key = try Insecure.RSA.PublicKey(pem: pem)
+            // A PEM never contains a literal backslash-n; one arriving here came through an
+            // env file or shell that did not expand the escape (unquoted, or bash `source`).
+            let key = try Insecure.RSA.PublicKey(pem: pem.replacingOccurrences(of: "\\n", with: "\n"))
             await keys.add(rsa: key, digestAlgorithm: .sha256)
         } else {
             logger.warning("SMART: SMART_ISSUER set but no SMART_JWKS_URL or SMART_PUBLIC_KEY_PEM — all tokens will fail verification")

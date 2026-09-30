@@ -415,4 +415,23 @@ struct SmartConfigTests {
             ).advertisesAuthorizationServer
         )
     }
+
+    // ── SMART_PUBLIC_KEY_PEM ─────────────────────────────────────────────────
+
+    /// Throwaway 2048-bit RSA public key, test-only.
+    private static let testPEMLiteralEscapes = "-----BEGIN PUBLIC KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+DPmtxZNCNw0nveja729\\nqihBurN6DDO4DKBlFjk8Nojl1ZMpUx3obYbdRGWePkzs6jgQY6Xt9PTrIRSC0KG0\\nUm+69mf9UVauTrUPLPWndKY3/g85+6ze5/ptM9iJXE1Ur32RKzopue1Rvl8GbutS\\narPKPUJHasurmaA8N2kmMnNhQ0G16SVRa4jR/D4EzS2r+a3QzRfnuHDQVfeigs/L\\nNcCHnMM3/vhna7vR6MDN43m810OdIkmcqCx2Mh8Hw3n3wXlyVIMb0+0YUrWtI2nd\\nttZJodbJIdNGtPcyl5Gcg5HKJu2fu88aBhxj8IpvLnFgAgDVpYcxe+BqfiNGmUKT\\nqQIDAQAB\\n-----END PUBLIC KEY-----\\n"
+
+    @Test("a PEM with literal \\n escapes (unquoted env file, bash source) still loads")
+    func pemWithLiteralEscapes() async throws {
+        #expect(Self.testPEMLiteralEscapes.contains("\\n"))
+        #expect(!Self.testPEMLiteralEscapes.contains("\n"))
+        let config = try await SmartConfiguration.from(
+            environment: [
+                "SMART_ISSUER": "https://idp.example.com",
+                "SMART_PUBLIC_KEY_PEM": Self.testPEMLiteralEscapes,
+            ],
+            logger: quietLogger
+        )
+        #expect(config != nil)
+    }
 }

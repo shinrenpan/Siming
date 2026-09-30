@@ -1585,3 +1585,39 @@ struct MigrationSplitTests {
         #expect(out[1].contains("CREATE INDEX z"))
     }
 }
+
+// ── Transaction entries get the same terminology check as a direct write ─────
+
+@Suite("prepareEntryForWrite")
+struct PrepareEntryForWriteTests {
+    private let vs = "http://hl7.org/fhir/ValueSet/allergyintolerance-clinical"
+    private let sys = "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+
+    private var terminology: TerminologyIndex {
+        TerminologyIndex(codeSystems: [:],
+                         valueSets: [vs: [TermCode(system: sys, code: "active")]],
+                         intensionalValueSets: [])
+    }
+
+    private func allergy(_ code: String) -> Data {
+        Data("""
+        {"resourceType":"AllergyIntolerance","patient":{"reference":"Patient/p"},
+         "clinicalStatus":{"coding":[{"system":"\(sys)","code":"\(code)"}]}}
+        """.utf8)
+    }
+
+    @Test("rejects a code outside a required binding — a Bundle is no way around validation")
+    func rejectsBadCode() {
+        #expect(throws: TerminologyValidationError.self) {
+            try prepareEntryForWrite(resourceType: "AllergyIntolerance", id: "a",
+                                     data: allergy("BOGUS"), terminology: terminology)
+        }
+    }
+
+    @Test("accepts a code inside the binding")
+    func acceptsGoodCode() throws {
+        let (json, _) = try prepareEntryForWrite(resourceType: "AllergyIntolerance", id: "a",
+                                                 data: allergy("active"), terminology: terminology)
+        #expect(json.contains("\"id\":\"a\""))
+    }
+}

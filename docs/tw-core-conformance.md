@@ -7,7 +7,7 @@
 
 ## Summary
 
-8 of 8 tested TW Core profiles pass validation with zero errors when required fields are present.
+9 of 9 tested TW Core profiles pass validation with zero errors when required fields are present.
 Negative-case testing confirms the validator correctly rejects resources that omit TW Core-mandatory fields.
 
 | Profile | Result | Notes |

@@ -21,6 +21,11 @@ SMART support is off by default and turns on when `SMART_ISSUER` is set.
 Neither JWKS nor PEM set → the server starts and logs a warning, but every token
 fails verification.
 
+The JWKS is fetched once, at startup, and a failed fetch stops the server. In compose,
+start Siming after the authorization server is reachable (`depends_on` with a
+healthcheck). Keys are not refreshed while the server runs, so rotating signing keys
+needs a restart.
+
 Every URL variable is validated at startup and must be a well-formed `http`/`https`
 URL with a host. A malformed one is rejected rather than published or quietly ignored:
 the three endpoint variables are read by clients, so a typo in them would otherwise

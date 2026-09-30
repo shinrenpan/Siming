@@ -31,8 +31,12 @@ public struct StoreContainer: Sendable {
     public let appointment: AppointmentStore
     public let medicationAdministration: MedicationAdministrationStore
 
+    /// Shared with the transaction path, which writes without going through a store.
+    public let terminology: TerminologyIndex
+
     public init(client: PostgresClient, logger: Logger, terminology: TerminologyIndex = .empty) {
         self.client            = client
+        self.terminology       = terminology
         patient                = PatientStore(client: client, logger: logger, terminology: terminology)
         observation            = ObservationStore(client: client, logger: logger, terminology: terminology)
         encounter              = EncounterStore(client: client, logger: logger, terminology: terminology)
