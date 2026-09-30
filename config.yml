@@ -13,10 +13,13 @@ server:
   # TCP port the server listens on.
   port: 8080
 
-  # Public base URL of this server. Used to build absolute Location /
-  # Content-Location headers. Must be set correctly when running behind a
-  # reverse proxy (e.g. https://fhir.example.com).
-  baseUrl: http://localhost:8080
+  # Public base URL of this server. Every absolute URL in a response (Bundle
+  # links, fullUrl, Location, Content-Location) starts with it. Leave unset to
+  # derive it from each request's Host header (always http). Set it behind a
+  # reverse proxy or TLS terminator; a path prefix is allowed, e.g.
+  # https://gw.example.com/fhir (the proxy strips the prefix before forwarding).
+  # The SERVER_BASE_URL environment variable overrides this.
+  # baseUrl: https://fhir.example.com
 
 # ── FHIR packages ─────────────────────────────────────────────────────────────
 
