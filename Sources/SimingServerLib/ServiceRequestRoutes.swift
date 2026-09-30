@@ -282,7 +282,7 @@ public func addServiceRequestRoutes(
         if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
-        let base = srSelfURL(request)
+        let base = selfURL(request)
         let baseURL = serverBaseURL(request)
         if summary == .count {
             let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
@@ -333,7 +333,7 @@ public func addServiceRequestRoutes(
         if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
-        let base = srSelfURL(request)
+        let base = selfURL(request)
         let baseURL = serverBaseURL(request)
         if summary == .count {
             let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
@@ -503,11 +503,6 @@ private func srDecodeFHIR<T: Decodable>(_ type: T.Type, from buffer: ByteBuffer)
     let data = Data(buffer.readableBytesView)
     do { return try JSONDecoder().decode(type, from: data) }
     catch { throw FHIRRouteError.invalidBody(error.localizedDescription) }
-}
-
-private func srSelfURL(_ request: Request) -> String {
-    let authority = request.head.authority ?? "localhost"
-    return "http://\(authority)\(request.uri)"
 }
 
 func nextServiceRequestPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {

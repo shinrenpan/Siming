@@ -7,11 +7,21 @@ import SimingCore
 /// Set once at startup from config.serverBaseURL. Empty = derive from Host header.
 public nonisolated(unsafe) var configuredServerBaseURL: String = ""
 
-/// Returns the server base URL (scheme + authority only), e.g. "http://localhost:8080".
-/// Uses configuredServerBaseURL when set; falls back to the request Host header.
+/// Returns the server base URL with no trailing slash, e.g. "http://localhost:8080" or,
+/// behind a proxy, "https://gw.example.com/fhir". Uses configuredServerBaseURL when set;
+/// falls back to the request Host header. Every absolute URL in a response starts here —
+/// never rebuild one from `request.head.authority`, or proxied deployments leak the
+/// internal address.
 func serverBaseURL(_ request: Request) -> String {
     if !configuredServerBaseURL.isEmpty { return configuredServerBaseURL }
     return "http://\(request.head.authority ?? "localhost")"
+}
+
+/// Absolute URL of the current request — the Bundle `self` link and the base for paging links.
+/// `request.uri` is the path Siming routed on; a proxy mounting Siming under a prefix strips it
+/// before forwarding, and the prefix comes back via SERVER_BASE_URL.
+func selfURL(_ request: Request) -> String {
+    "\(serverBaseURL(request))\(request.uri)"
 }
 
 /// Parses a FHIR instant string (ISO 8601) into a Date. Accepts e.g. "2023-01-01T00:00:00Z".

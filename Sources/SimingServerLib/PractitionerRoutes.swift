@@ -139,8 +139,7 @@ public func addPractitionerRoutes(
         let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maxCount)
         let entries = try await store.typeHistory(since: since, count: count)
-        let authority = request.head.authority ?? "localhost"
-        let baseURL = "http://\(authority)"
+        let baseURL = serverBaseURL(request)
         let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
@@ -155,8 +154,7 @@ public func addPractitionerRoutes(
         let since: Date? = qp["_since"].flatMap { parseFHIRInstant(String($0)) }
         let count = min(qp["_count"].flatMap { Int($0) } ?? 50, maxCount)
         let entries = try await store.history(id: id, since: since, count: count)
-        let authority = request.head.authority ?? "localhost"
-        let baseURL = "http://\(authority)"
+        let baseURL = serverBaseURL(request)
         let bundleData = buildHistoryBundleJSON(entries: entries, baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
         var headers = HTTPFields()
         headers[.contentType] = fhirJSON
@@ -486,11 +484,6 @@ private func decodeFHIR<T: Decodable>(_ type: T.Type, from buffer: ByteBuffer) t
     let data = Data(buffer.readableBytesView)
     do { return try JSONDecoder().decode(type, from: data) }
     catch { throw FHIRRouteError.invalidBody(error.localizedDescription) }
-}
-
-private func selfURL(_ request: Request) -> String {
-    let authority = request.head.authority ?? "localhost"
-    return "http://\(authority)\(request.uri)"
 }
 
 private func nextPractitionerPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
