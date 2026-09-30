@@ -191,7 +191,8 @@ public func addTransactionRoutes(
                                 let (json, params): (String, SearchParams)
                                 do {
                                     (json, params) = try prepareEntryForWrite(
-                                        resourceType: e.resourceType, id: e.id, data: data)
+                                        resourceType: e.resourceType, id: e.id, data: data,
+                                        terminology: stores.terminology)
                                 } catch BundleTransactionError.unsupportedResourceType(let rt) {
                                     throw FHIRRouteError.invalidBody(
                                         "Unsupported resource type: \(rt)")
