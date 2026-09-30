@@ -196,6 +196,10 @@ public func addTransactionRoutes(
                                 } catch BundleTransactionError.unsupportedResourceType(let rt) {
                                     throw FHIRRouteError.invalidBody(
                                         "Unsupported resource type: \(rt)")
+                                } catch let tv as TerminologyValidationError {
+                                    throw TerminologyValidationError(violations: tv.violations.map {
+                                        "Entry \(e.originalIndex): \($0)"
+                                    })
                                 }
                                 let (versionId, lastUpdated) = try await writeResourceInner(
                                     conn: conn, resourceType: e.resourceType, id: e.id,

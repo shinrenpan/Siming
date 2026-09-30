@@ -15,7 +15,8 @@ server:
 
   # Public base URL of this server. Every absolute URL in a response (Bundle
   # links, fullUrl, Location, Content-Location) starts with it. Leave unset to
-  # derive it from each request's Host header (always http). Set it behind a
+  # derive it from each request's Host header (always http) — the client controls
+  # that header, so set this in production. Required behind a
   # reverse proxy or TLS terminator; a path prefix is allowed, e.g.
   # https://gw.example.com/fhir (the proxy strips the prefix before forwarding).
   # The SERVER_BASE_URL environment variable overrides this.

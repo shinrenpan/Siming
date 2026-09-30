@@ -102,4 +102,6 @@ private func extractLeaf(_ value: Any, kind: BindingKind) -> [(system: String, c
 
 public struct TerminologyValidationError: Error, Sendable {
     public let violations: [String]
+
+    public init(violations: [String]) { self.violations = violations }
 }

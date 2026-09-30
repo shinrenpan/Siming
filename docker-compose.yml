@@ -39,7 +39,9 @@ services:
       # .env's SERVER_PORT picks the host port above; the container always listens on
       # 8080, which the port mapping and healthcheck assume.
       SERVER_PORT: "8080"
-      DATABASE_URL: postgres://${PGUSER:-siming}:${PGPASSWORD:-siming}@db:5432/${PGDATABASE:-siming}
+      # PGUSER / PGPASSWORD / PGDATABASE come from .env as-is — no URL to percent-encode.
+      PGHOST: db
+      PGPORT: "5432"
       MIGRATIONS_PATH: /app/migrations
     volumes:
       - ./config.yml:/app/config.yml:ro

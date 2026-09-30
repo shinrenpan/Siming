@@ -39,15 +39,20 @@ public struct DatabaseConfiguration {
     }
 
     public static func fromEnvironment() throws -> DatabaseConfiguration {
-        if let urlString = ProcessInfo.processInfo.environment["DATABASE_URL"], !urlString.isEmpty {
+        // Empty counts as unset, as for every other variable: `PGHOST=` in an env file
+        // must not mean "connect to host ''".
+        func env(_ key: String) -> String? {
+            ProcessInfo.processInfo.environment[key].flatMap { $0.isEmpty ? nil : $0 }
+        }
+        if let urlString = env("DATABASE_URL") {
             return try parseURL(urlString)
         }
         return DatabaseConfiguration(
-            host: ProcessInfo.processInfo.environment["PGHOST"] ?? "localhost",
-            port: Int(ProcessInfo.processInfo.environment["PGPORT"] ?? "") ?? 5432,
-            username: ProcessInfo.processInfo.environment["PGUSER"] ?? "siming",
-            password: ProcessInfo.processInfo.environment["PGPASSWORD"] ?? "siming",
-            database: ProcessInfo.processInfo.environment["PGDATABASE"] ?? "siming"
+            host: env("PGHOST") ?? "localhost",
+            port: env("PGPORT").flatMap(Int.init) ?? 5432,
+            username: env("PGUSER") ?? "siming",
+            password: env("PGPASSWORD") ?? "siming",
+            database: env("PGDATABASE") ?? "siming"
         )
     }
 

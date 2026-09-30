@@ -15,8 +15,8 @@ public struct RateLimitConfiguration: Sendable {
     }
 
     public static func from(config: SimingConfig, logger: Logger) throws -> RateLimitConfiguration? {
-        guard let rps = config.rateLimitRPS, rps > 0 else { return nil }
-        let burst = config.rateLimitBurst ?? Int(rps * 2)
+        guard let rps = config.rateLimitRPS, rps > 0, rps.isFinite else { return nil }
+        let burst = config.rateLimitBurst ?? Int(min(rps * 2, 1_000_000_000))
         let trusted = try TrustedProxies(parsing: config.rateLimitTrustedProxies)
         let cfg = RateLimitConfiguration(rps: rps, burst: max(burst, 1), trustedProxies: trusted)
         logger.info("Rate limiting enabled: \(rps) RPS/IP, burst=\(cfg.burst), trusted proxies=\(trusted.count)")

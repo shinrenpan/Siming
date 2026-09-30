@@ -104,7 +104,10 @@ public struct SimingConfig: Sendable {
         if let v = env["DB_POOL_MIN"].flatMap(Int.init)  { dbPoolMin         = v }
         if let v = env["DB_POOL_MAX"].flatMap(Int.init)  { dbPoolMax         = v }
         if let v = env["LOG_LEVEL"],       !v.isEmpty    { logLevel          = v }
-        if let rps = env["RATE_LIMIT_RPS"].flatMap(Double.init), rps > 0 { rateLimitRPS = rps }
+        // 0 turns off a limiter enabled in config.yml; inf/nan are rejected (Int(rps * 2) traps).
+        if let rps = env["RATE_LIMIT_RPS"].flatMap(Double.init), rps.isFinite, rps >= 0 {
+            rateLimitRPS = rps > 0 ? rps : nil
+        }
         if let burst = env["RATE_LIMIT_BURST"].flatMap(Int.init) { rateLimitBurst = burst }
         if let v = env["RATE_LIMIT_TRUSTED_PROXIES"], !v.isEmpty {
             rateLimitTrustedProxies = v.components(separatedBy: ",")

@@ -90,6 +90,7 @@ private func prepareResource<R: Resource>(
     r.id = FHIRPrimitive(FHIRString(id))
     r.meta = nil
     let encoded = try JSONEncoder().encode(r)
+    try validate(r)
     // Same check, on the same encoded form, as every store's write().
     if let obj = try? JSONSerialization.jsonObject(with: encoded) as? [String: Any] {
         try validateCodes(resourceType: R.resourceType.rawValue, json: obj, terminology: terminology)
@@ -99,6 +100,11 @@ private func prepareResource<R: Resource>(
     appendMetaParams(&p, meta: originalMeta)
     return (json, p)
 }
+
+/// Transaction-path counterpart of each store's private `validate(_:)` hook — no-op until
+/// profile validation lands, and then it must be implemented here as well as in the stores.
+/// Never remove the call in `prepareResource`.
+private func validate<R: Resource>(_ resource: R) throws {}
 
 public enum BundleTransactionError: Error {
     case unsupportedResourceType(String)

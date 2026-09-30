@@ -51,7 +51,6 @@ struct SimingApp {
             config: config,
             smartConfig: smartConfig,
             rateLimitConfig: rateLimitConfig,
-            terminology: terminology,
             externalValidator: externalValidator
         )
 
