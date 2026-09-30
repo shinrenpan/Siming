@@ -372,11 +372,6 @@ public struct ServiceRequestStore: Sendable {
             filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
         }
 
-        // order-detail — token OR
-        if !query.orderDetail.isEmpty {
-            filterCTEs.append(tokenORCTE(name: "f_order_detail", paramName: "order-detail", tokens: query.orderDetail))
-        }
-
         // date CTEs
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(dateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
@@ -429,7 +424,6 @@ public struct ServiceRequestStore: Sendable {
         if !query.bodySiteNot.isEmpty      { extraConditions.append(tokenNotCondition(paramName: "body-site",       tokens: query.bodySiteNot)) }
         if !query.performerTypeNot.isEmpty { extraConditions.append(tokenNotCondition(paramName: "performer-type",  tokens: query.performerTypeNot)) }
         if !query.requisitionNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "requisition",     tokens: query.requisitionNot)) }
-        if !query.orderDetailNot.isEmpty   { extraConditions.append(tokenNotCondition(paramName: "order-detail",    tokens: query.orderDetailNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -647,10 +641,6 @@ public struct ServiceRequestStore: Sendable {
             filterCTEs.append(("f_inst_uri\(i)", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri' AND value = \(p)"))
         }
 
-        if !query.orderDetail.isEmpty {
-            filterCTEs.append(countTokenORCTE(name: "f_order_detail", paramName: "order-detail", tokens: query.orderDetail))
-        }
-
         for (i, dp) in query.authored.enumerated() {
             filterCTEs.append(countDateCTE(name: "f_authored\(i)", paramName: "authored", dp: dp))
         }
@@ -675,7 +665,6 @@ public struct ServiceRequestStore: Sendable {
         if !query.bodySiteNot.isEmpty      { whereConditions.append(countTokenNotCondition(paramName: "body-site",       tokens: query.bodySiteNot)) }
         if !query.performerTypeNot.isEmpty { whereConditions.append(countTokenNotCondition(paramName: "performer-type",  tokens: query.performerTypeNot)) }
         if !query.requisitionNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "requisition",     tokens: query.requisitionNot)) }
-        if !query.orderDetailNot.isEmpty   { whereConditions.append(countTokenNotCondition(paramName: "order-detail",    tokens: query.orderDetailNot)) }
 
         // identifier:not
         if !query.identifierNot.isEmpty {
@@ -765,7 +754,6 @@ public struct ServiceRequestStore: Sendable {
         case "specimen":          return "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'ServiceRequest' AND param_name = 'specimen'"
         case "instantiates-canonical": return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-canonical'"
         case "instantiates-uri":  return "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'ServiceRequest' AND param_name = 'instantiates-uri'"
-        case "order-detail":      return "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'ServiceRequest' AND param_name = 'order-detail'"
         default:               return nil
         }
     }

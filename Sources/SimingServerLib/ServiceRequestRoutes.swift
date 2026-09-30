@@ -19,7 +19,6 @@ let knownServiceRequestParams: Set<String> = [
     "subject", "patient", "encounter", "requester", "performer",
     "based-on", "replaces", "specimen",
     "instantiates-canonical", "instantiates-uri",
-    "order-detail", "order-detail:not",
     "status:not", "intent:not", "priority:not", "code:not", "category:not",
     "body-site:not", "performer-type:not", "requisition:not",
     "identifier:not",
@@ -393,8 +392,6 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
     let identifier    = first("identifier").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
     let identifierNot = first("identifier:not").map { ServiceRequestSearchQuery.IdentifierParam.parseList(String($0)) } ?? []
 
-    let orderDetail    = all("order-detail").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
-    let orderDetailNot = all("order-detail:not").flatMap { ServiceRequestSearchQuery.TokenParam.parseList(String($0)) }
 
     let authored   = try parseDateParams(all("authored"), "authored", ServiceRequestSearchQuery.DateParam.parse)
     let occurrence = try parseDateParams(all("occurrence"), "occurrence", ServiceRequestSearchQuery.DateParam.parse)
@@ -425,7 +422,7 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
               "authored", "occurrence",
               "subject", "patient", "encounter", "requester", "performer",
               "based-on", "replaces", "specimen",
-              "instantiates-canonical", "instantiates-uri", "order-detail"] {
+              "instantiates-canonical", "instantiates-uri"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -452,7 +449,6 @@ func parseServiceRequestQuery(from pairs: some Collection<(key: Substring, value
         requisition: requisition, requisitionNot: requisitionNot,
         instantiatesCanonical: instantiatesCanonical,
         instantiatesUri: instantiatesUri,
-        orderDetail: orderDetail, orderDetailNot: orderDetailNot,
         authored: authored, occurrence: occurrence,
         subject: subject, patient: patient,
         encounter: encounter, requester: requester,

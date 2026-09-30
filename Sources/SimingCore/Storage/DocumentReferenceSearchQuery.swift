@@ -50,9 +50,6 @@ public struct DocumentReferenceSearchQuery: Sendable {
     public var relation: [TokenParam]
     public var relationNot: [TokenParam]
 
-    // composite: relationship (relatesto$relation per-entry tuple via idx_composite)
-    public var relationship: [RelationshipParam]
-
     // system params
     public var id: [String]
     public var lastUpdated: [DateParam]
@@ -106,7 +103,6 @@ public struct DocumentReferenceSearchQuery: Sendable {
         related: String? = nil,
         relation: [TokenParam] = [],
         relationNot: [TokenParam] = [],
-        relationship: [RelationshipParam] = [],
         id: [String] = [],
         lastUpdated: [DateParam] = [],
         tokenTexts: [TokenTextParam] = [],
@@ -155,7 +151,6 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.related          = related
         self.relation         = relation
         self.relationNot      = relationNot
-        self.relationship     = relationship
         self.id               = id
         self.lastUpdated      = lastUpdated
         self.tokenTexts       = tokenTexts
@@ -167,32 +162,6 @@ public struct DocumentReferenceSearchQuery: Sendable {
         self.count            = count
         self.sortKeys       = sortKeys
         self.cursor           = cursor
-    }
-
-    // ── RelationshipParam — wire: relatesto$relation (e.g. "DocumentReference/123$appends") ──
-    public struct RelationshipParam: Sendable {
-        public let targetRef: String    // e.g. "DocumentReference/123" or bare id
-        public let relationCode: String // e.g. "appends"
-        public let relationSystem: String?
-
-        public static func parse(_ raw: String) -> RelationshipParam? {
-            guard let dollarIdx = raw.firstIndex(of: "$") else { return nil }
-            let refPart   = String(raw[raw.startIndex..<dollarIdx])
-            let tokenPart = String(raw[raw.index(after: dollarIdx)...])
-            guard !refPart.isEmpty && !tokenPart.isEmpty else { return nil }
-            if let pipe = tokenPart.firstIndex(of: "|") {
-                let sys  = String(tokenPart[tokenPart.startIndex..<pipe])
-                let code = String(tokenPart[tokenPart.index(after: pipe)...])
-                return RelationshipParam(targetRef: refPart,
-                                         relationCode: code,
-                                         relationSystem: sys.isEmpty ? nil : sys)
-            }
-            return RelationshipParam(targetRef: refPart, relationCode: tokenPart, relationSystem: nil)
-        }
-
-        public static func parseList(_ raw: String) -> [RelationshipParam] {
-            raw.split(separator: ",").compactMap { parse(String($0).trimmingCharacters(in: .whitespaces)) }
-        }
     }
 
     public typealias StringParam     = PatientSearchQuery.StringParam

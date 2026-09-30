@@ -28,10 +28,6 @@ public struct ServiceRequestSearchQuery: Sendable {
     public var instantiatesCanonical: [String] // ServiceRequest.instantiatesCanonical (exact URL match)
     public var instantiatesUri: [String]       // ServiceRequest.instantiatesUri (exact URL match)
 
-    // order-detail token params
-    public var orderDetail: [TokenParam]     // ServiceRequest.orderDetail token OR
-    public var orderDetailNot: [TokenParam]  // order-detail:not modifier
-
     // date params
     public var authored: [DateParam]
     public var occurrence: [DateParam]
@@ -83,8 +79,6 @@ public struct ServiceRequestSearchQuery: Sendable {
         requisitionNot: [TokenParam] = [],
         instantiatesCanonical: [String] = [],
         instantiatesUri: [String] = [],
-        orderDetail: [TokenParam] = [],
-        orderDetailNot: [TokenParam] = [],
         authored: [DateParam] = [],
         occurrence: [DateParam] = [],
         subject: String? = nil,
@@ -127,8 +121,6 @@ public struct ServiceRequestSearchQuery: Sendable {
         self.requisitionNot = requisitionNot
         self.instantiatesCanonical = instantiatesCanonical
         self.instantiatesUri = instantiatesUri
-        self.orderDetail    = orderDetail
-        self.orderDetailNot = orderDetailNot
         self.authored       = authored
         self.occurrence     = occurrence
         self.subject        = subject

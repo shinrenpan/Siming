@@ -12,7 +12,7 @@ Server-side Swift FHIR R4 server. Strategic goal: **replace HAPI as the default 
 
 **Siming is a clinical data server, not a terminology server.** It stores and searches clinical resources. It does not host CodeSystem/ValueSet nor implement `$expand`/`$lookup` — those belong to a separate terminology service layer. Do not add terminology server features.
 
-**Current state: v1.4.1 — feature complete.** No feature development is planned from this repo's own roadmap; changes arrive from integration work with downstream clients.
+**Current state: v1.4.2 — feature complete.** No feature development is planned from this repo's own roadmap; changes arrive from integration work with downstream clients.
 
 **What is not done, and why, lives in one place: [`docs/roadmap.md`](docs/roadmap.md).**
 Read it before proposing a feature, filing a gap, or re-investigating a known defect —
@@ -116,7 +116,7 @@ Hybrid schema — source of truth in jsonb, search params extracted to typed ind
   - `idx_reference` — subject, patient
   - `idx_date` — date, period (b-tree range)
   - `idx_quantity` — value-quantity
-  - `idx_composite` (`0005_composite_idx.sql`) — composite tuples. **Currently never written**: the generator drops composite params (see `docs/roadmap.md`)
+  - `idx_composite` (`0005_composite_idx.sql`) — composite tuples. **Unused**: composite params are unsupported, so nothing writes or reads it; kept for when they are (see `docs/roadmap.md`)
 - Each index row: `(resource_type, resource_id, param_name, value...)`.
 - **Write extracts to index tables. Read/search queries index tables, never scans jsonb.**
 - Covering indexes on the idx_* tables (except `idx_quantity_value_idx` and `idx_composite_lookup`) enable index-only scans. `resources_current_covering_idx` — `(resource_type, id, version_id DESC) INCLUDE (last_updated, deleted)` — covers the current-version pick.

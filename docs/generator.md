@@ -36,9 +36,9 @@ From those it writes **two kinds of artifact**:
    tables. Params recognised by the R4 spec but not yet implemented are emitted as
    `TODO` markers, so the coverage gap is visible in the generated code itself —
    **except** `composite` and `special` params (and extension-based ones), which
-   `BundleTypes.swift` drops before emission with no marker. That silent drop is why
-   the composite bucket is currently always empty; see
-   [roadmap](roadmap.md#search-params-the-router-accepts-but-nothing-indexes).
+   `BundleTypes.swift` drops before emission with no marker. Composite params are
+   therefore unsupported and the composites bucket stays empty; see
+   [roadmap](roadmap.md#composite-search-params-beyond-code-value-).
 
 2. **Terminology binding rules** — `TerminologyBindings.swift`, a
    `[String: [BindingRule]]` table of the *required* value-set bindings per

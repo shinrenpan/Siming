@@ -19,7 +19,7 @@ let knownDocumentReferenceParams: Set<String> = [
     "date", "period",
     "subject", "patient", "author", "encounter",
     "custodian", "authenticator",
-    "relatesto", "related", "relation", "relation:not", "relationship",
+    "relatesto", "related", "relation", "relation:not",
     "location",
     "status:not", "type:not", "category:not", "security-label:not",
     "_id", "_lastUpdated", "_sort", "_count", "_cursor", "_total",
@@ -413,7 +413,6 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
     let related       = first("related").map(String.init)
     let relation      = all("relation").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
     let relationNot   = all("relation:not").flatMap { DocumentReferenceSearchQuery.TokenParam.parseList(String($0)) }
-    let relationship  = all("relationship").flatMap { DocumentReferenceSearchQuery.RelationshipParam.parseList(String($0)) }
 
     let id          = first("_id").map {
         String($0).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -429,7 +428,7 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
               "facility", "event", "contenttype", "format", "language", "setting",
               "date", "period", "description", "location",
               "subject", "patient", "author", "encounter", "custodian", "authenticator",
-              "relatesto", "related", "relation", "relationship"] {
+              "relatesto", "related", "relation"] {
         if let v = first("\(p):missing").map(String.init) {
             if v == "true" { missing[p] = true } else if v == "false" { missing[p] = false }
         }
@@ -463,7 +462,6 @@ func parseDocumentReferenceQuery(from pairs: some Collection<(key: Substring, va
         custodian: custodian, authenticator: authenticator,
         relatesto: relatesto, related: related,
         relation: relation, relationNot: relationNot,
-        relationship: relationship,
         id: id, lastUpdated: lastUpdated,
         tokenTexts: tokenTexts,
         missing: missing, chains: chains, has: has,

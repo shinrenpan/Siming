@@ -135,7 +135,7 @@ actor TestDatabase {
         let c = try requiredClient()
         try await c.withConnection { conn in
             _ = try await conn.query(
-                "TRUNCATE resources, idx_token, idx_string, idx_date, idx_reference, idx_quantity",
+                "TRUNCATE resources, idx_token, idx_string, idx_date, idx_reference, idx_quantity, idx_composite",
                 logger: logger
             )
         }

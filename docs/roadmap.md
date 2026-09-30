@@ -11,49 +11,6 @@ Entries move out of this file when they ship, or when the decision changes.
 
 ## Known defects
 
-### Search params the router accepts but nothing indexes
-
-7 integration tests fail on `main`. They have two causes, neither of them in the
-search SQL.
-
-| Test | Expected | Actual | Cause |
-|---|---|---|---|
-| `ObservationStoreTests` — component/combo × quantity/concept (4 tests) | 1 | **0** | composite never indexed |
-| `DocumentReferenceStoreTests.testSearch_byRelationship_matchesExactTuple` | 1 | **0** | composite never indexed |
-| `ServiceRequestStoreTests.testSearch_byOrderDetail_returnsMatchOnly` | 1 | **0** | not an R4 search param |
-| `ServiceRequestStoreTests.testSearch_byOrderDetailNot_excludesCorrectly` | 1 | **2** | not an R4 search param |
-
-**Composite params are never written.** `SimingGenerator` drops every
-SearchParameter with `type == "composite"` (`Sources/SimingGenerator/BundleTypes.swift`,
-the `guard spec.type != …` filter), so the handler code that fills
-`SearchParams.composites` (`ObservationHandlers.swift`, `DocumentReferenceHandlers.swift`)
-is never emitted, and nothing in `Sources/SimingCore/Generated/` writes to
-`idx_composite`. Emission was removed in a0486da ("eliminate phantom search params");
-the `idx_composite` table, the store-side filter CTEs and the tests survived it.
-An earlier investigation found rows in `idx_composite` and concluded the write path
-worked — those were leftovers from before a0486da, kept alive because
-`TestDatabase.truncate()` omits `idx_composite`.
-
-**`order-detail` does not exist in R4.** Neither r4.core 4.0.1 nor TW Core 1.0.0
-defines a ServiceRequest `order-detail` SearchParameter (only the ValueSet), so the
-generator emits no extractor; the route still accepts the param and the store filters
-`idx_token` rows that are never written. Search returns nothing; `:not` excludes nothing.
-
-Effect in production: `/metadata` does not advertise these params (correctly), but
-a client that sends them anyway gets **an empty result**, not an ignored parameter
-(lenient) or a 400 (strict) as for any other unknown param.
-
-Two ways out, not yet chosen:
-
-1. **Implement composite indexing** — stop filtering `composite` in the generator,
-   emit the composite handlers, advertise the params. `order-detail` still goes.
-   Feature work: the query side exists, the extraction side needs review.
-2. **Stop accepting what is not indexed** — drop the composite and `order-detail`
-   params from the routes' accepted lists and the stores, and delete those tests.
-   They then behave like every other unsupported param.
-
-Either way, fix `TestDatabase.truncate()` to include `idx_composite`.
-
 ### `_summary=count` ignores filters the same query applies without it
 
 `buildCountSQL` is a hand-maintained duplicate of `buildSearchSQL`, taken only when
@@ -218,3 +175,23 @@ downstream client settled on.
 Reopen if a deployment needs `TZ`-relative semantics for date-only values against
 timed elements. The shape would be a configured (never inherited) server timezone
 applied symmetrically to extraction and parsing, plus a reindex.
+
+### Composite search params beyond `code-value-*`
+
+`component-code-value-quantity`, `component-code-value-concept`,
+`combo-code-value-quantity`, `combo-code-value-concept` (Observation) and `relationship`
+(DocumentReference) are unsupported: an unknown param like any other — ignored under
+lenient handling, 400 under `Prefer: handling=strict`. The four root-level
+`code-value-*` params do work (they intersect existing index tables).
+
+Until 1.4.2 the router accepted them and returned an empty result, because the
+generator drops every `composite` SearchParameter (`BundleTypes.swift`) and nothing ever
+wrote `idx_composite`. ServiceRequest `order-detail` was removed at the same time: it is
+not an R4 search param at all.
+
+Reopen when a client needs them. The shape: stop filtering `composite` in the generator,
+emit the composite handlers already in `ObservationHandlers.swift` /
+`DocumentReferenceHandlers.swift` (they write `SearchParams.composites`, which
+`replaceIndexRows` sends to `idx_composite`), and restore the query side from git
+history (before 1.4.2). The table, its index and `clear_index_rows` support remain.
+
