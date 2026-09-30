@@ -2,7 +2,7 @@ import Foundation
 import Logging
 
 /// Per-IP token-bucket rate limiting configuration.
-/// Enabled only when RATE_LIMIT_RPS env var is set and > 0.
+/// Enabled when rps > 0 (RATE_LIMIT_RPS or security.rateLimit.rps in config.yml).
 public struct RateLimitConfiguration: Sendable {
     public let rps: Double
     public let burst: Int

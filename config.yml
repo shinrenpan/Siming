@@ -70,14 +70,8 @@ database:
     # Tune based on your Postgres server's max_connections setting.
     max: 40
 
-# ── Search ────────────────────────────────────────────────────────────────────
-
-search:
-  # Number of results returned per page when the client omits _count.
-  defaultCount: 20
-
-  # Hard upper limit on _count. Requests above this value are clamped.
-  maxCount: 1000
+# Search paging is not configurable: _count defaults to 20 (history: 50) and is
+# clamped to 100.
 
 # ── Security ──────────────────────────────────────────────────────────────────
 
@@ -108,12 +102,12 @@ validator:
   # When set, POST /[ResourceType]/$validate also runs deep StructureDefinition
   # profile validation against the TW Core IG. Leave empty to disable.
   # Override with the VALIDATOR_URL environment variable.
-  # Example: http://localhost:3500
+  # Example: http://localhost:3500 (inside compose: http://validator:4567)
   url: ""
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 logging:
-  # Minimum log level. One of: trace | debug | info | warn | error
+  # Minimum log level. One of: trace | debug | info | notice | warn | error | critical
   # Use debug or trace during development; info or warn in production.
   level: info

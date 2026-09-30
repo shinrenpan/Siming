@@ -21,8 +21,9 @@ bash scripts/setup.sh
 Server ready at `http://localhost:8080` · FHIR Browser at `http://localhost:8080/ui`
 
 The release build needs more than 8 GB of memory available to Docker. On a smaller VM
-(Colima, Docker Desktop with a low limit) the compiler is killed with `signal 9`; build with
-`--build-arg SWIFT_BUILD_FLAGS="-j 1 -Xswiftc -no-whole-module-optimization"` instead.
+(Colima, Docker Desktop with a low limit) the compiler is killed with `signal 9`; set
+`SWIFT_BUILD_FLAGS="-j 1 -Xswiftc -no-whole-module-optimization"` in `.env` before running
+`setup.sh` (or pass it as `--build-arg` to a manual `docker build`).
 
 ### macOS (native, for development)
 

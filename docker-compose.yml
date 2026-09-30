@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: ${PGPASSWORD:-siming}
       POSTGRES_DB: ${PGDATABASE:-siming}
     ports:
-      - "5432:5432"
+      # Loopback only: the defaults are siming/siming. The app reaches db over the
+      # compose network; this mapping is for scripts/run-macOS.sh and local tools.
+      - "127.0.0.1:5432:5432"
     volumes:
       - siming_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -20,7 +22,11 @@ services:
       retries: 10
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Low-memory hosts (≤ 8 GB for Docker): set in .env — see .env.example.
+        SWIFT_BUILD_FLAGS: ${SWIFT_BUILD_FLAGS:-}
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +36,9 @@ services:
       - path: .env
         required: false
     environment:
+      # .env's SERVER_PORT picks the host port above; the container always listens on
+      # 8080, which the port mapping and healthcheck assume.
+      SERVER_PORT: "8080"
       DATABASE_URL: postgres://${PGUSER:-siming}:${PGPASSWORD:-siming}@db:5432/${PGDATABASE:-siming}
       MIGRATIONS_PATH: /app/migrations
     volumes:

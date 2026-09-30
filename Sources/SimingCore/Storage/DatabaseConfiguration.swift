@@ -39,7 +39,7 @@ public struct DatabaseConfiguration {
     }
 
     public static func fromEnvironment() throws -> DatabaseConfiguration {
-        if let urlString = ProcessInfo.processInfo.environment["DATABASE_URL"] {
+        if let urlString = ProcessInfo.processInfo.environment["DATABASE_URL"], !urlString.isEmpty {
             return try parseURL(urlString)
         }
         return DatabaseConfiguration(
