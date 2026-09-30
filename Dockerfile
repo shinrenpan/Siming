@@ -2,7 +2,12 @@
 FROM swift:6.2 AS builder
 WORKDIR /build
 COPY . .
-RUN swift build -c release --product SimingServer
+# Whole-module optimization compiles each large module in one process; on a VM with
+# ~8 GB it gets OOM-killed (signal 9), and lowering -j does not help. Low-memory hosts:
+#   docker build --build-arg SWIFT_BUILD_FLAGS="-j 1 -Xswiftc -no-whole-module-optimization" .
+# Slower build (~15 min), slightly slower binary.
+ARG SWIFT_BUILD_FLAGS=""
+RUN swift build -c release --product SimingServer $SWIFT_BUILD_FLAGS
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM ubuntu:24.04

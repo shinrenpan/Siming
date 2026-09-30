@@ -255,6 +255,8 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **Location header** on 201/200 write responses is an **absolute URL** built via `serverBaseURL(request)` from the `Host` header.
 
+**Every absolute URL in a response** (Bundle links, `fullUrl`, `Location`, `Content-Location`) starts from `serverBaseURL(request)` / `selfURL(request)` in `SearchHelpers.swift`. Never rebuild one from `request.head.authority` — behind a proxy that leaks the internal host and hard-codes `http`.
+
 **Content-Location header** on read + vread responses — versioned URL. Use `contentLocation(request, versionId:)` from `SearchHelpers.swift`.
 
 **Accept header** — 406 when `Accept` present with no JSON-compatible type. `_format` takes precedence. Handled by `FormatMiddleware`.

@@ -30,6 +30,8 @@ public struct SimingConfig: Sendable {
             c.apply(yaml: root)
         }
         c.applyEnvironment()
+        // "https://gw/fhir/" + "/Patient" would emit "//Patient" in every link.
+        while c.serverBaseURL.hasSuffix("/") { c.serverBaseURL.removeLast() }
         return c
     }
 

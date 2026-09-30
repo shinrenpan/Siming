@@ -277,7 +277,7 @@ public func addGoalRoutes(
         if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
-        let base = goalSelfURL(request)
+        let base = selfURL(request)
         let baseURL = serverBaseURL(request)
         if summary == .count {
             let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
@@ -328,7 +328,7 @@ public func addGoalRoutes(
         if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await store.search(query: query)
 
-        let base = goalSelfURL(request)
+        let base = selfURL(request)
         let baseURL = serverBaseURL(request)
         if summary == .count {
             let bundleData = buildBundleJSON(entries: [], total: result.total, selfURL: base, nextURL: nil)
@@ -462,11 +462,6 @@ private func goalDecodeFHIR<T: Decodable>(_ type: T.Type, from buffer: ByteBuffe
     let data = Data(buffer.readableBytesView)
     do { return try JSONDecoder().decode(type, from: data) }
     catch { throw FHIRRouteError.invalidBody(error.localizedDescription) }
-}
-
-private func goalSelfURL(_ request: Request) -> String {
-    let authority = request.head.authority ?? "localhost"
-    return "http://\(authority)\(request.uri)"
 }
 
 func nextGoalPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {

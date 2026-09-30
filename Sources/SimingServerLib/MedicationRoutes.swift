@@ -464,11 +464,6 @@ private func decodeFHIR<T: Decodable>(_ type: T.Type, from buffer: ByteBuffer) t
     catch { throw FHIRRouteError.invalidBody(error.localizedDescription) }
 }
 
-private func selfURL(_ request: Request) -> String {
-    let authority = request.head.authority ?? "localhost"
-    return "http://\(authority)\(request.uri)"
-}
-
 private func nextMedicationPageURL(selfURL: String, cursor: SearchCursor, count: Int) -> String {
     guard let urlComponents = URLComponents(string: selfURL) else { return selfURL }
     var components = urlComponents

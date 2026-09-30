@@ -20,6 +20,10 @@ bash scripts/setup.sh
 
 Server ready at `http://localhost:8080` · FHIR Browser at `http://localhost:8080/ui`
 
+The release build needs more than 8 GB of memory available to Docker. On a smaller VM
+(Colima, Docker Desktop with a low limit) the compiler is killed with `signal 9`; build with
+`--build-arg SWIFT_BUILD_FLAGS="-j 1 -Xswiftc -no-whole-module-optimization"` instead.
+
 ### macOS (native, for development)
 
 Requires Swift 6.2+ and Docker (for Postgres only).

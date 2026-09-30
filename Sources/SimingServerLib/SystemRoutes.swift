@@ -58,8 +58,7 @@ public func addSystemRoutes(
         .sorted { $0.lastUpdated > $1.lastUpdated }
         .prefix(count)
 
-        let authority = request.head.authority ?? "localhost"
-        let baseURL = "http://\(authority)"
+        let baseURL = serverBaseURL(request)
         let bundleData = buildHistoryBundleJSON(entries: Array(all), baseURL: baseURL, selfURL: "\(baseURL)\(request.uri)")
         var headers = HTTPFields()
         headers[.contentType] = "application/fhir+json"
