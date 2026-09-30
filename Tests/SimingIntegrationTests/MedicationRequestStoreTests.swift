@@ -204,4 +204,66 @@ final class MedicationRequestStoreTests: XCTestCase {
         XCTAssertEqual(entries[0].versionId, 2)
         XCTAssertEqual(entries[1].versionId, 1)
     }
+
+    // ── _summary=count answers the same as the page query ─────────────────────
+    // count == 0 used to take a hand-copied buildCountSQL that had drifted: it
+    // dropped identifier, encounter, requester, every :not, :missing and
+    // _lastUpdated. Each case below counted wrong before the count path was made
+    // to share buildSearchSQL's filters.
+
+    private func mr(_ pid: String, status: String, identifier: String,
+                    encounter: String? = nil, requester: String? = nil,
+                    authoredOn: String? = nil) throws -> ModelsR4.MedicationRequest {
+        var json = #"{"resourceType":"MedicationRequest","status":"\#(status)","intent":"order","#
+            + #""identifier":[{"system":"urn:x","value":"\#(identifier)"}],"#
+            + #""medicationCodeableConcept":{"text":"m"},"subject":{"reference":"Patient/\#(pid)"}"#
+        if let e = encounter  { json += #","encounter":{"reference":"Encounter/\#(e)"}"# }
+        if let r = requester  { json += #","requester":{"reference":"Practitioner/\#(r)"}"# }
+        if let d = authoredOn { json += #","authoredOn":"\#(d)""# }
+        json += "}"
+        return try JSONDecoder().decode(ModelsR4.MedicationRequest.self, from: Data(json.utf8))
+    }
+
+    func testSummaryCount_matchesPageTotal_forEveryFilterKind() async throws {
+        let pid = try await patientStore.create(makePatient(family: "CountParity")).id
+        _ = try await store.create(mr(pid, status: "active", identifier: "mr1",
+                                      encounter: "e1", requester: "d1", authoredOn: "2024-01-01"))
+        _ = try await store.create(mr(pid, status: "completed", identifier: "mr2"))
+        _ = try await store.create(mr(pid, status: "active", identifier: "mr3", encounter: "e2"))
+
+        func q(_ build: (inout MedicationRequestSearchQuery) -> Void) -> MedicationRequestSearchQuery {
+            var query = MedicationRequestSearchQuery(subject: "Patient/\(pid)")
+            build(&query)
+            return query
+        }
+        let cases: [(String, MedicationRequestSearchQuery, Int)] = [
+            ("identifier",      q { $0.identifier = [.parse("urn:x|mr1")] }, 1),
+            ("identifier:not",  q { $0.identifierNot = [.parse("urn:x|mr1")] }, 2),
+            ("encounter",       q { $0.encounter = "Encounter/e2" }, 1),
+            ("requester",       q { $0.requester = "Practitioner/d1" }, 1),
+            ("status:not",      q { $0.statusNot = [.init(system: nil, code: "completed")] }, 2),
+            ("authoredon:missing=true", q { $0.missing = ["authoredon": true] }, 2),
+            ("_lastUpdated future", q { $0.lastUpdated = [.parse("ge2999-01-01")!] }, 0),
+        ]
+        for (name, query, expected) in cases {
+            var page = query;  page.count = 100
+            var count = query; count.count = 0
+            let pageTotal  = try await store.search(query: page).total
+            let countTotal = try await store.search(query: count).total
+            XCTAssertEqual(pageTotal, expected, "\(name): page total")
+            XCTAssertEqual(countTotal, expected, "\(name): _summary=count total")
+        }
+    }
+
+    func testSearch_negativeCount_isCountOnly_notATrap() async throws {
+        // _count=-1 reached Array.prefix(-1) in search(), a precondition failure
+        // that killed the server process. It is now answered as count-only.
+        let pid = try await patientStore.create(makePatient(family: "NegCount")).id
+        _ = try await store.create(makeMedicationRequest(subjectId: pid))
+        var q = MedicationRequestSearchQuery(subject: "Patient/\(pid)")
+        q.count = -1
+        let result = try await store.search(query: q)
+        XCTAssertEqual(result.total, 1)
+        XCTAssertTrue(result.entries.isEmpty)
+    }
 }

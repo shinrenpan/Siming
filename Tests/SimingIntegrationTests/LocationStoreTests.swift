@@ -306,8 +306,8 @@ final class LocationStoreTests: XCTestCase {
     }
 
     func testSearch_summaryCount_excludesDeleted() async throws {
-        // count == 0 takes the separate buildCountSQL path, which had the same
-        // current-version pick and therefore the same defect.
+        // count == 0 returns buildCountOnlySQL over the same ids block — it must
+        // apply the same deleted-row rule as the page query.
         let doomed = try await store.create(makeLocation(name: "CountDeletedLoc"))
         _ = try await store.create(makeLocation(name: "CountLiveLoc"))
         _ = try await store.delete(id: doomed.id, ifMatch: nil)

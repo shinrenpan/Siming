@@ -184,17 +184,11 @@ public struct ProcedureStore: Sendable {
     }
 
     public func search(query: ProcedureSearchQuery) async throws -> SearchResult {
-        if query.count == 0 {
-            if query.totalMode == .none {
-                return SearchResult(entries: [], total: nil, nextCursor: nil)
+        if isCountOnly(query.count) {
+            let total = try await runCountOnlySearch(client: client, logger: logger, totalMode: query.totalMode) {
+                try buildSearchSQL(query: query)
             }
-            return try await client.withConnection { conn in
-                let (countSQL, countBinds) = try buildCountSQL(query: query)
-                let rows = try await conn.query(PostgresQuery(unsafeSQL: countSQL, binds: countBinds), logger: logger)
-                var total = 0
-                for try await (n) in rows.decode(Int64.self, context: .default) { total = Int(n) }
-                return SearchResult(entries: [], total: total, nextCursor: nil)
-            }
+            return SearchResult(entries: [], total: total, nextCursor: nil)
         }
         return try await client.withConnection { conn in
             let (sql, binds) = try buildSearchSQL(query: query)
@@ -541,6 +535,7 @@ public struct ProcedureStore: Sendable {
             filterCTEs: filterCTEs,
             extraConditions: extraConditions
         )
+        if isCountOnly(query.count) { return (buildCountOnlySQL(filterCTEs: filterCTEs, idsInner: idsInner), binds) }
 
         // ── Multi-sort paged CTE ──────────────────────────────────────────────
         // Cursor binds MUST happen before limitP bind.
@@ -573,195 +568,6 @@ public struct ProcedureStore: Sendable {
 
         let sql = "\(withClause)\nSELECT p.id, p.version_id, p.last_updated, r.content, \(totalExpr), p.sort_val_concat\n\(fromClause)\nORDER BY \(sortResult.outerOrderBy)"
         return (sql, binds)
-    }
-
-    private func buildCountSQL(query: ProcedureSearchQuery) throws -> (String, PostgresBindings) {
-        var binds = PostgresBindings()
-        var n = 0
-        func bind(_ val: some PostgresDynamicTypeEncodable) -> String {
-            n += 1; binds.append(val); return "$\(n)"
-        }
-
-        var filterCTEs: [(name: String, sql: String)] = []
-
-        if let subject = query.subject {
-            let parts = subject.split(separator: "/")
-            if parts.count == 2 {
-                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
-                filterCTEs.append(("f_subject",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name IN ('patient', 'subject') AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
-            } else {
-                let refIdP = bind(subject)
-                filterCTEs.append(("f_subject",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name IN ('patient', 'subject') AND ref_id = \(refIdP)"))
-            }
-        }
-
-        if let enc = query.encounter {
-            let parts = enc.split(separator: "/")
-            if parts.count == 2 {
-                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
-                filterCTEs.append(("f_encounter",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'encounter' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
-            } else {
-                let refIdP = bind(enc)
-                filterCTEs.append(("f_encounter",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'encounter' AND ref_id = \(refIdP)"))
-            }
-        }
-
-        if let perf = query.performer {
-            let parts = perf.split(separator: "/")
-            if parts.count == 2 {
-                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
-                filterCTEs.append(("f_performer",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'performer' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)"))
-            } else {
-                let refIdP = bind(perf)
-                filterCTEs.append(("f_performer",
-                    "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = 'performer' AND ref_id = \(refIdP)"))
-            }
-        }
-
-        func refCTECount(name: String, paramName: String, ref: String) -> (String, String) {
-            let parts = ref.split(separator: "/")
-            if parts.count == 2 {
-                let refTypeP = bind(String(parts[0])); let refIdP = bind(String(parts[1]))
-                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_type = \(refTypeP) AND ref_id = \(refIdP)")
-            } else {
-                let refIdP = bind(ref)
-                return (name, "SELECT DISTINCT resource_id FROM idx_reference WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND ref_id = \(refIdP)")
-            }
-        }
-
-        if let basedOn = query.basedOn { filterCTEs.append(refCTECount(name: "f_based_on", paramName: "based-on", ref: basedOn)) }
-        if let loc = query.location { filterCTEs.append(refCTECount(name: "f_location", paramName: "location", ref: loc)) }
-        if let partOf = query.partOf { filterCTEs.append(refCTECount(name: "f_part_of", paramName: "part-of", ref: partOf)) }
-        if let rr = query.reasonReference { filterCTEs.append(refCTECount(name: "f_reason_ref", paramName: "reason-reference", ref: rr)) }
-
-        if !query.instantiatesCanonical.isEmpty {
-            let orClauses = query.instantiatesCanonical.map { "lower(value) = lower(\(bind($0)))" }
-            filterCTEs.append(("f_inst_can", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-canonical' AND (\(orClauses.joined(separator: " OR ")))"))
-        }
-        if !query.instantiatesUri.isEmpty {
-            let orClauses = query.instantiatesUri.map { "lower(value) = lower(\(bind($0)))" }
-            filterCTEs.append(("f_inst_uri", "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = 'instantiates-uri' AND (\(orClauses.joined(separator: " OR ")))"))
-        }
-
-        func tokenCTE(name: String, paramName: String, tokens: [ProcedureSearchQuery.TokenParam]) -> (String, String) {
-            var orClauses: [String] = []
-            for tok in tokens {
-                if tok.code.isEmpty, let sys = tok.system {
-                    orClauses.append("system = \(bind(sys))")
-                } else {
-                    let codeP = bind(tok.code); var sysCond = ""
-                    if let sys = tok.system { sysCond = " AND system = \(bind(sys))" }
-                    orClauses.append("(code = \(codeP)\(sysCond))")
-                }
-            }
-            return (name, "SELECT DISTINCT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND (\(orClauses.joined(separator: " OR ")))")
-        }
-
-        if !query.status.isEmpty     { filterCTEs.append(tokenCTE(name: "f_status",     paramName: "status",     tokens: query.status)) }
-        if !query.code.isEmpty       { filterCTEs.append(tokenCTE(name: "f_code",       paramName: "code",       tokens: query.code)) }
-        if !query.category.isEmpty   { filterCTEs.append(tokenCTE(name: "f_category",   paramName: "category",   tokens: query.category)) }
-        if !query.reasonCode.isEmpty { filterCTEs.append(tokenCTE(name: "f_reason_code", paramName: "reason-code", tokens: query.reasonCode)) }
-
-        func dateCTECount(prefix: String, paramName: String, dp: ProcedureSearchQuery.DateParam, idx: Int) -> (String, String) {
-            let startP = bind(dp.dateStart); let endP = bind(dp.dateEnd)
-            let cond: String
-            switch dp.prefix {
-            case .eq: cond = "date_start <= \(endP) AND date_end >= \(startP)"
-            case .ne: cond = "NOT (date_start <= \(endP) AND date_end >= \(startP))"
-            case .lt: cond = "date_end < \(startP)"
-            case .le: cond = "date_start <= \(endP)"
-            case .gt: cond = "date_start > \(endP)"
-            case .ge: cond = "date_end >= \(startP)"
-            case .sa: cond = "date_start > \(endP)"
-            case .eb: cond = "date_end < \(startP)"
-            case .ap: cond = "date_start <= \(bind(dp.apExpandedEnd)) AND date_end >= \(bind(dp.apExpandedStart))"
-            }
-            return ("\(prefix)\(idx)",
-                "SELECT DISTINCT resource_id FROM idx_date WHERE resource_type = 'Procedure' AND param_name = '\(paramName)' AND \(cond)")
-        }
-
-        for (i, dp) in query.date.enumerated() { filterCTEs.append(dateCTECount(prefix: "f_date", paramName: "date", dp: dp, idx: i)) }
-
-        var whereConditions: [String] = []
-        if !query.id.isEmpty {
-            let phs = query.id.map { bind($0) }.joined(separator: ", ")
-            whereConditions.append("r.id IN (\(phs))")
-        }
-
-        // identifier:not
-        if !query.identifierNot.isEmpty {
-            var orClauses: [String] = []
-            for ident in query.identifierNot {
-                if ident.code.isEmpty {
-                    if case .specific(let sys?) = ident.systemFilter {
-                        orClauses.append("system = \(bind(sys))")
-                    }
-                } else {
-                    let codeP = bind(ident.code)
-                    var sysCond = ""
-                    switch ident.systemFilter {
-                    case .any: break
-                    case .specific(nil): sysCond = " AND system IS NULL"
-                    case .specific(let sys?): sysCond = " AND system = \(bind(sys))"
-                    }
-                    orClauses.append("(code = \(codeP)\(sysCond))")
-                }
-            }
-            if !orClauses.isEmpty {
-                whereConditions.append("r.id NOT IN (SELECT resource_id FROM idx_token WHERE resource_type = 'Procedure' AND param_name = 'identifier' AND (\(orClauses.joined(separator: " OR "))))")
-            }
-        }
-
-        // Chained search params
-        let cBindStr: (String) -> String = { bind($0) }
-        let cBindDate: (Date) -> String = { bind($0) }
-        for (i, chain) in query.chains.enumerated() {
-            if let (name, sql) = try chainFilterCTE(
-                index: filterCTEs.count + i, sourceType: "Procedure",
-                chain: chain, bindStr: cBindStr, bindDate: cBindDate
-            ) {
-                filterCTEs.append((name, sql))
-            }
-        }
-
-        // _has modifier (reverse chaining)
-        let hBindStr: (String) -> String = { bind($0) }
-        let hBindDate: (Date) -> String = { bind($0) }
-        for (i, hp) in query.has.enumerated() {
-            if let (name, sql) = try hasFilterCTE(
-                index: i, mainType: "Procedure",
-                param: hp, bindStr: hBindStr, bindDate: hBindDate
-            ) {
-                filterCTEs.append((name, sql))
-            }
-        }
-
-        // token:text filters
-        for (i, tt) in query.tokenTexts.enumerated() {
-            let pn = bind("\(tt.paramName):text")
-            let val = bind("%\(tt.value)%")
-            filterCTEs.append(("f_ttext\(i)",
-                "SELECT DISTINCT resource_id FROM idx_string WHERE resource_type = 'Procedure' AND param_name = \(pn) AND value ILIKE \(val)"))
-        }
-
-        // meta params: _tag, _security, _profile
-        let strBind: (String) -> String = { bind($0) }
-        let (metaCTEs, metaWhere) = metaFilterCTEs(resourceType: "Procedure", meta: query.meta, bind: strBind)
-        filterCTEs += metaCTEs
-        whereConditions += metaWhere
-
-        let idsInner = buildCountIdsInner(
-            resourceType: "Procedure", filterCTEs: filterCTEs, whereConditions: whereConditions)
-
-        var cteParts = filterCTEs.map { "\($0.name) AS (\($0.sql))" }
-        cteParts.append("ids AS MATERIALIZED (\n    \(idsInner)\n  )")
-        let withClause = "WITH " + cteParts.joined(separator: ",\n  ")
-        return ("\(withClause)\nSELECT COUNT(*) FROM ids", binds)
     }
 
     private func procedureMissingSubquery(param: String) -> String? {

@@ -246,7 +246,9 @@ FROM paged p CROSS JOIN total_count t
 JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id = p.version_id
 ```
 
-**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` (or `buildCountIdsInner(resourceType:filterCTEs:whereConditions:)` for the `_summary=count` path) — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
+**Do NOT hand-write the `ids AS MATERIALIZED` block.** Call `buildIdsInner(resourceType:filterCTEs:extraConditions:)` in `MultiSort.swift` — it auto-selects LATERAL (when filterCTEs non-empty) vs DISTINCT ON (full scan fallback). `ids AS MATERIALIZED` is evaluated exactly once. Content fetched only for the final page (deferred-content pattern).
+
+**`_summary=count` / `_count=0` goes through `buildSearchSQL`, never a separate builder.** Right after `buildIdsInner`, each store returns `buildCountOnlySQL(filterCTEs:idsInner:)` when `isCountOnly(query.count)`, and `search()` runs it through `runCountOnlySearch`. Add new filters to `buildSearchSQL` only, above that return.
 
 ## FHIR wire-format rules
 
