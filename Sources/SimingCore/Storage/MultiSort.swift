@@ -1,4 +1,6 @@
 import Foundation
+import Logging
+import PostgresNIO
 
 // ── ids CTE builder ───────────────────────────────────────────────────────
 //
@@ -89,68 +91,47 @@ public func buildIdsInner(
         """
 }
 
-// ── ids CTE builder — count variant ───────────────────────────────────────
+// ── Count-only query ─────────────────────────────────────────────────────
 //
-// Builds the inner SQL for the `ids AS MATERIALIZED (…)` block of buildCountSQL,
-// which projects only `id` (no version_id / last_updated / sort keys).
-//
-// Same deleted-row rule as buildIdsInner: the current version is picked first
-// (tombstones included), the deleted check is applied afterwards.
-//
-// Parameters:
-//   resourceType    — SQL string literal; MUST be a compile-time constant.
-//   filterCTEs      — pre-built filter CTEs; each returns resource_id rows.
-//   whereConditions — conditions beyond the base resource_type+deleted guard,
-//                     written against the `r` alias (e.g. "r.id NOT IN (…)").
+// `_summary=count` / `_count=0`. Built by each store's buildSearchSQL from the SAME
+// filterCTEs and ids block as the page query, so the two cannot disagree on which
+// resources match. (A separate hand-copied count builder per store drifted: it
+// dropped identifier, :not, :missing and _lastUpdated in 20 of 24 stores.)
+// The cursor is not part of `ids` — paging applies after it — so this is the
+// total for the whole result set.
 
-public func buildCountIdsInner(
-    resourceType: String,
-    filterCTEs: [(name: String, sql: String)],
-    whereConditions: [String]
-) -> String {
-    guard !filterCTEs.isEmpty else {
-        let extra = whereConditions.isEmpty ? "" : " AND " + andJoin(whereConditions)
-        return """
-            SELECT r.id
-            FROM (
-              SELECT DISTINCT ON (id) id, version_id, last_updated, deleted
-              FROM resources
-              WHERE resource_type = '\(resourceType)'
-              ORDER BY id, version_id DESC
-            ) r
-            WHERE r.deleted = false\(extra)
-            """
+public func buildCountOnlySQL(filterCTEs: [(name: String, sql: String)], idsInner: String) -> String {
+    // Not MATERIALIZED: COUNT(*) reads ids once, so there is nothing to reuse, and on
+    // the full-scan branch materializing would spill every matching row just to count it.
+    let with = filterCTEs.isEmpty
+        ? ""
+        : "WITH " + filterCTEs.map { "\($0.name) AS (\n    \($0.sql)\n  )" }.joined(separator: ",\n  ") + "\n"
+    return "\(with)SELECT COUNT(*) FROM (\n  \(idsInner)\n) ids"
+}
+
+/// Whether a search is count-only. `_count=0` (and `_summary=count`, which forces it)
+/// asks for the total alone. A negative `_count` has no meaning in FHIR; it is treated
+/// the same way rather than reaching `Array.prefix`, which traps on a negative length
+/// and takes the whole server down. The single definition keeps each store's two
+/// checks (search() and buildSearchSQL) from drifting apart.
+public func isCountOnly(_ count: Int) -> Bool { count <= 0 }
+
+/// Runs a count-only search and returns `Bundle.total` (nil for `_total=none`).
+/// The SQL is `buildSearchSQL`'s count branch.
+public func runCountOnlySearch(
+    client: PostgresClient,
+    logger: Logger,
+    totalMode: PatientSearchQuery.TotalMode,
+    sql build: () throws -> (String, PostgresBindings)
+) async throws -> Int? {
+    if totalMode == .none { return nil }
+    let (sql, binds) = try build()
+    return try await client.withConnection { conn in
+        let rows = try await conn.query(PostgresQuery(unsafeSQL: sql, binds: binds), logger: logger)
+        var total = 0
+        for try await n in rows.decode(Int64.self, context: .default) { total = Int(n) }
+        return total
     }
-
-    // Same LATERAL shape as buildIdsInner, and for the same reason. A derived
-    // table wrapping DISTINCT ON is an optimisation fence: join quals cannot be
-    // pushed into it, so the filter CTEs stop narrowing the scan and every
-    // version of the resource type is read. Measured with a filter matching 5 of
-    // 50k resources: the derived table dedupes 44,446 rows, the LATERAL touches 5.
-    let first = filterCTEs[0].name
-    let joinLines = filterCTEs.dropFirst().map {
-        "JOIN \($0.name) ON \($0.name).resource_id = \(first).resource_id"
-    }
-    let joinClause = joinLines.isEmpty ? "" : "\n      " + joinLines.joined(separator: "\n      ")
-
-    let transformed = whereConditions.map { cond in
-        cond
-            .replacingOccurrences(of: "r.last_updated", with: "lat.last_updated")
-            .replacingOccurrences(of: "r.id ", with: "\(first).resource_id ")
-            .replacingOccurrences(of: "r.id)", with: "\(first).resource_id)")
-    }
-    let whereClause = transformed.isEmpty ? "" : "\n      WHERE " + andJoin(transformed)
-
-    return """
-        SELECT \(first).resource_id AS id
-        FROM \(first)\(joinClause)
-        JOIN LATERAL (
-          SELECT version_id, last_updated, deleted
-          FROM resources
-          WHERE resource_type = '\(resourceType)' AND id = \(first).resource_id
-          ORDER BY version_id DESC LIMIT 1
-        ) lat ON lat.deleted = false\(whereClause)
-        """
 }
 
 // ── Sort key source ────────────────────────────────────────────────────────

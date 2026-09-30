@@ -11,39 +11,6 @@ Entries move out of this file when they ship, or when the decision changes.
 
 ## Known defects
 
-### `_summary=count` ignores filters the same query applies without it
-
-`buildCountSQL` is a hand-maintained duplicate of `buildSearchSQL`, taken only when
-`count == 0` (which is what `_summary=count` forces). The two have drifted, so the
-same query string answers differently depending on whether `_summary=count` is present:
-
-```
-GET /MedicationRequest?identifier=urn:x|mr1               -> 1 entry,  total 1   (correct)
-GET /MedicationRequest?identifier=urn:x|mr1&_summary=count -> total 2            (wrong)
-```
-
-Comparing `query.*` references between the two builders, 20 of the 24 stores drift:
-
-- **all 20** drop `_lastUpdated` and every `:missing`
-- nearly all drop every `:not` modifier
-- `identifier` is dropped by AllergyIntolerance, DiagnosticReport, Immunization,
-  MedicationRequest, Procedure
-- MedicationRequest additionally drops `encounter` and `requester`
-
-Clean (no drift): Patient, Observation, Encounter, Condition.
-
-Searches that return entries are unaffected — with `_total=accurate` the count comes
-from the same SQL as the page. Only the count-only path is wrong.
-
-Patching the 20 stores would re-create the drift on the next parameter added. The fix
-is structural: have the count path reuse `buildSearchSQL`'s filter assembly instead of
-duplicating it. Scoped as its own change because it touches every store.
-
-The deleted-row half of this path is already fixed — both builders now go through
-`buildIdsInner` / `buildCountIdsInner` in `MultiSort.swift`.
-
----
-
 ### A `Period` with neither bound matches every date search
 
 `{"effectivePeriod": {}}` — a Period carrying neither `start` nor `end` — is

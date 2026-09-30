@@ -92,7 +92,7 @@ inside the pick instead makes a deleted resource resolve to its last live versio
 it then appears in search results while `GET /[type]/[id]` correctly returns 410.
 
 This holds for every read path: `buildIdsInner` (both the LATERAL and DISTINCT ON
-branches), `buildCountIdsInner` for `_summary=count`, and `IncludeResolver`.
+branches, which `_summary=count` also counts via `buildCountOnlySQL`), and `IncludeResolver`.
 
 Conditions are parenthesized where they are joined (`andJoin` in `MultiSort.swift`),
 not where they are built. Stores emit raw SQL fragments and some are disjunctions —
@@ -158,7 +158,7 @@ Supported on **all** date parameters across all 24 resources, including `_lastUp
 
 ### String parameter modifiers
 
-All string-type search params support FHIR R4 modifiers. Dispatch in both `buildSearchSQL` and `buildCountSQL`:
+All string-type search params support FHIR R4 modifiers. Dispatch in `buildSearchSQL`:
 
 | Modifier | SQL pattern | Index used |
 |---|---|---|

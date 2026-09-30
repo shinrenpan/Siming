@@ -28,6 +28,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.observation.search(query: query)
 
         let base = selfURL(request)
@@ -76,6 +77,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.observation.search(query: query)
 
         let base = selfURL(request)
@@ -117,6 +119,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.encounter.search(query: query)
 
         let base = selfURL(request)
@@ -163,6 +166,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.encounter.search(query: query)
 
         let base = selfURL(request)
@@ -202,6 +206,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.condition.search(query: query)
 
         let base = selfURL(request)
@@ -248,6 +253,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.condition.search(query: query)
 
         let base = selfURL(request)
@@ -294,6 +300,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationRequest.search(query: query)
 
         let base = selfURL(request)
@@ -333,6 +340,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationRequest.search(query: query)
 
         let base = selfURL(request)
@@ -379,6 +387,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.allergyIntolerance.search(query: query)
 
         let base = selfURL(request)
@@ -418,6 +427,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.allergyIntolerance.search(query: query)
 
         let base = selfURL(request)
@@ -457,6 +467,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.procedure.search(query: query)
 
         let base = selfURL(request)
@@ -503,6 +514,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.procedure.search(query: query)
 
         let base = selfURL(request)
@@ -542,6 +554,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.diagnosticReport.search(query: query)
 
         let base = selfURL(request)
@@ -588,6 +601,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.diagnosticReport.search(query: query)
 
         let base = selfURL(request)
@@ -627,6 +641,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.immunization.search(query: query)
 
         let base = selfURL(request)
@@ -673,6 +688,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.immunization.search(query: query)
 
         let base = selfURL(request)
@@ -712,6 +728,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.relatedPerson.search(query: query)
 
         let base = selfURL(request)
@@ -758,6 +775,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.relatedPerson.search(query: query)
 
         let base = selfURL(request)
@@ -797,6 +815,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.serviceRequest.search(query: query)
 
         let base = selfURL(request)
@@ -836,6 +855,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.serviceRequest.search(query: query)
 
         let base = selfURL(request)
@@ -868,6 +888,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.specimen.search(query: query)
 
         let base = selfURL(request)
@@ -907,6 +928,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.specimen.search(query: query)
 
         let base = selfURL(request)
@@ -939,6 +961,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.documentReference.search(query: query)
 
         let base = selfURL(request)
@@ -978,6 +1001,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.documentReference.search(query: query)
 
         let base = selfURL(request)
@@ -1010,6 +1034,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.carePlan.search(query: query)
 
         let base = selfURL(request)
@@ -1049,6 +1074,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.carePlan.search(query: query)
 
         let base = selfURL(request)
@@ -1081,6 +1107,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.goal.search(query: query)
 
         let base = selfURL(request)
@@ -1127,6 +1154,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.goal.search(query: query)
 
         let base = selfURL(request)
@@ -1166,6 +1194,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationStatement.search(query: query)
 
         let base = selfURL(request)
@@ -1205,6 +1234,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.familyMemberHistory.search(query: query)
 
         let base = selfURL(request)
@@ -1251,6 +1281,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.familyMemberHistory.search(query: query)
 
         let base = selfURL(request)
@@ -1297,6 +1328,7 @@ public func addCompartmentRoutes(
         query.subject = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationStatement.search(query: query)
 
         let base = selfURL(request)
@@ -1336,6 +1368,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.appointment.search(query: query)
 
         let base = selfURL(request)
@@ -1382,6 +1415,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.appointment.search(query: query)
 
         let base = selfURL(request)
@@ -1421,6 +1455,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationAdministration.search(query: query)
 
         let base = selfURL(request)
@@ -1467,6 +1502,7 @@ public func addCompartmentRoutes(
         query.patient = "Patient/\(patientId)"
         let elements = parseElements(from: pairs)
         let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
         let result = try await stores.medicationAdministration.search(query: query)
 
         let base = selfURL(request)
