@@ -65,6 +65,7 @@ struct RouteTests {
         addFamilyMemberHistoryRoutes(to: router, store: stores.familyMemberHistory, logger: logger)
         addAppointmentRoutes(to: router, store: stores.appointment, logger: logger)
         addMedicationAdministrationRoutes(to: router, store: stores.medicationAdministration, logger: logger)
+        addTaskRoutes(to: router, store: stores.task, logger: logger)
         addCompartmentRoutes(to: router, stores: stores, logger: logger)
         addSystemRoutes(to: router, stores: stores, logger: logger)
         return Application(responder: router.buildResponder())
@@ -98,6 +99,20 @@ struct RouteTests {
                 let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
                 #expect(json["resourceType"] as? String == "CapabilityStatement")
                 #expect(json["fhirVersion"] as? String == "4.0.1")
+            }
+        }
+    }
+
+    @Test("GET /metadata lists Task with its search params")
+    func testMetadataListsTask() async throws {
+        try await makeMetadataApp().test(.router) { client in
+            try await client.execute(uri: "/metadata", method: .get) { response in
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                let rest = (json["rest"] as? [[String: Any]])?.first
+                let task = (rest?["resource"] as? [[String: Any]])?.first { $0["type"] as? String == "Task" }
+                #expect(task != nil)
+                let params = Set(((task?["searchParam"] as? [[String: Any]]) ?? []).compactMap { $0["name"] as? String })
+                #expect(params.isSuperset(of: ["patient", "code", "status"]))
             }
         }
     }
@@ -391,6 +406,39 @@ struct RouteTests {
             headers[HTTPField.Name("Prefer")!] = "handling=strict"
             try await client.execute(
                 uri: "/ServiceRequest?unknownXYZ=foo",
+                method: .get,
+                headers: headers
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    // ── /Task ─────────────────────────────────────────────────────────────────
+
+    @Test("POST /Task without Content-Type returns 415 OperationOutcome")
+    func testPostTaskNoContentTypeReturns415() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(
+                uri: "/Task", method: .post,
+                body: ByteBuffer(string: "{}")
+            ) { response in
+                #expect(response.status == .unsupportedMediaType)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("GET /Task with unknown param + handling=strict returns 400 OperationOutcome")
+    func testStrictHandlingTaskUnknownParam() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[HTTPField.Name("Prefer")!] = "handling=strict"
+            try await client.execute(
+                uri: "/Task?unknownXYZ=foo",
                 method: .get,
                 headers: headers
             ) { response in

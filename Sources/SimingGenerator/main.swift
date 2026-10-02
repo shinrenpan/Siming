@@ -22,7 +22,7 @@ let allResourceTypes = [
     "Medication", "MedicationAdministration", "MedicationRequest",
     "MedicationStatement", "Observation", "Organization", "Patient",
     "Practitioner", "PractitionerRole", "Procedure", "RelatedPerson",
-    "ServiceRequest", "Specimen"
+    "ServiceRequest", "Specimen", "Task"
 ]
 
 let allBindings = loadAllBindings(resourceTypes: allResourceTypes, packagesDir: packagesDir)
@@ -105,6 +105,14 @@ let serviceRequestCode = generateServiceRequestExtractor(params: serviceRequestP
 let serviceRequestOut  = "\(outputDir)/ServiceRequest+SearchExtractor.swift"
 try serviceRequestCode.write(toFile: serviceRequestOut, atomically: true, encoding: .utf8)
 print("Generated \(serviceRequestOut) — \(serviceRequestParams.count) ServiceRequest params")
+
+let taskParams = try loadParams(resourceType: "Task", packagesDir: packagesDir)
+    .sorted { $0.code < $1.code }
+
+let taskCode = generateTaskExtractor(params: taskParams)
+let taskOut  = "\(outputDir)/Task+SearchExtractor.swift"
+try taskCode.write(toFile: taskOut, atomically: true, encoding: .utf8)
+print("Generated \(taskOut) — \(taskParams.count) Task params")
 
 let relatedPersonParams = try loadParams(resourceType: "RelatedPerson", packagesDir: packagesDir)
     .sorted { $0.code < $1.code }

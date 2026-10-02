@@ -99,6 +99,10 @@ actor TestDatabase {
         ServiceRequestStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeTaskStore() throws -> TaskStore {
+        TaskStore(client: try requiredClient(), logger: logger)
+    }
+
     func makeSpecimenStore() throws -> SpecimenStore {
         SpecimenStore(client: try requiredClient(), logger: logger)
     }
@@ -672,6 +676,42 @@ func makeServiceRequest(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.ServiceRequest.self, from: Data(json.utf8))
+}
+
+/// Shaped like YTLab's M06 contact request: no meta.profile, form answers in input[].
+func makeTask(
+    forRef: String?,
+    status: String = "requested",
+    intent: String = "order",
+    code: String? = nil,
+    codeSystem: String = "urn:ytlab:task-type",
+    businessStatus: String? = nil,
+    authoredOn: String? = nil,
+    lastModified: String? = nil,
+    owner: String? = nil,
+    periodStart: String? = nil,
+    periodEnd: String? = nil
+) throws -> ModelsR4.Task {
+    var json = #"""
+    {"resourceType":"Task",
+     "status":"\#(status)",
+     "intent":"\#(intent)",
+     "input":[{"type":{"text":"message"},"valueString":"please call me"}]
+    """#
+    if let f = forRef { json += #","for":{"reference":"\#(f)"}"# }
+    if let c = code { json += #","code":{"coding":[{"system":"\#(codeSystem)","code":"\#(c)"}]}"# }
+    if let b = businessStatus { json += #","businessStatus":{"coding":[{"system":"urn:test:biz","code":"\#(b)"}]}"# }
+    if let a = authoredOn { json += #","authoredOn":"\#(a)""# }
+    if let m = lastModified { json += #","lastModified":"\#(m)""# }
+    if let o = owner { json += #","owner":{"reference":"\#(o)"}"# }
+    if periodStart != nil || periodEnd != nil {
+        var parts: [String] = []
+        if let s = periodStart { parts.append(#""start":"\#(s)""#) }
+        if let e = periodEnd { parts.append(#""end":"\#(e)""#) }
+        json += #","executionPeriod":{\#(parts.joined(separator: ","))}"#
+    }
+    json += "}"
+    return try JSONDecoder().decode(ModelsR4.Task.self, from: Data(json.utf8))
 }
 
 func makeSpecimen(

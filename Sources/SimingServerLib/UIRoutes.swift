@@ -119,7 +119,7 @@ const TYPES=['Patient','Observation','Encounter','Condition','Medication','Medic
 'AllergyIntolerance','Procedure','DiagnosticReport','Immunization','Practitioner','PractitionerRole',
 'Organization','Location','RelatedPerson','ServiceRequest','Specimen',
 'DocumentReference','CarePlan','Goal','MedicationStatement',
-'FamilyMemberHistory','Appointment','MedicationAdministration'];
+'FamilyMemberHistory','Appointment','MedicationAdministration','Task'];
 
 const BASE=window.location.origin;
 let currentType=null,nextUrl=null,prevStack=[],searchTerm='';

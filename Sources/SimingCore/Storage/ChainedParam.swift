@@ -54,6 +54,8 @@ public let chainChildParamType: [String: ChainedParam.ChildType] = [
     // Token params for additional resources
     "reason-given": .token, "reason-not-given": .token,
     "reason-code": .token,
+    // Task
+    "business-status": .token, "authored-on": .date, "modified": .date,
 ]
 
 /// Parses a chained search param key+value.
