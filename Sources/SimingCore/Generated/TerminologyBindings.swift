@@ -162,5 +162,10 @@ public let fhirRequiredBindings: [String: [BindingRule]] = [
     ],
     "Specimen": [
         BindingRule(path: "Specimen.status", valueSet: "http://hl7.org/fhir/ValueSet/specimen-status", kind: .code, isArray: false)
+    ],
+    "Task": [
+        BindingRule(path: "Task.status", valueSet: "http://hl7.org/fhir/ValueSet/task-status", kind: .code, isArray: false),
+        BindingRule(path: "Task.intent", valueSet: "http://hl7.org/fhir/ValueSet/task-intent", kind: .code, isArray: false),
+        BindingRule(path: "Task.priority", valueSet: "http://hl7.org/fhir/ValueSet/request-priority", kind: .code, isArray: false)
     ]
 ]

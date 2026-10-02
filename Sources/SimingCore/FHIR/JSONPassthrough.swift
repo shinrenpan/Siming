@@ -323,6 +323,14 @@ public let serviceRequestSummaryFields: Set<String> = [
     "requester", "performerType", "performer",
 ]
 
+/// Task Σ-marked elements per FHIR R4 (excluding mandatory id/meta/resourceType).
+public let taskSummaryFields: Set<String> = [
+    "instantiatesCanonical", "instantiatesUri", "basedOn", "groupIdentifier", "partOf",
+    "status", "statusReason", "businessStatus", "intent", "code", "description",
+    "focus", "for", "encounter", "executionPeriod", "lastModified",
+    "requester", "owner", "location",
+]
+
 /// Specimen Σ-marked elements per FHIR R4 §12.16 (excluding mandatory id/meta/resourceType).
 public let specimenSummaryFields: Set<String> = [
     "identifier", "accessionIdentifier", "status", "type", "subject",

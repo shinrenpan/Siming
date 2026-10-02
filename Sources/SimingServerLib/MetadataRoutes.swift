@@ -12,7 +12,7 @@ private let supportedResourceTypes: [String] = [
     "RelatedPerson", "ServiceRequest", "Specimen",
     "DocumentReference", "CarePlan", "Goal",
     "MedicationStatement", "FamilyMemberHistory",
-    "Appointment", "MedicationAdministration",
+    "Appointment", "MedicationAdministration", "Task",
 ]
 
 // ── Route registration ────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ public func addMetadataRoutes(
 
 // ── CapabilityStatement JSON builder ─────────────────────────────────────────
 
-private let serverVersion = "1.4.3"
+private let serverVersion = "1.5.0"
 
 private func buildCapabilityStatementJSON(
     smartConfig: SmartConfiguration?,
