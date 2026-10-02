@@ -141,6 +141,19 @@ final class TaskStoreTests: XCTestCase {
         XCTAssertEqual(ids(queryResult), [proposal.id])
     }
 
+    func testSearch_intentWithSystem() async throws {
+        let ref = try await newPatientRef("TaskIntentSys")
+        let order = try await store.create(makeTask(forRef: ref, intent: "order"))
+        let unknown = try await store.create(makeTask(forRef: ref, intent: "unknown"))
+
+        let byRequest = TaskSearchQuery(intent: [.init(system: "http://hl7.org/fhir/request-intent", code: "order")], patient: ref)
+        let byRequestResult = try await store.search(query: byRequest)
+        XCTAssertEqual(ids(byRequestResult), [order.id])
+        let byTask = TaskSearchQuery(intent: [.init(system: "http://hl7.org/fhir/task-intent", code: "unknown")], patient: ref)
+        let byTaskResult = try await store.search(query: byTask)
+        XCTAssertEqual(ids(byTaskResult), [unknown.id])
+    }
+
     func testSearch_businessStatus() async throws {
         let ref = try await newPatientRef("TaskBiz")
         let called = try await store.create(makeTask(forRef: ref, businessStatus: "called-back"))

@@ -93,9 +93,13 @@ func taskHandler(spec: ParamSpec, expr: String) -> String? {
         return """
         \(header)
         private func \(fn)(_ p: inout SearchParams, _ t: ModelsR4.Task) {
+            // R4 ValueSet/task-intent: only `unknown` is from the task-intent code system;
+            // proposal / plan / order / … are drawn from request-intent.
             if let v = t.intent.value?.string {
-                p.tokens.append(.init(paramName: "\(code)",
-                                      system: "http://hl7.org/fhir/task-intent", code: v))
+                let system = v == "unknown"
+                    ? "http://hl7.org/fhir/task-intent"
+                    : "http://hl7.org/fhir/request-intent"
+                p.tokens.append(.init(paramName: "\(code)", system: system, code: v))
             }
         }
         """
