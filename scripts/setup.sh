@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # One-command setup for Siming FHIR R4 Server.
-# Downloads FHIR packages (once) and starts the full stack.
+#   bash scripts/setup.sh           pull the published image and start the stack
+#   bash scripts/setup.sh --build   build the image from this checkout instead
 set -euo pipefail
+
+BUILD=false
+[ "${1:-}" = "--build" ] && BUILD=true
 
 cd "$(dirname "$0")/.."
 
@@ -17,13 +21,15 @@ if ! docker info &>/dev/null; then
   exit 1
 fi
 
-# ── FHIR packages ─────────────────────────────────────────────────────────────
+# ── FHIR packages (source build only — the published image already has them) ──
 
-if [ -z "$(ls packages/*.tgz 2>/dev/null)" ]; then
-  echo "Downloading FHIR packages..."
-  bash scripts/fetch-packages.sh
-else
-  echo "FHIR packages already present — skipping download."
+if $BUILD; then
+  if [ -z "$(ls packages/*.tgz 2>/dev/null)" ]; then
+    echo "Downloading FHIR packages..."
+    bash scripts/fetch-packages.sh
+  else
+    echo "FHIR packages already present — skipping download."
+  fi
 fi
 
 # ── Environment ───────────────────────────────────────────────────────────────
@@ -35,8 +41,14 @@ fi
 
 # ── Start ─────────────────────────────────────────────────────────────────────
 
-echo "Building and starting Siming..."
-docker compose up --build -d
+if $BUILD; then
+  echo "Building and starting Siming..."
+  docker compose up --build -d
+else
+  echo "Pulling and starting Siming..."
+  docker compose pull app
+  docker compose up -d
+fi
 
 echo ""
 echo "Waiting for server to be ready..."

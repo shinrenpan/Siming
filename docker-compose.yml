@@ -22,6 +22,9 @@ services:
       retries: 10
 
   app:
+    # `docker compose up` pulls the published image; `docker compose up --build` builds
+    # this checkout instead (and tags the result with the same name).
+    image: ghcr.io/shinrenpan/siming:${SIMING_VERSION:-latest}
     build:
       context: .
       args:
@@ -43,9 +46,11 @@ services:
       PGHOST: db
       PGPORT: "5432"
       MIGRATIONS_PATH: /app/migrations
+    # packages/ is baked into the image (published or locally built) — never mount it:
+    # an empty or missing host ./packages would hide the image's copy and the server
+    # would start with no terminology.
     volumes:
       - ./config.yml:/app/config.yml:ro
-      - ./packages:/app/packages:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/health"]

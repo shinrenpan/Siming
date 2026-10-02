@@ -124,9 +124,10 @@ ever compiles what is in git.
 
 Two consequences:
 
-- **A plain deploy needs nothing extra.** `bash scripts/setup.sh` /
-  `docker compose up --build` compiles the committed extractors as-is. You do not
-  run the generator to deploy.
+- **A plain deploy needs nothing extra.** The published image was built from the
+  tagged commit's extractors; `bash scripts/setup.sh --build` /
+  `docker compose up --build` compiles the committed ones as-is. You do not run
+  the generator to deploy.
 - **After regenerating, you must rebuild the image.** Regeneration only changes
   source files; an image built before the regenerate is stale. Commit the new
   `Generated/` code, then `docker compose up --build`.
@@ -134,8 +135,9 @@ Two consequences:
 Note: `scripts/fetch-packages.sh` appears in the Docker flow too, but there it
 serves a *different* purpose — the `.tgz` files are gitignored, and the Dockerfile
 copies `packages/` into the runtime image so the server can build its
-CapabilityStatement (`GET /metadata`) at startup. That runtime use is unrelated
-to the generator.
+CapabilityStatement (`GET /metadata`) and terminology index at startup. That
+runtime use is unrelated to the generator. The release workflow
+(`.github/workflows/release.yml`) runs the same script before `docker build`.
 
 ---
 

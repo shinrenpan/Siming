@@ -1,0 +1,142 @@
+name: Release image
+
+# Publishes ghcr.io/<owner>/siming:<version> (+ :latest) for linux/amd64 and linux/arm64
+# when a v* tag is pushed. Each arch builds on its own native runner — no QEMU.
+# workflow_dispatch re-publishes an existing tag (e.g. after a failed run).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, e.g. v1.5.0"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/siming
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      # packages/*.tgz is gitignored but the Dockerfile copies packages/ into the image.
+      # Without this step the image still builds and starts — with no terminology and a
+      # thinned-out CapabilityStatement, and only a log warning to show for it.
+      - name: Fetch FHIR packages
+        run: bash scripts/fetch-packages.sh
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pushed by digest only; the merge job tags the multi-arch manifest after the
+      # smoke test passes, so a broken build never gets a version tag.
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.TAG }}
+            org.opencontainers.image.licenses=MIT
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Record digest
+        run: |
+          mkdir -p digests
+          echo "${{ steps.build.outputs.digest }}" > "digests/${{ matrix.arch }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digests/*
+          retention-days: 1
+
+  publish:
+    name: Smoke test & tag
+    needs: build
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siming
+          POSTGRES_PASSWORD: siming
+          POSTGRES_DB: siming
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U siming"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smoke test (amd64)
+        run: |
+          set -euo pipefail
+          docker run -d --name siming --network host \
+            -e PGHOST=localhost -e PGUSER=siming -e PGPASSWORD=siming -e PGDATABASE=siming \
+            "${IMAGE}@$(cat digests/amd64)"
+          for _ in $(seq 1 30); do curl -sf localhost:8080/health >/dev/null && break; sleep 2; done
+          docker logs siming 2>&1 | tail -20
+
+          version=$(curl -sf localhost:8080/metadata | jq -r '.software.version')
+          echo "CapabilityStatement version: $version"
+          [ "v$version" = "$TAG" ] || { echo "::error::image reports $version, tag is $TAG"; exit 1; }
+
+          # Terminology comes from the bundled packages: an invalid required-binding code
+          # is a 422 only if they were loaded.
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/Task \
+            -H 'Content-Type: application/fhir+json' \
+            -d '{"resourceType":"Task","status":"requested","intent":"bogus"}')
+          [ "$status" = "422" ] || { echo "::error::invalid intent returned $status, expected 422 — packages missing?"; exit 1; }
+
+      - name: Tag multi-arch manifest
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          tags=(-t "${IMAGE}:${version}")
+          # Pre-releases (v1.6.0-rc.1) never move :latest.
+          [[ "$version" == *-* ]] || tags+=(-t "${IMAGE}:latest")
+          docker buildx imagetools create "${tags[@]}" \
+            "${IMAGE}@$(cat digests/amd64)" "${IMAGE}@$(cat digests/arm64)"
+          docker buildx imagetools inspect "${IMAGE}:${version}"

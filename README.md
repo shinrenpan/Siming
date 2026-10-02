@@ -20,10 +20,21 @@ bash scripts/setup.sh
 
 Server ready at `http://localhost:8080` · FHIR Browser at `http://localhost:8080/ui`
 
-The release build needs more than 8 GB of memory available to Docker. On a smaller VM
+`setup.sh` pulls the prebuilt image `ghcr.io/shinrenpan/siming` (linux/amd64 and
+linux/arm64, FHIR packages included) — nothing is compiled. It follows `latest`; pin a
+release with `SIMING_VERSION=1.5.0` in `.env`. Images are published from v1.5.0 on.
+
+### Docker, built from source
+
+```bash
+bash scripts/setup.sh --build
+```
+
+Fetches the FHIR packages and compiles this checkout (`docker compose up --build`). The
+release build needs more than 8 GB of memory available to Docker. On a smaller VM
 (Colima, Docker Desktop with a low limit) the compiler is killed with `signal 9`; set
 `SWIFT_BUILD_FLAGS="-j 1 -Xswiftc -no-whole-module-optimization"` in `.env` before running
-`setup.sh` (or pass it as `--build-arg` to a manual `docker build`). Even then the last few
+it (or pass it as `--build-arg` to a manual `docker build`). Even then the last few
 large files leave little headroom — stop other containers on the same VM while it builds.
 
 ### macOS (native, for development)

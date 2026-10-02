@@ -282,6 +282,13 @@ JOIN resources r ON r.resource_type = 'Patient' AND r.id = p.id AND r.version_id
 
 **Config:** `config.yml` at project root. Secrets always stay in env vars — env vars override `config.yml`.
 
+## Release image
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which publishes `ghcr.io/shinrenpan/siming:<version>` + `:latest` (amd64 + arm64).
+- Bump `serverVersion` in `MetadataRoutes.swift` **before** tagging — the workflow's smoke test fails when `/metadata` reports a version other than the tag.
+- `packages/*.tgz` is gitignored; the workflow must run `scripts/fetch-packages.sh` before `docker build`. Without it the image builds and starts with no terminology — a log warning is the only signal. The smoke test guards this (invalid `Task.intent` must be 422).
+- Never bind-mount `packages/` in `docker-compose.yml`: an empty host dir hides the image's copy.
+
 ## Pagination
 
 Cursor / keyset based: `WHERE (sort_val, id) > (?, ?)`. **Never offset-based.**
