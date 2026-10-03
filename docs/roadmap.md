@@ -53,6 +53,21 @@ Implemented when there is a reason to, not on spec:
 - **`MedicationDispense`** — completes the medication workflow. Follows the existing
   store/route patterns, so implementation cost is low and clinical value is high.
 
+- **`Device`** — TW Core profiles it (`Device-twcore`), and `Observation.device` is
+  already indexed but has nothing local to point at. A downstream client syncing device
+  measurements needs it: the alternative, a contained Device, copies the same device into
+  every Observation and is not searchable. Do this one first.
+
+- **`QuestionnaireResponse`** — TW Core profiles it (`QuestionnaireResponse-twcore`). The
+  downstream workaround (answers in `Task.input`) is non-standard and other FHIR clients
+  cannot read it.
+
+- **`Schedule` / `Slot`** — no TW Core profile, but a downstream client's scheduling
+  module uses only standard Schedule/Slot and switches off when `/metadata` lacks them, so
+  without them a clinic on Siming gets no scheduling. Wait until that module's requirements
+  settle. Slot is write-heavy (status changes on every booking) and every write keeps a
+  version — fine at small-clinic volume, worth checking before larger deployments.
+
 - **A reindex command.** Index rows are only rewritten when a resource is written, so
   a change to an extractor leaves every existing row stale until someone touches it.
   That already bit once: the `period` extractors were building `DateComponents` without
@@ -94,7 +109,15 @@ is true of every resource carrying TODO params, not just this one.
 ## Not planned
 
 Resources: `Composition`, `CareTeam`, `Provenance`, `Coverage`, `ImagingStudy`,
-`Device`, `Media`, `MessageHeader`, `QuestionnaireResponse`.
+`Media`, `MessageHeader`.
+
+- **`AdverseEvent`** — R4 rates it FMM 0 and R5 restructures it, so stored data would
+  likely need migrating. No TW Core profile. Reopen if a client commits to it despite that.
+- **`Consent` / `AuditEvent`** — storing them is easy; honouring them is not. An enforced
+  Consent means a per-patient authorization check on every read and search, beyond what
+  the scope-based auth middleware does. AuditEvent-per-read turns the read path, which
+  never writes, into a write path. Cross-clinic access also runs into multi-tenancy.
+  Belongs in a gateway or the client's service layer in front of Siming.
 
 Capabilities: R5, multi-tenancy, Subscriptions/Notifications, and a terminology
 server (CodeSystem/ValueSet CRUD plus `$expand` / `$lookup`) — Siming is a clinical
