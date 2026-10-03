@@ -14,7 +14,7 @@ import ModelsR4
 // when profile validation is implemented, add it to prepareResource as well.
 //
 // Parameters:
-//   resourceType — "Patient", "Observation", etc. Must be one of the 25 supported types.
+//   resourceType — "Patient", "Observation", etc. Must be one of the 27 supported types.
 //   id           — server-assigned (POST) or client-provided (PUT) resource id.
 //   data         — raw JSON of the resource (post urn:uuid replacement).
 
@@ -75,6 +75,10 @@ public func prepareEntryForWrite(
         return try prepareResource(MedicationAdministration.self, data: data, id: id, terminology: terminology, extractor: extractMedicationAdministrationSearchParams)
     case "Task":
         return try prepareResource(ModelsR4.Task.self, data: data, id: id, terminology: terminology, extractor: extractTaskSearchParams)
+    case "Device":
+        return try prepareResource(Device.self, data: data, id: id, terminology: terminology, extractor: extractDeviceSearchParams)
+    case "QuestionnaireResponse":
+        return try prepareResource(QuestionnaireResponse.self, data: data, id: id, terminology: terminology, extractor: extractQuestionnaireResponseSearchParams)
     default:
         throw BundleTransactionError.unsupportedResourceType(resourceType)
     }

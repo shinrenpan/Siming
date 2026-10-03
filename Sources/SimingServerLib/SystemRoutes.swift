@@ -49,12 +49,14 @@ public func addSystemRoutes(
         async let apptEntries      = include("Appointment")              ? stores.appointment.typeHistory(since: since, count: count)              : []
         async let maEntries        = include("MedicationAdministration") ? stores.medicationAdministration.typeHistory(since: since, count: count) : []
         async let taskEntries      = include("Task")                     ? stores.task.typeHistory(since: since, count: count)                     : []
+        async let deviceEntries    = include("Device")                   ? stores.device.typeHistory(since: since, count: count)                   : []
+        async let qrEntries        = include("QuestionnaireResponse")    ? stores.questionnaireResponse.typeHistory(since: since, count: count)    : []
 
         let all = try await (
             patientEntries + obsEntries + encEntries + conEntries + medBaseEntries + medEntries + allergyEntries
             + procEntries + drEntries + immEntries + pracEntries + pracRoleEntries + orgEntries + locEntries + rpEntries
             + srEntries + specEntries + docRefEntries + carePlanEntries + goalEntries + msEntries
-            + fmhEntries + apptEntries + maEntries + taskEntries
+            + fmhEntries + apptEntries + maEntries + taskEntries + deviceEntries + qrEntries
         )
         .sorted { $0.lastUpdated > $1.lastUpdated }
         .prefix(count)

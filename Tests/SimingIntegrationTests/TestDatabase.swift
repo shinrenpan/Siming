@@ -103,6 +103,14 @@ actor TestDatabase {
         TaskStore(client: try requiredClient(), logger: logger)
     }
 
+    func makeDeviceStore() throws -> DeviceStore {
+        DeviceStore(client: try requiredClient(), logger: logger)
+    }
+
+    func makeQuestionnaireResponseStore() throws -> QuestionnaireResponseStore {
+        QuestionnaireResponseStore(client: try requiredClient(), logger: logger)
+    }
+
     func makeSpecimenStore() throws -> SpecimenStore {
         SpecimenStore(client: try requiredClient(), logger: logger)
     }
@@ -712,6 +720,68 @@ func makeTask(
     }
     json += "}"
     return try JSONDecoder().decode(ModelsR4.Task.self, from: Data(json.utf8))
+}
+
+/// Shaped like a home measurement device: no patient (TW Core requires one, base R4 does not).
+func makeDevice(
+    serial: String,
+    status: String = "active",
+    name: String? = nil,
+    manufacturer: String? = nil,
+    model: String? = nil,
+    typeCode: String? = nil,
+    typeDisplay: String? = nil,
+    udiDI: String? = nil,
+    patient: String? = nil,
+    owner: String? = nil
+) throws -> Device {
+    var json = #"""
+    {"resourceType":"Device",
+     "status":"\#(status)",
+     "identifier":[{"system":"urn:test:device-serial","value":"\#(serial)"}]
+    """#
+    if let n = name { json += #","deviceName":[{"name":"\#(n)","type":"user-friendly-name"}]"# }
+    if let m = manufacturer { json += #","manufacturer":"\#(m)""# }
+    if let m = model { json += #","modelNumber":"\#(m)""# }
+    if let c = typeCode {
+        let display = typeDisplay.map { #","display":"\#($0)""# } ?? ""
+        json += #","type":{"coding":[{"system":"http://snomed.info/sct","code":"\#(c)"\#(display)}]}"#
+    }
+    if let u = udiDI { json += #","udiCarrier":[{"deviceIdentifier":"\#(u)","carrierHRF":"(01)\#(u)"}]"# }
+    if let p = patient { json += #","patient":{"reference":"\#(p)"}"# }
+    if let o = owner { json += #","owner":{"reference":"\#(o)"}"# }
+    json += "}"
+    return try JSONDecoder().decode(Device.self, from: Data(json.utf8))
+}
+
+/// Shaped like a form answer set: nested items (group → question), as a Task.input cannot hold.
+func makeQuestionnaireResponse(
+    subject: String?,
+    status: String = "completed",
+    questionnaire: String? = nil,
+    authored: String? = nil,
+    author: String? = nil,
+    identifier: String? = nil,
+    itemSubject: String? = nil
+) throws -> QuestionnaireResponse {
+    var json = #"""
+    {"resourceType":"QuestionnaireResponse",
+     "status":"\#(status)",
+     "item":[{"linkId":"symptoms","text":"Symptoms","item":[
+       {"linkId":"symptoms.headache","answer":[{"valueBoolean":true}]},
+       {"linkId":"symptoms.note","answer":[{"valueString":"since Monday"}]}]}
+    """#
+    if let s = itemSubject {
+        json += #",{"linkId":"about","extension":[{"url":"http://hl7.org/fhir/StructureDefinition/questionnaireresponse-isSubject","valueBoolean":true}],"answer":[{"valueReference":{"reference":"\#(s)"}}]}"#
+    }
+    json += "]"
+    if let s = subject { json += #","subject":{"reference":"\#(s)"}"# }
+    if let q = questionnaire { json += #","questionnaire":"\#(q)""# }
+    if let a = authored { json += #","authored":"\#(a)""# }
+    if let a = author { json += #","author":{"reference":"\#(a)"}"# }
+    if let i = identifier { json += #","identifier":{"system":"urn:test:qr","value":"\#(i)"}"# }
+    json += "}"
+    return try JSONDecoder().decode(QuestionnaireResponse.self, from: Data(json.utf8))
 }
 
 func makeSpecimen(

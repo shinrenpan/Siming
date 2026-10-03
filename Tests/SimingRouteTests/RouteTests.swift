@@ -66,6 +66,8 @@ struct RouteTests {
         addAppointmentRoutes(to: router, store: stores.appointment, logger: logger)
         addMedicationAdministrationRoutes(to: router, store: stores.medicationAdministration, logger: logger)
         addTaskRoutes(to: router, store: stores.task, logger: logger)
+        addDeviceRoutes(to: router, store: stores.device, logger: logger)
+        addQuestionnaireResponseRoutes(to: router, store: stores.questionnaireResponse, logger: logger)
         addCompartmentRoutes(to: router, stores: stores, logger: logger)
         addSystemRoutes(to: router, stores: stores, logger: logger)
         return Application(responder: router.buildResponder())
@@ -113,6 +115,30 @@ struct RouteTests {
                 let rest = (json["rest"] as? [[String: Any]])?.first
                 let task = (rest?["resource"] as? [[String: Any]])?.first { $0["type"] as? String == "Task" }
                 let interactions = Set(((task?["interaction"] as? [[String: Any]]) ?? []).compactMap { $0["code"] as? String })
+                #expect(interactions.isSuperset(of: ["create", "read", "update", "search-type"]))
+            }
+        }
+    }
+    @Test("GET /metadata lists Device")
+    func testMetadataListsDevice() async throws {
+        try await makeMetadataApp().test(.router) { client in
+            try await client.execute(uri: "/metadata", method: .get) { response in
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                let rest = (json["rest"] as? [[String: Any]])?.first
+                let device = (rest?["resource"] as? [[String: Any]])?.first { $0["type"] as? String == "Device" }
+                let interactions = Set(((device?["interaction"] as? [[String: Any]]) ?? []).compactMap { $0["code"] as? String })
+                #expect(interactions.isSuperset(of: ["create", "read", "update", "search-type"]))
+            }
+        }
+    }
+    @Test("GET /metadata lists QuestionnaireResponse")
+    func testMetadataListsQuestionnaireResponse() async throws {
+        try await makeMetadataApp().test(.router) { client in
+            try await client.execute(uri: "/metadata", method: .get) { response in
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                let rest = (json["rest"] as? [[String: Any]])?.first
+                let qr = (rest?["resource"] as? [[String: Any]])?.first { $0["type"] as? String == "QuestionnaireResponse" }
+                let interactions = Set(((qr?["interaction"] as? [[String: Any]]) ?? []).compactMap { $0["code"] as? String })
                 #expect(interactions.isSuperset(of: ["create", "read", "update", "search-type"]))
             }
         }
@@ -440,6 +466,72 @@ struct RouteTests {
             headers[HTTPField.Name("Prefer")!] = "handling=strict"
             try await client.execute(
                 uri: "/Task?unknownXYZ=foo",
+                method: .get,
+                headers: headers
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    // ── /Device ───────────────────────────────────────────────────────────────
+
+    @Test("POST /Device without Content-Type returns 415 OperationOutcome")
+    func testPostDeviceNoContentTypeReturns415() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(
+                uri: "/Device", method: .post,
+                body: ByteBuffer(string: "{}")
+            ) { response in
+                #expect(response.status == .unsupportedMediaType)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("GET /Device with unknown param + handling=strict returns 400 OperationOutcome")
+    func testStrictHandlingDeviceUnknownParam() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[HTTPField.Name("Prefer")!] = "handling=strict"
+            try await client.execute(
+                uri: "/Device?unknownXYZ=foo",
+                method: .get,
+                headers: headers
+            ) { response in
+                #expect(response.status == .badRequest)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    // ── /QuestionnaireResponse ────────────────────────────────────────────────
+
+    @Test("POST /QuestionnaireResponse without Content-Type returns 415 OperationOutcome")
+    func testPostQuestionnaireResponseNoContentTypeReturns415() async throws {
+        try await makeFullApp().test(.router) { client in
+            try await client.execute(
+                uri: "/QuestionnaireResponse", method: .post,
+                body: ByteBuffer(string: "{}")
+            ) { response in
+                #expect(response.status == .unsupportedMediaType)
+                let json = try JSONSerialization.jsonObject(with: Data(response.body.readableBytesView)) as! [String: Any]
+                #expect(json["resourceType"] as? String == "OperationOutcome")
+            }
+        }
+    }
+
+    @Test("GET /QuestionnaireResponse with unknown param + handling=strict returns 400 OperationOutcome")
+    func testStrictHandlingQuestionnaireResponseUnknownParam() async throws {
+        try await makeFullApp().test(.router) { client in
+            var headers = HTTPFields()
+            headers[HTTPField.Name("Prefer")!] = "handling=strict"
+            try await client.execute(
+                uri: "/QuestionnaireResponse?unknownXYZ=foo",
                 method: .get,
                 headers: headers
             ) { response in

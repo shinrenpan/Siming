@@ -57,6 +57,8 @@ public func buildRouter(
     addAppointmentRoutes(to: router, store: stores.appointment, logger: logger)
     addMedicationAdministrationRoutes(to: router, store: stores.medicationAdministration, logger: logger)
     addTaskRoutes(to: router, store: stores.task, logger: logger)
+    addDeviceRoutes(to: router, store: stores.device, logger: logger)
+    addQuestionnaireResponseRoutes(to: router, store: stores.questionnaireResponse, logger: logger)
     addTransactionRoutes(to: router, stores: stores, logger: logger)
     addCompartmentRoutes(to: router, stores: stores, logger: logger)
     addSystemRoutes(to: router, stores: stores, logger: logger)
