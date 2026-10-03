@@ -31,6 +31,23 @@ including one in a block that had just been edited. Weighed against an input tha
 does not occur in real data, the change is not worth making unforced. Do it when
 a period extractor is being touched for another reason.
 
+### `:text` on a string param always returns nothing
+
+`Patient?name:text=Wang` (or `device-name:text`, `address:text`, …) matches no
+resource. Each `parseXxxQuery` turns *every* key ending in `:text` into a
+`TokenTextParam`, which filters on `idx_string` rows with
+`param_name = '<param>:text'` — rows only token params write (via `appendToken` /
+`appendConceptText`). `StringParam.parse` also accepts the same key as a contains
+match, so the two filters are ANDed and the second one is always empty. Affects every
+resource with string params: Condition, Device, Immunization, Location, Organization,
+Patient, Practitioner, RelatedPerson.
+
+Low impact: R4 defines `:text` for token (and reference) params only, so a client
+following the spec never sends it. The fix is to stop the `TokenTextParam` parser
+from claiming keys whose base param is a string param, in each `parseXxxQuery` —
+then `:text` on a string param stays the contains match `StringParam.parse` already
+gives it. Not done yet, as it was found in review rather than reported by a client.
+
 ---
 
 ## Gaps with a decision still open
