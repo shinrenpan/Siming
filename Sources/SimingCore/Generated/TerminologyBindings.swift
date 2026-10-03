@@ -150,6 +150,9 @@ public let fhirRequiredBindings: [String: [BindingRule]] = [
         BindingRule(path: "Procedure.code.coding", valueSet: "http://hl7.org/fhir/ValueSet/procedure-code", kind: .code, isArray: false),
         BindingRule(path: "Procedure.code.coding", valueSet: "http://hl7.org/fhir/ValueSet/observation-codes", kind: .code, isArray: false)
     ],
+    "QuestionnaireResponse": [
+        BindingRule(path: "QuestionnaireResponse.status", valueSet: "http://hl7.org/fhir/ValueSet/questionnaire-answers-status", kind: .code, isArray: false)
+    ],
     "RelatedPerson": [
         BindingRule(path: "RelatedPerson.gender", valueSet: "http://hl7.org/fhir/ValueSet/administrative-gender", kind: .code, isArray: false)
     ],

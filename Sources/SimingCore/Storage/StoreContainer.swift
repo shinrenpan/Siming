@@ -32,6 +32,7 @@ public struct StoreContainer: Sendable {
     public let medicationAdministration: MedicationAdministrationStore
     public let task: TaskStore
     public let device: DeviceStore
+    public let questionnaireResponse: QuestionnaireResponseStore
 
     /// Shared with the transaction path, which writes without going through a store.
     public let terminology: TerminologyIndex
@@ -65,5 +66,6 @@ public struct StoreContainer: Sendable {
         medicationAdministration = MedicationAdministrationStore(client: client, logger: logger, terminology: terminology)
         task                   = TaskStore(client: client, logger: logger, terminology: terminology)
         device                 = DeviceStore(client: client, logger: logger, terminology: terminology)
+        questionnaireResponse  = QuestionnaireResponseStore(client: client, logger: logger, terminology: terminology)
     }
 }

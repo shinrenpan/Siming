@@ -13,6 +13,7 @@ private let supportedResourceTypes: [String] = [
     "DocumentReference", "CarePlan", "Goal",
     "MedicationStatement", "FamilyMemberHistory",
     "Appointment", "MedicationAdministration", "Task", "Device",
+    "QuestionnaireResponse",
 ]
 
 // ── Route registration ────────────────────────────────────────────────────────

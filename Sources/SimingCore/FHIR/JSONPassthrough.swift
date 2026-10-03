@@ -336,6 +336,12 @@ public let deviceSummaryFields: Set<String> = [
     "udiCarrier", "status", "safety",
 ]
 
+/// QuestionnaireResponse Σ-marked elements per FHIR R4 (excluding mandatory id/meta/resourceType).
+public let questionnaireResponseSummaryFields: Set<String> = [
+    "identifier", "basedOn", "partOf", "questionnaire", "status",
+    "subject", "encounter", "authored", "author", "source",
+]
+
 /// Specimen Σ-marked elements per FHIR R4 §12.16 (excluding mandatory id/meta/resourceType).
 public let specimenSummaryFields: Set<String> = [
     "identifier", "accessionIdentifier", "status", "type", "subject",

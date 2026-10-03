@@ -59,6 +59,8 @@ public let chainChildParamType: [String: ChainedParam.ChildType] = [
     // Device — not `manufacturer`: Medication.manufacturer is a reference, and mapping it
     // here would turn an ignored `medication.manufacturer=` chain into an empty result.
     "device-name": .string, "model": .string, "udi-carrier": .string, "udi-di": .string,
+    // QuestionnaireResponse
+    "authored": .date,
 ]
 
 /// Parses a chained search param key+value.

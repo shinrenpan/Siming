@@ -21,8 +21,8 @@ let allResourceTypes = [
     "FamilyMemberHistory", "Goal", "Immunization", "Location",
     "Medication", "MedicationAdministration", "MedicationRequest",
     "MedicationStatement", "Observation", "Organization", "Patient",
-    "Practitioner", "PractitionerRole", "Procedure", "RelatedPerson",
-    "ServiceRequest", "Specimen", "Task"
+    "Practitioner", "PractitionerRole", "Procedure", "QuestionnaireResponse",
+    "RelatedPerson", "ServiceRequest", "Specimen", "Task"
 ]
 
 let allBindings = loadAllBindings(resourceTypes: allResourceTypes, packagesDir: packagesDir)
@@ -105,6 +105,14 @@ let deviceCode = generateDeviceExtractor(params: deviceParams)
 let deviceOut  = "\(outputDir)/Device+SearchExtractor.swift"
 try deviceCode.write(toFile: deviceOut, atomically: true, encoding: .utf8)
 print("Generated \(deviceOut) — \(deviceParams.count) Device params")
+
+let questionnaireResponseParams = try loadParams(resourceType: "QuestionnaireResponse", packagesDir: packagesDir)
+    .sorted { $0.code < $1.code }
+
+let questionnaireResponseCode = generateQuestionnaireResponseExtractor(params: questionnaireResponseParams)
+let questionnaireResponseOut  = "\(outputDir)/QuestionnaireResponse+SearchExtractor.swift"
+try questionnaireResponseCode.write(toFile: questionnaireResponseOut, atomically: true, encoding: .utf8)
+print("Generated \(questionnaireResponseOut) — \(questionnaireResponseParams.count) QuestionnaireResponse params")
 
 let serviceRequestParams = try loadParams(resourceType: "ServiceRequest", packagesDir: packagesDir)
     .sorted { $0.code < $1.code }
