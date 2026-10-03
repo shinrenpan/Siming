@@ -33,6 +33,11 @@ public let fhirRequiredBindings: [String: [BindingRule]] = [
         BindingRule(path: "Condition.code.coding", valueSet: "http://hl7.org/fhir/uv/ips/ValueSet/absent-or-unknown-problems-uv-ips", kind: .code, isArray: false),
         BindingRule(path: "Condition.code.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/condition-code-sct-tw", kind: .code, isArray: false)
     ],
+    "Device": [
+        BindingRule(path: "Device.udiCarrier.entryType", valueSet: "http://hl7.org/fhir/ValueSet/udi-entry-type", kind: .code, isArray: false),
+        BindingRule(path: "Device.status", valueSet: "http://hl7.org/fhir/ValueSet/device-status", kind: .code, isArray: false),
+        BindingRule(path: "Device.deviceName.type", valueSet: "http://hl7.org/fhir/ValueSet/device-nametype", kind: .code, isArray: false)
+    ],
     "DiagnosticReport": [
         BindingRule(path: "DiagnosticReport.status", valueSet: "http://hl7.org/fhir/ValueSet/diagnostic-report-status", kind: .code, isArray: false),
         BindingRule(path: "DiagnosticReport.code.coding", valueSet: "https://twcore.mohw.gov.tw/ig/twcore/ValueSet/loinc-observation-code", kind: .code, isArray: false),

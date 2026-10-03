@@ -17,7 +17,7 @@ try FileManager.default.createDirectory(
 
 let allResourceTypes = [
     "AllergyIntolerance", "Appointment", "CarePlan", "Condition",
-    "DiagnosticReport", "DocumentReference", "Encounter",
+    "Device", "DiagnosticReport", "DocumentReference", "Encounter",
     "FamilyMemberHistory", "Goal", "Immunization", "Location",
     "Medication", "MedicationAdministration", "MedicationRequest",
     "MedicationStatement", "Observation", "Organization", "Patient",
@@ -97,6 +97,14 @@ let specimenCode = generateSpecimenExtractor(params: specimenParams)
 let specimenOut  = "\(outputDir)/Specimen+SearchExtractor.swift"
 try specimenCode.write(toFile: specimenOut, atomically: true, encoding: .utf8)
 print("Generated \(specimenOut) — \(specimenParams.count) Specimen params")
+
+let deviceParams = try loadParams(resourceType: "Device", packagesDir: packagesDir)
+    .sorted { $0.code < $1.code }
+
+let deviceCode = generateDeviceExtractor(params: deviceParams)
+let deviceOut  = "\(outputDir)/Device+SearchExtractor.swift"
+try deviceCode.write(toFile: deviceOut, atomically: true, encoding: .utf8)
+print("Generated \(deviceOut) — \(deviceParams.count) Device params")
 
 let serviceRequestParams = try loadParams(resourceType: "ServiceRequest", packagesDir: packagesDir)
     .sorted { $0.code < $1.code }

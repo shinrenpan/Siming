@@ -56,6 +56,9 @@ public let chainChildParamType: [String: ChainedParam.ChildType] = [
     "reason-code": .token,
     // Task
     "business-status": .token, "authored-on": .date, "modified": .date,
+    // Device — not `manufacturer`: Medication.manufacturer is a reference, and mapping it
+    // here would turn an ignored `medication.manufacturer=` chain into an empty result.
+    "device-name": .string, "model": .string, "udi-carrier": .string, "udi-di": .string,
 ]
 
 /// Parses a chained search param key+value.

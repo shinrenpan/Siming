@@ -53,11 +53,6 @@ Implemented when there is a reason to, not on spec:
 - **`MedicationDispense`** — completes the medication workflow. Follows the existing
   store/route patterns, so implementation cost is low and clinical value is high.
 
-- **`Device`** — TW Core profiles it (`Device-twcore`), and `Observation.device` is
-  already indexed but has nothing local to point at. A downstream client syncing device
-  measurements needs it: the alternative, a contained Device, copies the same device into
-  every Observation and is not searchable. Do this one first.
-
 - **`QuestionnaireResponse`** — TW Core profiles it (`QuestionnaireResponse-twcore`). The
   downstream workaround (answers in `Task.input`) is non-standard and other FHIR clients
   cannot read it.

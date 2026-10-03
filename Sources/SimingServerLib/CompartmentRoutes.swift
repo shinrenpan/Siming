@@ -8,7 +8,7 @@ private let maxCount = 100
 private let fhirJSON = "application/fhir+json"
 
 /// Patient compartment searches for Observation, Encounter, Condition, MedicationRequest, AllergyIntolerance,
-/// Procedure, DiagnosticReport, Immunization, RelatedPerson, ServiceRequest, Specimen, DocumentReference, CarePlan, Goal, MedicationStatement, FamilyMemberHistory, Appointment, MedicationAdministration.
+/// Procedure, DiagnosticReport, Immunization, RelatedPerson, ServiceRequest, Specimen, DocumentReference, CarePlan, Goal, MedicationStatement, FamilyMemberHistory, Appointment, MedicationAdministration, Device.
 /// Forces subject/patient=Patient/:patientId server-side; client cannot override.
 public func addCompartmentRoutes(
     to router: Router<SimingRequestContext>,
@@ -941,6 +941,79 @@ public func addCompartmentRoutes(
             }
             if let elems = elements { json = applyElements(json, elements: elems) }
             return ("\(baseURL)/Specimen/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // GET /Patient/:patientId/Device — compartment search
+    group.get(":id/Device") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let pairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownDeviceParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = try parseDeviceQuery(from: pairs)
+        query.patient = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
+        let result = try await stores.device.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        let nextURL = result.nextCursor.map { nextDevicePageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: deviceSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Device/\(e.id)", json)
+        }
+        let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
+        var headers = HTTPFields()
+        headers[.contentType] = fhirJSON
+        return Response(status: .ok, headers: headers,
+                        body: ResponseBody(byteBuffer: ByteBuffer(bytes: bundleData)))
+    }
+
+    // POST /Patient/:patientId/Device/_search — compartment form-encoded search
+    group.post(":id/Device/_search") { request, context in
+        let patientId = context.parameters.get("id") ?? ""
+        let ct = request.headers[.contentType] ?? ""
+        guard ct.contains("application/x-www-form-urlencoded") else {
+            throw FHIRRouteError.invalidBody("Content-Type must be application/x-www-form-urlencoded for _search")
+        }
+        var req = request
+        let bodyBuffer = try await req.collectBody(upTo: 4 * 1024 * 1024)
+        let urlPairs = request.uri.queryParameters.map { (key: $0.key, value: $0.value) }
+        let pairs = urlPairs + parseFormPairs(from: bodyBuffer)
+        if isStrictHandling(request) {
+            let bad = unknownParams(in: pairs, known: knownDeviceParams)
+            if !bad.isEmpty { throw FHIRRouteError.unknownParams(bad) }
+        }
+        var query = try parseDeviceQuery(from: pairs)
+        query.patient = "Patient/\(patientId)"
+        let elements = parseElements(from: pairs)
+        let summary = parseSummary(from: pairs)
+        if summary == .count { query.count = 0; query.totalMode = .accurate }
+        let result = try await stores.device.search(query: query)
+
+        let base = selfURL(request)
+        let baseURL = serverBaseURL(request)
+        let nextURL = result.nextCursor.map { nextDevicePageURL(selfURL: base, cursor: $0, count: query.count) }
+        let entries = result.entries.map { e -> (fullUrl: String, json: Data) in
+            var json = e.jsonWithMeta
+            if let s = summary, s != .false {
+                json = applySummary(json, mode: s, summaryFields: deviceSummaryFields)
+            }
+            if let elems = elements { json = applyElements(json, elements: elems) }
+            return ("\(baseURL)/Device/\(e.id)", json)
         }
         let bundleData = buildBundleJSON(entries: entries, total: result.total, selfURL: base, nextURL: nextURL)
         var headers = HTTPFields()

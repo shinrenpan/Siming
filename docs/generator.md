@@ -24,7 +24,7 @@ From those it writes **two kinds of artifact**:
 
 1. **Per-resource search extractors** — `Patient+SearchExtractor.swift`,
    `Observation+SearchExtractor.swift`, … (one file per supported resource type,
-   25 in total). Each exposes a single entry point, e.g.:
+   26 in total). Each exposes a single entry point, e.g.:
 
    ```swift
    public func extractPatientSearchParams(_ patient: Patient) -> SearchParams

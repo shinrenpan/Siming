@@ -331,6 +331,11 @@ public let taskSummaryFields: Set<String> = [
     "requester", "owner", "location",
 ]
 
+/// Device Σ-marked elements per FHIR R4 (excluding mandatory id/meta/resourceType).
+public let deviceSummaryFields: Set<String> = [
+    "udiCarrier", "status", "safety",
+]
+
 /// Specimen Σ-marked elements per FHIR R4 §12.16 (excluding mandatory id/meta/resourceType).
 public let specimenSummaryFields: Set<String> = [
     "identifier", "accessionIdentifier", "status", "type", "subject",
