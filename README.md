@@ -22,7 +22,7 @@ Server ready at `http://localhost:8080` · FHIR Browser at `http://localhost:808
 
 `setup.sh` pulls the prebuilt image `ghcr.io/shinrenpan/siming` (linux/amd64 and
 linux/arm64, FHIR packages included) — nothing is compiled. It follows `latest`; pin a
-release with `SIMING_VERSION=1.5.0` in `.env`. Images are published from v1.5.0 on.
+release with `SIMING_VERSION=1.6.0` in `.env`. Images are published from v1.5.0 on.
 
 ### Docker, built from source
 
