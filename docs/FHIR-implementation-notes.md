@@ -41,6 +41,9 @@ Multi-key `_sort` is supported on all 27 resources (FHIR R4 §3.3). Comma-separa
 | Medication | `status`, `code`, `_lastUpdated`, `_id` |
 | Appointment | `date` (start), `status`, `_lastUpdated`, `_id` |
 | MedicationAdministration | `effective-time`, `status`, `code`, `_lastUpdated`, `_id` |
+| Task | `authored-on`, `modified`, `period`, `status`, `code`, `priority`, `_lastUpdated`, `_id` |
+| Device | `device-name`, `manufacturer`, `model`, `status`, `_lastUpdated`, `_id` |
+| QuestionnaireResponse | `authored`, `status`, `_lastUpdated`, `_id` |
 | All resources | `_lastUpdated`, `_id` |
 
 ### Meta search parameters (`_tag`, `_security`, `_profile`, `_source`)
