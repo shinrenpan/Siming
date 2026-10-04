@@ -44,7 +44,7 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
     var igURLs: Set<String> = []
 
     for tgzPath in tgzFiles {
-        guard let tempDir = extractTGZ(tgzPath) else { continue }
+        guard let tempDir = extractTGZ(tgzPath, prefix: "siming-ig") else { continue }
         defer { try? fm.removeItem(at: tempDir) }
         let pkgDir = tempDir.appendingPathComponent("package")
         guard let files = try? fm.contentsOfDirectory(atPath: pkgDir.path) else { continue }
@@ -126,19 +126,4 @@ func loadIG(packagesDir: String, resourceTypes: [String]) -> IGData {
         profiles: profiles,
         implementationGuides: igURLs.sorted()
     )
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-private func extractTGZ(_ tgzPath: String) -> URL? {
-    let tempDir = FileManager.default.temporaryDirectory
-        .appendingPathComponent("siming-ig-\(UUID().uuidString)")
-    guard (try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)) != nil
-    else { return nil }
-    let tar = Process()
-    tar.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-    tar.arguments = ["xzf", tgzPath, "-C", tempDir.path]
-    try? tar.run()
-    tar.waitUntilExit()
-    return tar.terminationStatus == 0 ? tempDir : nil
 }

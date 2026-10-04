@@ -32,7 +32,13 @@ public func loadTerminology(packagesDir: String, logger: Logger) -> TerminologyI
     // Collect all JSON objects from every package (one pass over the filesystem)
     var allObjects: [[String: Any]] = []
     for tgzPath in tgzFiles {
-        guard let tempDir = extractTGZTerm(tgzPath) else { continue }
+        // Logged before extraction so a hang here is visible — this runs ahead of
+        // every other startup log line.
+        logger.info("[Terminology] extracting \(tgzPath)")
+        guard let tempDir = extractTGZ(tgzPath, prefix: "siming-term") else {
+            logger.warning("[Terminology] failed to extract \(tgzPath) — skipped")
+            continue
+        }
         defer { try? fm.removeItem(at: tempDir) }
         let pkgDir = tempDir.appendingPathComponent("package")
         guard let files = try? fm.contentsOfDirectory(atPath: pkgDir.path) else { continue }
@@ -123,18 +129,4 @@ private func collectCodes(from concepts: [[String: Any]], into codes: inout Set<
             collectCodes(from: children, into: &codes)
         }
     }
-}
-
-private func extractTGZTerm(_ tgzPath: String) -> URL? {
-    let tempDir = FileManager.default.temporaryDirectory
-        .appendingPathComponent("siming-term-\(UUID().uuidString)")
-    guard (try? FileManager.default.createDirectory(
-        at: tempDir, withIntermediateDirectories: true)) != nil
-    else { return nil }
-    let tar = Process()
-    tar.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-    tar.arguments    = ["xzf", tgzPath, "-C", tempDir.path]
-    try? tar.run()
-    tar.waitUntilExit()
-    return tar.terminationStatus == 0 ? tempDir : nil
 }
