@@ -46,7 +46,7 @@ public func addMetadataRoutes(
 
 // ── CapabilityStatement JSON builder ─────────────────────────────────────────
 
-private let serverVersion = "1.6.0"
+private let serverVersion = "1.6.1"
 
 private func buildCapabilityStatementJSON(
     smartConfig: SmartConfiguration?,
