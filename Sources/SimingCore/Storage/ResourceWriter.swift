@@ -43,7 +43,15 @@ public func writeResourceInner(
         versionId = vid; lastUpdated = lu
     }
     guard let vid = versionId, let lu = lastUpdated else {
-        throw FHIRServerError.versionConflict(id: id, expected: ifMatch ?? -1, actual: nil)
+        // The CTE yields no row only on an If-Match mismatch. Read the current
+        // version for the diagnostics — failure path only, the happy path stays one query.
+        let cur = try await conn.query(
+            "SELECT MAX(version_id) FROM resources WHERE resource_type = \(resourceType) AND id = \(id)",
+            logger: logger)
+        var actual: Int64? = nil
+        for try await v in cur.decode(Int64?.self, context: .default) { actual = v }
+        throw FHIRServerError.versionConflict(
+            resourceType: resourceType, id: id, expected: ifMatch ?? -1, actual: actual)
     }
     try await replaceIndexRows(conn: conn, resourceType: resourceType, id: id, params: params, logger: logger)
     return (vid, lu)
@@ -77,7 +85,8 @@ public func deleteResourceInner(
     }
     if isDeleted { return (current, Date(), true) }
     if let expected = ifMatch, current != expected {
-        throw FHIRServerError.versionConflict(id: id, expected: expected, actual: current)
+        throw FHIRServerError.versionConflict(
+            resourceType: resourceType, id: id, expected: expected, actual: current)
     }
 
     let nextVersion = current + 1

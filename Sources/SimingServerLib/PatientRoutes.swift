@@ -605,9 +605,9 @@ extension FHIRServerError: HTTPResponseError {
             (.error, .notFound, "\(rt)/\(id) not found")
         case .gone(let rt, let id):
             (.error, .deleted, "\(rt)/\(id) has been deleted")
-        case .versionConflict(let id, let expected, let actual):
+        case .versionConflict(let rt, let id, let expected, let actual):
             (.error, .conflict,
-             "Version conflict for Patient/\(id): expected W/\"\(expected)\", current is W/\"\(actual.map(String.init) ?? "none")\"")
+             "Version conflict for \(rt)/\(id): expected W/\"\(expected)\", current is W/\"\(actual.map(String.init) ?? "none")\"")
         case .multipleMatches(let rt):
             (.error, .multipleMatches,
              "Multiple \(rt) resources match the search criteria; criteria are not selective enough")

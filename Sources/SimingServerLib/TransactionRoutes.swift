@@ -263,9 +263,9 @@ private func fhirServerErrorToRouteError(_ e: FHIRServerError) -> FHIRRouteError
         return .unprocessableEntity("Resource not found: \(rt)/\(id)")
     case .gone(let rt, let id):
         return .unprocessableEntity("Resource is deleted: \(rt)/\(id)")
-    case .versionConflict(let id, let expected, let actual):
+    case .versionConflict(let rt, let id, let expected, let actual):
         let act = actual.map { "\($0)" } ?? "none"
-        return .unprocessableEntity("Version conflict on \(id): expected \(expected), actual \(act)")
+        return .unprocessableEntity("Version conflict on \(rt)/\(id): expected \(expected), actual \(act)")
     case .multipleMatches(let rt):
         return .unprocessableEntity("Multiple matches for \(rt) — conditional operations not supported in transactions")
     case .invalidSearchValue(let param, let value):

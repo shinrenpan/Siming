@@ -147,7 +147,13 @@ final class PatientStoreTests: XCTestCase {
         do {
             _ = try await store.update(id: created.id, patient: makePatient(family: "Conflict"), ifMatch: 1)
             XCTFail("Expected versionConflict")
-        } catch FHIRServerError.versionConflict { }
+        } catch FHIRServerError.versionConflict(let rt, let id, let expected, let actual) {
+            // actual must be the real current version — the 412 diagnostics print it
+            XCTAssertEqual(rt, "Patient")
+            XCTAssertEqual(id, created.id)
+            XCTAssertEqual(expected, 1)
+            XCTAssertEqual(actual, 2)
+        }
     }
 
     func testSearch_pagination_cursorAdvances() async throws {
